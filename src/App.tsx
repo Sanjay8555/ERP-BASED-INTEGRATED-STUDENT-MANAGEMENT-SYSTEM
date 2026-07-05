@@ -106,7 +106,11 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<User>(() => {
     try {
       const saved = localStorage.getItem('currentUser');
-      return saved ? JSON.parse(saved) : initialUsers[0];
+      const parsed = saved ? JSON.parse(saved) : null;
+      if (parsed?.username === 'admin') {
+        return { ...initialUsers[0], ...parsed, name: 'RAJESH', role: 'Admin' };
+      }
+      return parsed || initialUsers[0];
     } catch {
       return initialUsers[0];
     }
@@ -268,10 +272,12 @@ export default function App() {
     const hasSanjayK = usersStore.some(u => u.name === 'Sanjay K');
     const hasMurugesan = usersStore.some(u => u.name.includes('Murugesan'));
     const hasTOC = coursesStore.some(c => c.name === 'TOC');
+    const hasAdminRajesh = usersStore.some(u => u.username === 'admin' && u.name === 'RAJESH');
 
-    if (!hasSanjayK || !hasMurugesan || !hasTOC) {
+    if (!hasSanjayK || !hasMurugesan || !hasTOC || !hasAdminRajesh) {
       console.log('Synchronizing updated ERP database seeds...');
-      setUsersStore(initialUsers);
+      const syncedUsers = initialUsers.map(user => user.username === 'admin' ? { ...user, name: 'RAJESH' } : user);
+      setUsersStore(syncedUsers);
       setStudentsStore(initialStudentProfiles);
       setFacultyStore(initialFacultyProfiles);
       setCoursesStore(initialCourses);
@@ -280,9 +286,10 @@ export default function App() {
       setAttendanceStore(initialAttendance);
       setExamsStore(initialExams);
       setResultsStore(initialResults);
-      
+      setCurrentUser(syncedUsers[0]);
+
       // Persist directly to prevent subsequent stale reloads
-      localStorage.setItem('usersStore', JSON.stringify(initialUsers));
+      localStorage.setItem('usersStore', JSON.stringify(syncedUsers));
       localStorage.setItem('studentsStore', JSON.stringify(initialStudentProfiles));
       localStorage.setItem('facultyStore', JSON.stringify(initialFacultyProfiles));
       localStorage.setItem('coursesStore', JSON.stringify(initialCourses));
@@ -291,6 +298,7 @@ export default function App() {
       localStorage.setItem('attendanceStore', JSON.stringify(initialAttendance));
       localStorage.setItem('examsStore', JSON.stringify(initialExams));
       localStorage.setItem('resultsStore', JSON.stringify(initialResults));
+      localStorage.setItem('currentUser', JSON.stringify(syncedUsers[0]));
     }
   }, []);
 
