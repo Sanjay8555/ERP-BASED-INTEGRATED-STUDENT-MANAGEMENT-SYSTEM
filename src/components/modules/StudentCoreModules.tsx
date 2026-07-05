@@ -586,7 +586,7 @@ export function ExaminationGrades({
 
             {/* GPA summary */}
             <div className="mt-6 border-t pt-4 flex justify-between items-center text-xs">
-              <p className="font-semibold text-slate-400">Registrar Sign: Dr. Eleanor Vance</p>
+              <p className="font-semibold text-slate-400">Registrar Sign: RAJESH</p>
               <div className="text-right">
                 <p className="font-bold text-slate-700 dark:text-slate-300">Degree: B.E. / B.Tech</p>
                 <p className="text-sm font-black text-teal-600 mt-1">Current Status: ACTIVE</p>

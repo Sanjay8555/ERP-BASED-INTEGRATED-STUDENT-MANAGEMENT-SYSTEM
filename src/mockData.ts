@@ -28,7 +28,7 @@ export const initialUsers: User[] = [
     username: 'admin',
     email: 'admin@university.edu',
     password: 'adminPass2026!',
-    name: 'Dr. Eleanor Vance',
+    name: 'RAJESH',
     role: 'Admin',
     phone: '+1 (555) 019-2834',
     photo: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=120'

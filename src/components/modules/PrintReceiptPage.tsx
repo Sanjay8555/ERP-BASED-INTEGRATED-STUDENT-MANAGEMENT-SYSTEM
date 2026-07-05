@@ -414,7 +414,7 @@ Status    : PAID / COMPLETED
             <div className="border-t border-slate-100 dark:border-slate-800 pt-8 mt-12 flex flex-col sm:flex-row justify-between text-[11px] text-slate-400 gap-4">
               <div>
                 <p className="font-bold text-slate-500 dark:text-slate-400">Ledger Compliance Officers</p>
-                <p className="mt-0.5">Dr. Eleanor Vance, Registrar</p>
+                <p className="mt-0.5">RAJESH, Registrar</p>
               </div>
               <div className="text-left sm:text-right font-mono text-[9px]">
                 <p>Digital Cryptographic Signature ID:</p>

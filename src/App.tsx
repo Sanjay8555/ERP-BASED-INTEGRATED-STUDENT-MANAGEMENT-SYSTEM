@@ -110,7 +110,7 @@ export default function App() {
     } catch {
       return initialUsers[0];
     }
-  }); // default Dr. Eleanor Vance (Admin)
+  }); // default RAJESH (Admin)
   const [activeRole, setActiveRole] = useState<UserRole>(() => {
     try {
       const saved = localStorage.getItem('activeRole');
