@@ -1,0 +1,6 @@
+{
+  "name": "Integrated Student Management System ERP",
+  "description": "A comprehensive, 3-tier enterprise ERP system for college and university administration, featuring student and faculty management, attendance, exam GPA calculation, library books, timetables, fee payments, and 6 role-based dashboards.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

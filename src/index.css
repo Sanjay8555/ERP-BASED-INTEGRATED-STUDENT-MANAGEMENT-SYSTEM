@@ -1,0 +1,99 @@
+@import "tailwindcss";
+
+@variant dark (&:where(.dark, .dark *));
+
+@theme {
+  /* Soft, luxury off-white values for light mode */
+  --color-slate-50: #f8fafc;
+  --color-slate-100: #f1f5f9;
+  --color-slate-200: #e2e8f0;
+
+  /* Sophisticated, soft eye-safe deep indigo/midnight-slate values for dark mode */
+  --color-slate-800: #1e293b;
+  --color-slate-900: #0f172a;
+  --color-slate-950: #0a0f1d;
+}
+
+/* Ensure browser scrollbars and native UI elements respect dark/light theme */
+:root {
+  color-scheme: light;
+}
+.dark {
+  color-scheme: dark;
+}
+
+/* Global utility overrides for form controls in dark mode to fix focus and dropdown text color contrast */
+.dark select option {
+  background-color: #0f172a !important; /* matches slate-900 */
+  color: #ffffff !important;
+}
+
+.dark input:focus,
+.dark select:focus,
+.dark textarea:focus {
+  background-color: #0f172a !important; /* matches slate-900 */
+  color: #ffffff !important;
+}
+
+/* Print Stylesheet overrides to isolate and print only the beautiful receipts */
+@media print {
+  .print-hidden {
+    display: none !important;
+  }
+
+  body {
+    background-color: white !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  #root {
+    display: block !important;
+  }
+
+  /* Ensure the main container doesn't restrict height or show scrollbars */
+  div.flex.h-screen {
+    height: auto !important;
+    overflow: visible !important;
+    display: block !important;
+  }
+
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+  }
+
+  #print-section {
+    display: block !important;
+    padding: 20px !important;
+    width: 100% !important;
+    max-width: none !important;
+    box-sizing: border-box !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  /* Specific tweaks for dark mode printing */
+  .dark #print-section {
+    background-color: white !important;
+    color: #0f172a !important;
+  }
+
+  .dark #print-section * {
+    color: #0f172a !important;
+    border-color: #e2e8f0 !important;
+  }
+
+  .dark #print-section .bg-slate-50,
+  .dark #print-section .bg-slate-950,
+  .dark #print-section .bg-emerald-50 {
+    background-color: #f1f5f9 !important;
+  }
+}
+
+/* Ensure #print-section is styled correctly in screen mode if needed, 
+   but usually it's just part of the normal flow */
+@media screen {
+  /* No specific overrides needed unless we want to force print layout on screen */
+}
