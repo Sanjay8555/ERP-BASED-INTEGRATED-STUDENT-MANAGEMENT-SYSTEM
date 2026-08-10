@@ -637,13 +637,13 @@ export function AssignmentSubmissions({
 }: AssignmentSubmissionsProps) {
   const studentProfile = students.find(s => s.userId === currentUser?.id);
   const currentStudentId = studentProfile?.id || 's-1';
-  const studentDept = departments.find(d => d.id === studentProfile?.departmentId);
-  const studentSem = studentProfile?.currentSemester || 4;
-  const studentYear = Math.ceil(studentSem / 2);
 
-  // Faculty Filter states
-  const [selectedDept, setSelectedDept] = useState(departments[0]?.id || 'dept-5');
-  const [selectedSem, setSelectedSem] = useState(4);
+  // Department & Semester filter states (initialized to student's profile if student, or default dept/sem)
+  const [selectedDept, setSelectedDept] = useState(() => studentProfile?.departmentId || departments[0]?.id || 'dept-5');
+  const [selectedSem, setSelectedSem] = useState(() => studentProfile?.currentSemester || 4);
+
+  const selectedDepartmentObj = departments.find(d => d.id === selectedDept);
+  const selectedSemYear = Math.ceil(selectedSem / 2);
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [showGradeModal, setShowGradeModal] = useState(false);
@@ -657,7 +657,7 @@ export function AssignmentSubmissions({
   // Form states (Add Assignment)
   const [title, setTitle] = useState('');
   const [desc, setDesc] = useState('');
-  const [courseId, setCourseId] = useState(courses[0]?.id || '');
+  const [courseId, setCourseId] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [maxMarks, setMaxMarks] = useState(50);
 
@@ -673,25 +673,33 @@ export function AssignmentSubmissions({
 
   const isFaculty = role === 'Faculty' || role === 'Admin';
 
-  // Filter student assignments strictly by student's department and semester/year
+  // Filter student assignments strictly by selected department and semester/year
   const visibleStudentAssignments = assignments.filter(asg => {
     const course = courses.find(c => c.id === asg.courseId);
-    if (!course) return false;
-    if (studentProfile) {
-      return course.departmentId === studentProfile.departmentId && course.semester === studentProfile.currentSemester;
-    }
-    return true;
+    if (!course) return true;
+    return course.departmentId === selectedDept && course.semester === selectedSem;
   });
+
+  const handleOpenAddModal = () => {
+    const availableCourses = courses.filter(c => c.departmentId === selectedDept && c.semester === selectedSem);
+    setCourseId(availableCourses[0]?.id || courses[0]?.id || '');
+    setShowAddModal(true);
+  };
 
   const handleCreateAssignment = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !dueDate) return;
 
+    const availableCourses = courses.filter(c => c.departmentId === selectedDept && c.semester === selectedSem);
+    const finalCourseId = availableCourses.some(c => c.id === courseId)
+      ? courseId
+      : (availableCourses[0]?.id || courses[0]?.id || '');
+
     const newAsg: Assignment = {
       id: `asg-${Date.now()}`,
       title,
       description: desc,
-      courseId,
+      courseId: finalCourseId,
       dueDate,
       facultyId: 'f-1',
       maxMarks: Number(maxMarks)
@@ -846,36 +854,34 @@ export function AssignmentSubmissions({
     document.body.removeChild(link);
   };
 
-  const selectedDepartmentObj = departments.find(d => d.id === selectedDept);
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="font-sans text-lg font-bold text-slate-800 dark:text-white">Homework & Assessment Tasks Board</h2>
-          {isFaculty && (
-            <div className="mt-2 flex flex-wrap gap-2 items-center">
-              <span className="text-[11px] font-bold text-slate-500 uppercase">Target Dept & Year:</span>
-              <select
-                value={selectedDept}
-                onChange={(e) => setSelectedDept(e.target.value)}
-                className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 focus:outline-hidden"
-              >
-                {departments.map(d => (
-                  <option key={d.id} value={d.id}>{d.name} ({d.code})</option>
-                ))}
-              </select>
-              <select
-                value={selectedSem}
-                onChange={(e) => setSelectedSem(Number(e.target.value))}
-                className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 focus:outline-hidden"
-              >
-                {[1, 2, 3, 4, 5, 6, 7, 8].map(s => (
-                  <option key={s} value={s}>Semester {s} (Year {Math.ceil(s / 2)})</option>
-                ))}
-              </select>
+          <div className="mt-2 flex flex-wrap gap-2 items-center">
+            <span className="text-[11px] font-bold text-slate-500 uppercase">Target Department & Year:</span>
+            <select
+              value={selectedDept}
+              onChange={(e) => setSelectedDept(e.target.value)}
+              className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 focus:outline-hidden"
+            >
+              {departments.map(d => (
+                <option key={d.id} value={d.id}>{d.name} ({d.code})</option>
+              ))}
+            </select>
+            <select
+              value={selectedSem}
+              onChange={(e) => setSelectedSem(Number(e.target.value))}
+              className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 focus:outline-hidden"
+            >
+              {[1, 2, 3, 4, 5, 6, 7, 8].map(s => (
+                <option key={s} value={s}>Semester {s} (Year {Math.ceil(s / 2)})</option>
+              ))}
+            </select>
 
-              {/* Download Tasks Sheet Button */}
+            {/* Download Tasks Sheet Button for Faculty */}
+            {isFaculty && (
               <button
                 onClick={handleExportSheetCSV}
                 className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1 text-[11px] font-bold text-white shadow-xs hover:bg-emerald-700 transition-colors"
@@ -883,12 +889,12 @@ export function AssignmentSubmissions({
               >
                 <FileSpreadsheet className="h-3.5 w-3.5" /> Download Sheet (.csv)
               </button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
         {isFaculty && (
           <button
-            onClick={() => setShowAddModal(true)}
+            onClick={handleOpenAddModal}
             className="flex items-center gap-2 rounded-xl bg-teal-600 px-4 py-2.5 text-xs font-bold text-white shadow-md hover:bg-teal-700 transition-colors"
           >
             <PlusCircle className="h-4 w-4" /> Create New Assessment Task
@@ -1073,17 +1079,17 @@ export function AssignmentSubmissions({
               <div>
                 <h3 className="font-sans text-sm font-bold text-slate-900 dark:text-white">Course Assignment & Task Portal</h3>
                 <p className="text-[11px] font-semibold text-teal-600 dark:text-teal-400">
-                  Assigned tasks for: <span className="underline">{studentDept?.name || 'Computer Science & Engineering'}</span> • Semester {studentSem} (Year {studentYear})
+                  Assigned tasks for: <span className="underline">{selectedDepartmentObj?.name || 'Department'}</span> • Semester {selectedSem} (Year {selectedSemYear})
                 </p>
               </div>
               <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800 px-2.5 py-1 rounded-full w-fit">
-                <Building className="h-3 w-3" /> {studentDept?.code || 'CSE'} - Sem {studentSem}
+                <Building className="h-3 w-3" /> {selectedDepartmentObj?.code || 'DEPT'} - Sem {selectedSem}
               </span>
             </div>
 
             <div className="space-y-4">
               {visibleStudentAssignments.map(asg => {
-                const sub = submissions.find(s => s.assignmentId === asg.id && s.studentId === currentStudentId);
+                const sub = submissions.find(s => s.assignmentId === asg.id && (s.studentId === currentStudentId || s.studentId === currentUser?.id));
                 const course = courses.find(c => c.id === asg.courseId);
                 return (
                   <div key={asg.id} className="p-4 bg-slate-50 dark:bg-slate-950 border border-slate-200/60 dark:border-slate-800 rounded-2xl">
@@ -1131,7 +1137,7 @@ export function AssignmentSubmissions({
                   <BookOpen className="h-8 w-8 text-slate-300 mx-auto mb-2" />
                   <p className="font-bold text-xs text-slate-700 dark:text-slate-300">No Pending Tasks</p>
                   <p className="text-[11px] text-slate-400 mt-0.5 max-w-xs mx-auto">
-                    There are currently no homework or assessment tasks assigned for {studentDept?.name || 'your department'} (Semester {studentSem}).
+                    There are currently no homework or assessment tasks assigned for {selectedDepartmentObj?.name || 'this department'} (Semester {selectedSem}).
                   </p>
                 </div>
               )}
