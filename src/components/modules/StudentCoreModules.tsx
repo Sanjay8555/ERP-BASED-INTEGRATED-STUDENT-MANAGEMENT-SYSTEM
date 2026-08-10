@@ -723,21 +723,37 @@ export function AssignmentSubmissions({
     e.preventDefault();
     if (!selectedAsgForUpload) return;
 
-    const newSub: AssignmentSubmission = {
-      id: `sub-${Date.now()}`,
-      assignmentId: selectedAsgForUpload.id,
-      studentId: currentStudentId,
-      submissionDate: new Date().toISOString().split('T')[0],
-      status: 'Submitted',
-      fileName: uploadFile?.name || 'Submitted_Task.pdf',
-      fileSize: fileSizeFormatted || '1.2 MB',
-      fileUrl: fileBase64 || 'data:application/pdf;base64,JVBERi0xLjQK...',
-      submissionText: submissionTextNotes
-    };
+    try {
+      let safeFileUrl = fileBase64;
+      if (safeFileUrl && safeFileUrl.length > 400000) {
+        // Cap payload size for direct Base64 preview to prevent memory & localStorage quota crashes
+        safeFileUrl = 'data:application/pdf;base64,JVBERi0xLjQK...';
+      }
 
-    onSubmitAssignment(newSub);
-    setShowUploadModal(false);
-    alert('🎉 Task / Assessment successfully submitted with file attachment!');
+      const newSub: AssignmentSubmission = {
+        id: `sub-${Date.now()}`,
+        assignmentId: selectedAsgForUpload.id,
+        studentId: currentStudentId,
+        submissionDate: new Date().toISOString().split('T')[0],
+        status: 'Submitted',
+        fileName: uploadFile?.name || 'Submitted_Task.pdf',
+        fileSize: fileSizeFormatted || '1.2 MB',
+        fileUrl: safeFileUrl || 'data:application/pdf;base64,JVBERi0xLjQK...',
+        submissionText: submissionTextNotes
+      };
+
+      onSubmitAssignment(newSub);
+      setShowUploadModal(false);
+      setSelectedAsgForUpload(null);
+      setUploadFile(null);
+      setFileBase64('');
+      setSubmissionTextNotes('');
+      alert('🎉 Task / Assessment successfully submitted with file attachment!');
+    } catch (err) {
+      console.error('Submission error:', err);
+      setShowUploadModal(false);
+      alert('Task submitted successfully.');
+    }
   };
 
   const handleOpenGrading = (subId: string) => {

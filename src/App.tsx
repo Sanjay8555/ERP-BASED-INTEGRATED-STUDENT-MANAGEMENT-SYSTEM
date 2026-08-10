@@ -291,99 +291,108 @@ export default function App() {
       setResultsStore(initialResults);
       setCurrentUser(syncedUsers[0]);
 
-      // Persist directly to prevent subsequent stale reloads
-      localStorage.setItem('usersStore', JSON.stringify(syncedUsers));
-      localStorage.setItem('studentsStore', JSON.stringify(initialStudentProfiles));
-      localStorage.setItem('facultyStore', JSON.stringify(initialFacultyProfiles));
-      localStorage.setItem('coursesStore', JSON.stringify(initialCourses));
-      localStorage.setItem('feePaymentsStore', JSON.stringify(initialFeePayments));
-      localStorage.setItem('feeStructuresStore', JSON.stringify(initialFeeStructures));
-      localStorage.setItem('attendanceStore', JSON.stringify(initialAttendance));
-      localStorage.setItem('examsStore', JSON.stringify(initialExams));
-      localStorage.setItem('resultsStore', JSON.stringify(initialResults));
-      localStorage.setItem('currentUser', JSON.stringify(syncedUsers[0]));
+      // Safe helper to avoid QuotaExceededError blank screen crashes
+      safeLocalStorageSet('usersStore', JSON.stringify(syncedUsers));
+      safeLocalStorageSet('studentsStore', JSON.stringify(initialStudentProfiles));
+      safeLocalStorageSet('facultyStore', JSON.stringify(initialFacultyProfiles));
+      safeLocalStorageSet('coursesStore', JSON.stringify(initialCourses));
+      safeLocalStorageSet('feePaymentsStore', JSON.stringify(initialFeePayments));
+      safeLocalStorageSet('feeStructuresStore', JSON.stringify(initialFeeStructures));
+      safeLocalStorageSet('attendanceStore', JSON.stringify(initialAttendance));
+      safeLocalStorageSet('examsStore', JSON.stringify(initialExams));
+      safeLocalStorageSet('resultsStore', JSON.stringify(initialResults));
+      safeLocalStorageSet('currentUser', JSON.stringify(syncedUsers[0]));
     }
   }, []);
 
+  // Safe localStorage helper function to protect against QuotaExceededError exceptions
+  function safeLocalStorageSet(key: string, value: string) {
+    try {
+      localStorage.setItem(key, value);
+    } catch (e) {
+      console.warn(`[LocalStorage] Skip persistent cache for "${key}" (Quota limit reached).`, e);
+    }
+  }
+
   // Automatically sync all authentication & domain states to localStorage on change
   useEffect(() => {
-    localStorage.setItem('isAuthenticated', JSON.stringify(isAuthenticated));
+    safeLocalStorageSet('isAuthenticated', JSON.stringify(isAuthenticated));
   }, [isAuthenticated]);
 
   useEffect(() => {
-    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+    safeLocalStorageSet('currentUser', JSON.stringify(currentUser));
   }, [currentUser]);
 
   useEffect(() => {
-    localStorage.setItem('activeRole', JSON.stringify(activeRole));
+    safeLocalStorageSet('activeRole', JSON.stringify(activeRole));
   }, [activeRole]);
 
   useEffect(() => {
-    localStorage.setItem('activeTab', JSON.stringify(activeTab));
+    safeLocalStorageSet('activeTab', JSON.stringify(activeTab));
   }, [activeTab]);
 
   useEffect(() => {
-    localStorage.setItem('usersStore', JSON.stringify(usersStore));
+    safeLocalStorageSet('usersStore', JSON.stringify(usersStore));
   }, [usersStore]);
 
   useEffect(() => {
-    localStorage.setItem('studentsStore', JSON.stringify(studentsStore));
+    safeLocalStorageSet('studentsStore', JSON.stringify(studentsStore));
   }, [studentsStore]);
 
   useEffect(() => {
-    localStorage.setItem('facultyStore', JSON.stringify(facultyStore));
+    safeLocalStorageSet('facultyStore', JSON.stringify(facultyStore));
   }, [facultyStore]);
 
   useEffect(() => {
-    localStorage.setItem('departmentsStore', JSON.stringify(departmentsStore));
+    safeLocalStorageSet('departmentsStore', JSON.stringify(departmentsStore));
   }, [departmentsStore]);
 
   useEffect(() => {
-    localStorage.setItem('coursesStore', JSON.stringify(coursesStore));
+    safeLocalStorageSet('coursesStore', JSON.stringify(coursesStore));
   }, [coursesStore]);
 
   useEffect(() => {
-    localStorage.setItem('attendanceStore', JSON.stringify(attendanceStore));
+    safeLocalStorageSet('attendanceStore', JSON.stringify(attendanceStore));
   }, [attendanceStore]);
 
   useEffect(() => {
-    localStorage.setItem('examsStore', JSON.stringify(examsStore));
+    safeLocalStorageSet('examsStore', JSON.stringify(examsStore));
   }, [examsStore]);
 
   useEffect(() => {
-    localStorage.setItem('resultsStore', JSON.stringify(resultsStore));
+    safeLocalStorageSet('resultsStore', JSON.stringify(resultsStore));
   }, [resultsStore]);
 
   useEffect(() => {
-    localStorage.setItem('feeStructuresStore', JSON.stringify(feeStructuresStore));
+    safeLocalStorageSet('feeStructuresStore', JSON.stringify(feeStructuresStore));
   }, [feeStructuresStore]);
 
   useEffect(() => {
-    localStorage.setItem('feePaymentsStore', JSON.stringify(feePaymentsStore));
+    safeLocalStorageSet('feePaymentsStore', JSON.stringify(feePaymentsStore));
   }, [feePaymentsStore]);
 
   useEffect(() => {
-    localStorage.setItem('booksStore', JSON.stringify(booksStore));
+    safeLocalStorageSet('booksStore', JSON.stringify(booksStore));
   }, [booksStore]);
 
   useEffect(() => {
-    localStorage.setItem('bookIssuesStore', JSON.stringify(bookIssuesStore));
+    safeLocalStorageSet('bookIssuesStore', JSON.stringify(bookIssuesStore));
   }, [bookIssuesStore]);
 
   useEffect(() => {
-    localStorage.setItem('timetableStore', JSON.stringify(timetableStore));
+    safeLocalStorageSet('timetableStore', JSON.stringify(timetableStore));
   }, [timetableStore]);
 
   useEffect(() => {
-    localStorage.setItem('assignmentsStore', JSON.stringify(assignmentsStore));
+    safeLocalStorageSet('assignmentsStore', JSON.stringify(assignmentsStore));
   }, [assignmentsStore]);
 
   useEffect(() => {
-    localStorage.setItem('submissionsStore', JSON.stringify(submissionsStore));
+    safeLocalStorageSet('submissionsStore', JSON.stringify(submissionsStore));
   }, [submissionsStore]);
 
   useEffect(() => {
-    localStorage.setItem('noticesStore', JSON.stringify(noticesStore));
+    safeLocalStorageSet('noticesStore', JSON.stringify(noticesStore));
   }, [noticesStore]);
 
   // Ref to prevent circular echo re-triggers during incoming cloud updates
