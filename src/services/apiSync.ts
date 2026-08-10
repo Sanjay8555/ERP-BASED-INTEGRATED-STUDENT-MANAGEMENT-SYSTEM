@@ -15,11 +15,16 @@ export interface SyncPayload {
   departmentsStore: any[];
   coursesStore: any[];
   feePaymentsStore: any[];
+  feeStructuresStore?: any[];
   booksStore: any[];
+  bookIssuesStore?: any[];
   noticesStore: any[];
   timetableStore: any[];
   gradesStore: any[];
   attendanceStore: any[];
+  examsStore?: any[];
+  assignmentsStore?: any[];
+  submissionsStore?: any[];
 }
 
 /**

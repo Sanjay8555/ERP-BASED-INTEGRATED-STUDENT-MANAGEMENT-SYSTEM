@@ -400,9 +400,14 @@ export default function App() {
         if (cloudData.facultyStore?.length) setFacultyStore(cloudData.facultyStore);
         if (cloudData.coursesStore?.length) setCoursesStore(cloudData.coursesStore);
         if (cloudData.feePaymentsStore?.length) setFeePaymentsStore(cloudData.feePaymentsStore);
+        if (cloudData.feeStructuresStore?.length) setFeeStructuresStore(cloudData.feeStructuresStore);
         if (cloudData.booksStore?.length) setBooksStore(cloudData.booksStore);
+        if (cloudData.bookIssuesStore?.length) setBookIssuesStore(cloudData.bookIssuesStore);
         if (cloudData.noticesStore?.length) setNoticesStore(cloudData.noticesStore);
         if (cloudData.timetableStore?.length) setTimetableStore(cloudData.timetableStore);
+        if (cloudData.examsStore?.length) setExamsStore(cloudData.examsStore);
+        if (cloudData.assignmentsStore?.length) setAssignmentsStore(cloudData.assignmentsStore);
+        if (cloudData.submissionsStore?.length) setSubmissionsStore(cloudData.submissionsStore);
 
         setTimeout(() => {
           isRemoteUpdatingRef.current = false;
@@ -424,9 +429,14 @@ export default function App() {
       if (cloudData.facultyStore) setFacultyStore(cloudData.facultyStore);
       if (cloudData.coursesStore) setCoursesStore(cloudData.coursesStore);
       if (cloudData.feePaymentsStore) setFeePaymentsStore(cloudData.feePaymentsStore);
+      if (cloudData.feeStructuresStore) setFeeStructuresStore(cloudData.feeStructuresStore);
       if (cloudData.booksStore) setBooksStore(cloudData.booksStore);
+      if (cloudData.bookIssuesStore) setBookIssuesStore(cloudData.bookIssuesStore);
       if (cloudData.noticesStore) setNoticesStore(cloudData.noticesStore);
       if (cloudData.timetableStore) setTimetableStore(cloudData.timetableStore);
+      if (cloudData.examsStore) setExamsStore(cloudData.examsStore);
+      if (cloudData.assignmentsStore) setAssignmentsStore(cloudData.assignmentsStore);
+      if (cloudData.submissionsStore) setSubmissionsStore(cloudData.submissionsStore);
 
       setTimeout(() => {
         isRemoteUpdatingRef.current = false;
@@ -446,11 +456,16 @@ export default function App() {
       departmentsStore: initialDepartments,
       coursesStore,
       feePaymentsStore,
+      feeStructuresStore,
       booksStore,
+      bookIssuesStore,
       noticesStore,
       timetableStore,
       gradesStore: resultsStore,
-      attendanceStore
+      attendanceStore,
+      examsStore,
+      assignmentsStore,
+      submissionsStore
     };
     saveBackendState(syncPayload);
   }, [
@@ -459,11 +474,16 @@ export default function App() {
     facultyStore,
     coursesStore,
     feePaymentsStore,
+    feeStructuresStore,
     booksStore,
+    bookIssuesStore,
     noticesStore,
     timetableStore,
     resultsStore,
-    attendanceStore
+    attendanceStore,
+    examsStore,
+    assignmentsStore,
+    submissionsStore
   ]);
 
   // Auth screen specific state
