@@ -108,8 +108,9 @@ app.post('/api/state', (req, res) => {
 // Real-Time Server-Sent Events (SSE) Stream
 app.get('/api/events', (req, res) => {
   res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
   res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
   res.flushHeaders?.();
 
   const clientId = Date.now() + '-' + Math.random().toString(36).substring(2, 9);
@@ -121,7 +122,17 @@ app.get('/api/events', (req, res) => {
   // Send initial handshake ping
   res.write(`data: ${JSON.stringify({ type: 'CONNECTED', clientId })}\n\n`);
 
+  // Send heartbeat ping every 15s to keep HTTP connection alive through proxies
+  const heartbeat = setInterval(() => {
+    try {
+      res.write(': heartbeat\n\n');
+    } catch (e) {
+      clearInterval(heartbeat);
+    }
+  }, 15000);
+
   req.on('close', () => {
+    clearInterval(heartbeat);
     sseClients = sseClients.filter(c => c.id !== clientId);
     console.log(`[SSE] Client disconnected: ${clientId}. Total active clients: ${sseClients.length}`);
   });
