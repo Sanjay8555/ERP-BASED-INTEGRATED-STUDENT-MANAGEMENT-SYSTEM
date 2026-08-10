@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   GraduationCap,
   Building,
@@ -18,6 +18,7 @@ import {
   Camera
 } from 'lucide-react';
 import ProfilePhotoModal from './components/shared/ProfilePhotoModal';
+import { fetchBackendState, saveBackendState, subscribeToRealtimeSync } from './services/apiSync';
 
 // Domain Imports
 import {
@@ -384,6 +385,86 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('noticesStore', JSON.stringify(noticesStore));
   }, [noticesStore]);
+
+  // Ref to prevent circular echo re-triggers during incoming cloud updates
+  const isRemoteUpdatingRef = useRef(false);
+
+  // Load initial backend state & subscribe to real-time SSE stream across devices
+  useEffect(() => {
+    // 1. Initial Cloud Sync Fetch
+    fetchBackendState().then(cloudData => {
+      if (cloudData) {
+        isRemoteUpdatingRef.current = true;
+        if (cloudData.usersStore?.length) setUsersStore(cloudData.usersStore);
+        if (cloudData.studentsStore?.length) setStudentsStore(cloudData.studentsStore);
+        if (cloudData.facultyStore?.length) setFacultyStore(cloudData.facultyStore);
+        if (cloudData.coursesStore?.length) setCoursesStore(cloudData.coursesStore);
+        if (cloudData.feePaymentsStore?.length) setFeePaymentsStore(cloudData.feePaymentsStore);
+        if (cloudData.booksStore?.length) setBooksStore(cloudData.booksStore);
+        if (cloudData.noticesStore?.length) setNoticesStore(cloudData.noticesStore);
+        if (cloudData.timetableStore?.length) setTimetableStore(cloudData.timetableStore);
+
+        setTimeout(() => {
+          isRemoteUpdatingRef.current = false;
+        }, 500);
+      }
+    });
+
+    // 2. Real-Time Cross-Device SSE Subscription
+    const unsubscribe = subscribeToRealtimeSync((cloudData) => {
+      isRemoteUpdatingRef.current = true;
+      if (cloudData.usersStore) {
+        setUsersStore(cloudData.usersStore);
+        setCurrentUser(prev => {
+          const updated = cloudData.usersStore.find((u: any) => u.id === prev.id);
+          return updated ? { ...prev, ...updated } : prev;
+        });
+      }
+      if (cloudData.studentsStore) setStudentsStore(cloudData.studentsStore);
+      if (cloudData.facultyStore) setFacultyStore(cloudData.facultyStore);
+      if (cloudData.coursesStore) setCoursesStore(cloudData.coursesStore);
+      if (cloudData.feePaymentsStore) setFeePaymentsStore(cloudData.feePaymentsStore);
+      if (cloudData.booksStore) setBooksStore(cloudData.booksStore);
+      if (cloudData.noticesStore) setNoticesStore(cloudData.noticesStore);
+      if (cloudData.timetableStore) setTimetableStore(cloudData.timetableStore);
+
+      setTimeout(() => {
+        isRemoteUpdatingRef.current = false;
+      }, 500);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // Sync local changes to cloud backend whenever local stores update
+  useEffect(() => {
+    if (isRemoteUpdatingRef.current) return;
+    const syncPayload = {
+      usersStore,
+      studentsStore,
+      facultyStore,
+      departmentsStore: initialDepartments,
+      coursesStore,
+      feePaymentsStore,
+      booksStore,
+      noticesStore,
+      timetableStore,
+      gradesStore: resultsStore,
+      attendanceStore
+    };
+    saveBackendState(syncPayload);
+  }, [
+    usersStore,
+    studentsStore,
+    facultyStore,
+    coursesStore,
+    feePaymentsStore,
+    booksStore,
+    noticesStore,
+    timetableStore,
+    resultsStore,
+    attendanceStore
+  ]);
 
   // Auth screen specific state
   const [loginEmail, setLoginEmail] = useState('');
