@@ -13,9 +13,11 @@ import {
   ChevronDown,
   UserCheck,
   Clock,
-  ShieldCheck
+  ShieldCheck,
+  Camera
 } from 'lucide-react';
 import { User, UserRole } from '../../types';
+import ProfilePhotoModal from './ProfilePhotoModal';
 
 interface NavbarProps {
   currentUser: User;
@@ -25,6 +27,8 @@ interface NavbarProps {
   sidebarOpen: boolean;
   setSidebarOpen: (open: boolean) => void;
   activeTabTitle: string;
+  onUpdatePhoto?: (newPhotoUrl: string) => void;
+  onNavigateToSettings?: () => void;
 }
 
 export default function Navbar({
@@ -34,7 +38,9 @@ export default function Navbar({
   onRoleChange,
   sidebarOpen,
   setSidebarOpen,
-  activeTabTitle
+  activeTabTitle,
+  onUpdatePhoto,
+  onNavigateToSettings
 }: NavbarProps) {
   const [darkMode, setDarkMode] = useState<boolean>(() => {
     const saved = localStorage.getItem('theme');
@@ -46,6 +52,7 @@ export default function Navbar({
   const [showRoleDropdown, setShowRoleDropdown] = useState<boolean>(false);
   const [showProfileDropdown, setShowProfileDropdown] = useState<boolean>(false);
   const [showNotifications, setShowNotifications] = useState<boolean>(false);
+  const [showPhotoModal, setShowPhotoModal] = useState<boolean>(false);
   const [time, setTime] = useState<string>('');
 
   // Update clock
@@ -245,6 +252,26 @@ export default function Navbar({
               <button
                 onClick={() => {
                   setShowProfileDropdown(false);
+                  setShowPhotoModal(true);
+                }}
+                className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-teal-50 dark:hover:bg-teal-950/30 hover:text-teal-600 dark:hover:text-teal-400 transition-colors border-b border-slate-100 dark:border-slate-800"
+              >
+                <Camera className="h-4 w-4 text-teal-500" />
+                Change Profile Picture
+              </button>
+              <button
+                onClick={() => {
+                  setShowProfileDropdown(false);
+                  if (onNavigateToSettings) onNavigateToSettings();
+                }}
+                className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+              >
+                <ShieldCheck className="h-4 w-4 text-slate-400" />
+                Account Settings
+              </button>
+              <button
+                onClick={() => {
+                  setShowProfileDropdown(false);
                   onLogout();
                 }}
                 className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-xs font-medium text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/25 transition-colors"
@@ -256,6 +283,18 @@ export default function Navbar({
           )}
         </div>
       </div>
+
+      <ProfilePhotoModal
+        isOpen={showPhotoModal}
+        onClose={() => setShowPhotoModal(false)}
+        currentPhoto={currentUser.photo}
+        userName={currentUser.name}
+        onSave={(newPhoto) => {
+          if (onUpdatePhoto) {
+            onUpdatePhoto(newPhoto);
+          }
+        }}
+      />
     </header>
   );
 }

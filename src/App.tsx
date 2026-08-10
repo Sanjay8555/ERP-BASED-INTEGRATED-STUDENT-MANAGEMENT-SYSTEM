@@ -14,8 +14,10 @@ import {
   User as UserIcon,
   PlusCircle,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Camera
 } from 'lucide-react';
+import ProfilePhotoModal from './components/shared/ProfilePhotoModal';
 
 // Domain Imports
 import {
@@ -397,6 +399,15 @@ export default function App() {
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
   const [settingsSuccess, setSettingsSuccess] = useState('');
   const [settingsError, setSettingsError] = useState('');
+  const [showSettingsPhotoModal, setShowSettingsPhotoModal] = useState(false);
+
+  // Action: Update User Photo
+  const handleUpdateUserPhoto = (userId: string, newPhotoUrl: string) => {
+    setUsersStore(prev => prev.map(u => u.id === userId ? { ...u, photo: newPhotoUrl } : u));
+    if (currentUser.id === userId) {
+      setCurrentUser(prev => ({ ...prev, photo: newPhotoUrl }));
+    }
+  };
 
   // Action: Switch Active Role (Sync Session user dynamically for perfect multi-dashboard simulation)
   const handleRoleChange = (newRole: UserRole) => {
@@ -809,11 +820,54 @@ export default function App() {
         );
       case 'settings':
         return (
-          <div className="max-w-2xl mx-auto rounded-2xl border border-slate-200 bg-white p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900">
-            <h3 className="font-sans text-md font-bold text-slate-900 dark:text-white mb-1">Account & Security Portal</h3>
-            <p className="text-xs text-slate-400 mb-6">Manage login keys and account configurations securely.</p>
+          <div className="max-w-2xl mx-auto space-y-6">
+            {/* Profile Photo Card */}
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900">
+              <h3 className="font-sans text-md font-bold text-slate-900 dark:text-white mb-1">Profile Photo & Identity</h3>
+              <p className="text-xs text-slate-400 mb-4">Personalize your profile picture displayed across the ERP portal.</p>
+              
+              <div className="flex flex-col sm:flex-row items-center gap-5 rounded-xl border border-slate-100 bg-slate-50/70 p-4 dark:border-slate-800 dark:bg-slate-950/40">
+                <div className="relative group">
+                  <img
+                    src={currentUser.photo || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=250'}
+                    alt={currentUser.name}
+                    referrerPolicy="no-referrer"
+                    className="h-20 w-20 rounded-full object-cover ring-4 ring-teal-500/20 shadow-md"
+                  />
+                  <button
+                    onClick={() => setShowSettingsPhotoModal(true)}
+                    className="absolute bottom-0 right-0 flex h-7 w-7 items-center justify-center rounded-full bg-teal-600 text-white shadow-sm hover:bg-teal-700 transition-transform group-hover:scale-110"
+                    title="Change Profile Picture"
+                  >
+                    <Camera className="h-4 w-4" />
+                  </button>
+                </div>
 
-            <form onSubmit={handleSettingsSubmit} className="space-y-4">
+                <div className="text-center sm:text-left space-y-1">
+                  <h4 className="font-sans text-sm font-bold text-slate-900 dark:text-white">{currentUser.name}</h4>
+                  <p className="text-xs text-slate-500 font-mono">{currentUser.email}</p>
+                  <p className="text-[10px] font-semibold text-teal-600 uppercase tracking-wider">{currentUser.role} Account</p>
+                  
+                  <div className="pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowSettingsPhotoModal(true)}
+                      className="inline-flex items-center gap-1.5 rounded-xl bg-teal-600 px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-teal-700 transition-colors"
+                    >
+                      <Camera className="h-3.5 w-3.5" />
+                      Upload / Change Profile Picture
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Account & Security Portal */}
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900">
+              <h3 className="font-sans text-md font-bold text-slate-900 dark:text-white mb-1">Account & Security Portal</h3>
+              <p className="text-xs text-slate-400 mb-6">Manage login keys and account configurations securely.</p>
+
+              <form onSubmit={handleSettingsSubmit} className="space-y-4">
               {settingsSuccess && (
                 <div className="flex items-center gap-2 rounded-xl bg-emerald-50 border border-emerald-100 p-3 text-xs font-semibold text-emerald-700 dark:bg-emerald-950/20 dark:border-emerald-900">
                   <CheckCircle2 className="h-4.5 w-4.5 text-emerald-600" />
@@ -893,7 +947,8 @@ export default function App() {
               </button>
             </div>
           </div>
-        );
+        </div>
+      );
       default:
         return <div className="text-slate-400 italic">This panel is currently empty.</div>;
     }
@@ -1142,6 +1197,8 @@ export default function App() {
           sidebarOpen={sidebarOpen}
           setSidebarOpen={setSidebarOpen}
           activeTabTitle={getTabTitle()}
+          onUpdatePhoto={(photo) => handleUpdateUserPhoto(currentUser.id, photo)}
+          onNavigateToSettings={() => setActiveTab('settings')}
         />
 
         {/* Dynamic content stage */}
@@ -1149,6 +1206,15 @@ export default function App() {
           {renderTabContent()}
         </main>
       </div>
+
+      {/* Settings Profile Photo Modal */}
+      <ProfilePhotoModal
+        isOpen={showSettingsPhotoModal}
+        onClose={() => setShowSettingsPhotoModal(false)}
+        currentPhoto={currentUser.photo}
+        userName={currentUser.name}
+        onSave={(newPhoto) => handleUpdateUserPhoto(currentUser.id, newPhoto)}
+      />
     </div>
   );
 }

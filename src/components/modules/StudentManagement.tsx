@@ -16,9 +16,11 @@ import {
   Phone,
   MapPin,
   Mail,
-  User
+  User,
+  Camera
 } from 'lucide-react';
 import { StudentProfile, User as UserType, Department } from '../../types';
+import ProfilePhotoModal from '../shared/ProfilePhotoModal';
 
 interface StudentManagementProps {
   students: StudentProfile[];
@@ -58,6 +60,8 @@ export default function StudentManagement({
   const [parentEmail, setParentEmail] = useState('');
   const [address, setAddress] = useState('');
   const [departmentId, setDepartmentId] = useState('');
+  const [photo, setPhoto] = useState('https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=120');
+  const [showPhotoModal, setShowPhotoModal] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const canModify = role === 'Admin';
@@ -76,6 +80,7 @@ export default function StudentManagement({
     setParentEmail('');
     setAddress('');
     setDepartmentId(departments[0]?.id || '');
+    setPhoto('https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=120');
     setErrors({});
     setEditingStudent(null);
   };
@@ -101,6 +106,7 @@ export default function StudentManagement({
     setParentEmail(student.parentEmail);
     setAddress(student.address);
     setDepartmentId(student.departmentId);
+    setPhoto(user?.photo || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=120');
     setErrors({});
     setShowModal(true);
   };
@@ -133,7 +139,8 @@ export default function StudentManagement({
         name,
         role: 'Student',
         phone,
-        departmentId
+        departmentId,
+        photo
       };
       const updatedStudent: StudentProfile = {
         ...editingStudent,
@@ -161,7 +168,7 @@ export default function StudentManagement({
         role: 'Student',
         phone,
         departmentId,
-        photo: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=120'
+        photo
       };
       const newStudent: StudentProfile = {
         id: newStudentId,
@@ -343,6 +350,38 @@ export default function StudentManagement({
 
             {/* Form */}
             <form onSubmit={handleSubmit} className="p-6 space-y-6">
+              {/* Photo Selector Banner */}
+              <div className="flex items-center gap-4 rounded-xl border border-slate-100 bg-slate-50/80 p-3.5 dark:border-slate-800 dark:bg-slate-950/50">
+                <div className="relative">
+                  <img
+                    src={photo}
+                    alt="Student Photo"
+                    referrerPolicy="no-referrer"
+                    className="h-14 w-14 rounded-full object-cover ring-2 ring-teal-500/30"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPhotoModal(true)}
+                    className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-teal-600 text-white shadow-xs hover:bg-teal-700 transition-colors"
+                    title="Change Student Photo"
+                  >
+                    <Camera className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-slate-900 dark:text-white">Profile Photo</h4>
+                  <p className="text-[10px] text-slate-400">Upload custom image, choose avatar, or paste URL</p>
+                  <button
+                    type="button"
+                    onClick={() => setShowPhotoModal(true)}
+                    className="mt-1 inline-flex items-center gap-1 text-[11px] font-bold text-teal-600 hover:text-teal-700 dark:text-teal-400"
+                  >
+                    <Camera className="h-3 w-3" />
+                    Change Photo
+                  </button>
+                </div>
+              </div>
+
               {/* Profile section */}
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
@@ -511,7 +550,7 @@ export default function StudentManagement({
                 </button>
                 <button
                   type="submit"
-                  className="rounded-xl bg-teal-600 px-5 py-2.5 text-xs font-bold text-white shadow-md hover:bg-teal-700 transition-colors animate-pulse"
+                  className="rounded-xl bg-teal-600 px-5 py-2.5 text-xs font-bold text-white shadow-md hover:bg-teal-700 transition-colors"
                 >
                   {editingStudent ? 'Save Profile Changes' : 'Confirm & Create Profile'}
                 </button>
@@ -520,6 +559,14 @@ export default function StudentManagement({
           </div>
         </div>
       )}
+
+      <ProfilePhotoModal
+        isOpen={showPhotoModal}
+        onClose={() => setShowPhotoModal(false)}
+        currentPhoto={photo}
+        userName={name || 'Student'}
+        onSave={(newPhoto) => setPhoto(newPhoto)}
+      />
     </div>
   );
 }

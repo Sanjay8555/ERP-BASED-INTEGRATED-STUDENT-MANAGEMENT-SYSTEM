@@ -17,9 +17,11 @@ import {
   X,
   BookOpen,
   Briefcase,
-  GraduationCap
+  GraduationCap,
+  Camera
 } from 'lucide-react';
 import { FacultyProfile, User, Department, Course, TimetableEntry, Notice } from '../../types';
+import ProfilePhotoModal from '../shared/ProfilePhotoModal';
 
 // ==========================================
 // 1. FACULTY MANAGEMENT SUB-COMPONENT
@@ -57,6 +59,8 @@ export function FacultyManagement({
   const [qualification, setQualification] = useState('');
   const [workload, setWorkload] = useState(12);
   const [departmentId, setDepartmentId] = useState('');
+  const [photo, setPhoto] = useState('https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=120');
+  const [showPhotoModal, setShowPhotoModal] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const canModify = role === 'Admin';
@@ -71,6 +75,7 @@ export function FacultyManagement({
     setQualification('');
     setWorkload(12);
     setDepartmentId(departments[0]?.id || '');
+    setPhoto('https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=120');
     setErrors({});
     setEditingFaculty(null);
   };
@@ -92,6 +97,7 @@ export function FacultyManagement({
     setQualification(fac.qualification);
     setWorkload(fac.workloadHours);
     setDepartmentId(fac.departmentId);
+    setPhoto(user?.photo || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=120');
     setErrors({});
     setShowModal(true);
   };
@@ -118,7 +124,8 @@ export function FacultyManagement({
         name,
         role: 'Faculty',
         phone,
-        departmentId
+        departmentId,
+        photo
       };
       const updatedFaculty: FacultyProfile = {
         ...editingFaculty,
@@ -141,7 +148,7 @@ export function FacultyManagement({
         role: 'Faculty',
         phone,
         departmentId,
-        photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=120'
+        photo
       };
       const newFaculty: FacultyProfile = {
         id: newFacultyId,
@@ -266,6 +273,36 @@ export function FacultyManagement({
             </div>
 
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
+              {/* Photo Banner */}
+              <div className="flex items-center gap-4 rounded-xl border border-slate-100 bg-slate-50/80 p-3 dark:border-slate-800 dark:bg-slate-950/50">
+                <div className="relative">
+                  <img
+                    src={photo}
+                    alt="Faculty Photo"
+                    referrerPolicy="no-referrer"
+                    className="h-12 w-12 rounded-full object-cover ring-2 ring-teal-500/30"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPhotoModal(true)}
+                    className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-teal-600 text-white shadow-xs hover:bg-teal-700 transition-colors"
+                  >
+                    <Camera className="h-3 w-3" />
+                  </button>
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-slate-900 dark:text-white">Profile Photo</h4>
+                  <button
+                    type="button"
+                    onClick={() => setShowPhotoModal(true)}
+                    className="mt-0.5 inline-flex items-center gap-1 text-[11px] font-bold text-teal-600 hover:text-teal-700 dark:text-teal-400"
+                  >
+                    <Camera className="h-3 w-3" />
+                    Change Photo
+                  </button>
+                </div>
+              </div>
+
               <div>
                 <label className="block text-xs font-bold uppercase text-slate-400 mb-1">Full Academic Name</label>
                 <input
@@ -394,6 +431,14 @@ export function FacultyManagement({
           </div>
         </div>
       )}
+
+      <ProfilePhotoModal
+        isOpen={showPhotoModal}
+        onClose={() => setShowPhotoModal(false)}
+        currentPhoto={photo}
+        userName={name || 'Faculty'}
+        onSave={(newPhoto) => setPhoto(newPhoto)}
+      />
     </div>
   );
 }
