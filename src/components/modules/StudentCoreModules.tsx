@@ -637,10 +637,13 @@ export function AssignmentSubmissions({
 }: AssignmentSubmissionsProps) {
   const studentProfile = students.find(s => s.userId === currentUser?.id);
   const currentStudentId = studentProfile?.id || 's-1';
+  const studentDept = departments.find(d => d.id === studentProfile?.departmentId);
+  const studentSem = studentProfile?.currentSemester || 4;
+  const studentYear = Math.ceil(studentSem / 2);
 
   // Faculty Filter states
-  const [selectedDept, setSelectedDept] = useState(departments[0]?.id || '');
-  const [selectedSem, setSelectedSem] = useState(1);
+  const [selectedDept, setSelectedDept] = useState(departments[0]?.id || 'dept-5');
+  const [selectedSem, setSelectedSem] = useState(4);
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [showGradeModal, setShowGradeModal] = useState(false);
@@ -669,6 +672,16 @@ export function AssignmentSubmissions({
   const [feedback, setFeedback] = useState('Excellent structure.');
 
   const isFaculty = role === 'Faculty' || role === 'Admin';
+
+  // Filter student assignments strictly by student's department and semester/year
+  const visibleStudentAssignments = assignments.filter(asg => {
+    const course = courses.find(c => c.id === asg.courseId);
+    if (!course) return false;
+    if (studentProfile) {
+      return course.departmentId === studentProfile.departmentId && course.semester === studentProfile.currentSemester;
+    }
+    return true;
+  });
 
   const handleCreateAssignment = (e: React.FormEvent) => {
     e.preventDefault();
@@ -770,6 +783,8 @@ export function AssignmentSubmissions({
       'Roll No',
       'Student Name',
       'Department',
+      'Semester',
+      'Academic Year',
       'Course Code',
       'Course Name',
       'Assignment Title',
@@ -793,6 +808,8 @@ export function AssignmentSubmissions({
         `"${student?.rollNo || ''}"`,
         `"${stuUser?.name || ''}"`,
         `"${dept?.name || ''}"`,
+        `"Semester ${course?.semester || ''}"`,
+        `"Year ${Math.ceil((course?.semester || 1) / 2)}"`,
         `"${course?.code || ''}"`,
         `"${course?.name || ''}"`,
         `"${asg?.title || ''}"`,
@@ -829,6 +846,8 @@ export function AssignmentSubmissions({
     document.body.removeChild(link);
   };
 
+  const selectedDepartmentObj = departments.find(d => d.id === selectedDept);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -836,22 +855,23 @@ export function AssignmentSubmissions({
           <h2 className="font-sans text-lg font-bold text-slate-800 dark:text-white">Homework & Assessment Tasks Board</h2>
           {isFaculty && (
             <div className="mt-2 flex flex-wrap gap-2 items-center">
+              <span className="text-[11px] font-bold text-slate-500 uppercase">Target Dept & Year:</span>
               <select
                 value={selectedDept}
                 onChange={(e) => setSelectedDept(e.target.value)}
-                className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300"
+                className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 focus:outline-hidden"
               >
                 {departments.map(d => (
-                  <option key={d.id} value={d.id}>{d.name}</option>
+                  <option key={d.id} value={d.id}>{d.name} ({d.code})</option>
                 ))}
               </select>
               <select
                 value={selectedSem}
                 onChange={(e) => setSelectedSem(Number(e.target.value))}
-                className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300"
+                className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 focus:outline-hidden"
               >
                 {[1, 2, 3, 4, 5, 6, 7, 8].map(s => (
-                  <option key={s} value={s}>Semester {s}</option>
+                  <option key={s} value={s}>Semester {s} (Year {Math.ceil(s / 2)})</option>
                 ))}
               </select>
 
@@ -878,9 +898,63 @@ export function AssignmentSubmissions({
 
       {isFaculty ? (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          {/* Submissions Table / Sheet View for Staff & Admin */}
+          {/* Active Tasks Assigned to Selected Department & Semester */}
           <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900 lg:col-span-3">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-4 border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div>
+                <h3 className="font-sans text-sm font-bold text-slate-900 dark:text-white">
+                  Active Tasks Assigned for {selectedDepartmentObj?.name || 'Department'}
+                </h3>
+                <p className="text-[11px] text-teal-600 font-semibold">
+                  Filtered by Semester {selectedSem} (Year {Math.ceil(selectedSem / 2)})
+                </p>
+              </div>
+              <span className="text-[11px] font-bold bg-teal-50 dark:bg-teal-950 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800 px-3 py-1 rounded-full">
+                {assignments.filter(a => {
+                  const c = courses.find(cr => cr.id === a.courseId);
+                  return c?.departmentId === selectedDept && c?.semester === selectedSem;
+                }).length} Active Assignments
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+              {assignments
+                .filter(asg => {
+                  const c = courses.find(cr => cr.id === asg.courseId);
+                  return c?.departmentId === selectedDept && c?.semester === selectedSem;
+                })
+                .map(asg => {
+                  const c = courses.find(cr => cr.id === asg.courseId);
+                  const subCount = submissions.filter(s => s.assignmentId === asg.id).length;
+                  return (
+                    <div key={asg.id} className="p-4 rounded-xl border border-slate-200 bg-slate-50 dark:bg-slate-950 dark:border-slate-800">
+                      <div className="flex justify-between items-start">
+                        <span className="text-[10px] font-bold bg-teal-100 text-teal-800 dark:bg-teal-900/60 dark:text-teal-300 px-2 py-0.5 rounded-md">
+                          {c?.code} • {c?.name}
+                        </span>
+                        <span className="text-[10px] text-rose-500 font-bold">DUE: {asg.dueDate}</span>
+                      </div>
+                      <h4 className="font-bold text-xs text-slate-900 dark:text-white mt-2">{asg.title}</h4>
+                      <p className="text-[11px] text-slate-500 line-clamp-2 mt-1">{asg.description}</p>
+                      <div className="mt-3 pt-2 border-t border-slate-200 dark:border-slate-800 flex justify-between items-center text-[10px]">
+                        <span className="font-mono text-slate-500">Max Score: {asg.maxMarks}</span>
+                        <span className="font-bold text-teal-600">{subCount} Submissions</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              {assignments.filter(a => {
+                const c = courses.find(cr => cr.id === a.courseId);
+                return c?.departmentId === selectedDept && c?.semester === selectedSem;
+              }).length === 0 && (
+                <div className="col-span-full py-6 text-center text-slate-400 italic text-xs border border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
+                  No assessment tasks created yet for {selectedDepartmentObj?.name} (Semester {selectedSem}). Click "Create New Assessment Task" above to publish one!
+                </div>
+              )}
+            </div>
+
+            {/* Submissions Table / Sheet View for Staff & Admin */}
+            <div className="flex items-center justify-between mb-3 border-t border-slate-100 dark:border-slate-800 pt-4">
               <div>
                 <h3 className="font-sans text-sm font-bold text-slate-900 dark:text-white">Student Assessment & Task Submissions Ledger</h3>
                 <p className="text-[11px] text-slate-500">View, download uploaded task files, and export grading sheet.</p>
@@ -995,9 +1069,20 @@ export function AssignmentSubmissions({
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           {/* Student View: Course Assignments & Upload Submission */}
           <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900">
-            <h3 className="font-sans text-sm font-bold text-slate-900 dark:text-white mb-4">Course Assignment & Task Portal</h3>
+            <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div>
+                <h3 className="font-sans text-sm font-bold text-slate-900 dark:text-white">Course Assignment & Task Portal</h3>
+                <p className="text-[11px] font-semibold text-teal-600 dark:text-teal-400">
+                  Assigned tasks for: <span className="underline">{studentDept?.name || 'Computer Science & Engineering'}</span> • Semester {studentSem} (Year {studentYear})
+                </p>
+              </div>
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800 px-2.5 py-1 rounded-full w-fit">
+                <Building className="h-3 w-3" /> {studentDept?.code || 'CSE'} - Sem {studentSem}
+              </span>
+            </div>
+
             <div className="space-y-4">
-              {assignments.map(asg => {
+              {visibleStudentAssignments.map(asg => {
                 const sub = submissions.find(s => s.assignmentId === asg.id && s.studentId === currentStudentId);
                 const course = courses.find(c => c.id === asg.courseId);
                 return (
@@ -1005,7 +1090,7 @@ export function AssignmentSubmissions({
                     <div className="flex justify-between items-start">
                       <div>
                         <h4 className="font-bold text-slate-900 dark:text-white">{asg.title}</h4>
-                        <p className="text-[10px] font-bold text-teal-600 mt-0.5">{course?.name}</p>
+                        <p className="text-[10px] font-bold text-teal-600 mt-0.5">{course?.code} - {course?.name}</p>
                       </div>
                       <span className="text-[10px] bg-rose-50 border border-rose-100 text-rose-600 dark:bg-rose-950/40 dark:border-rose-900 font-bold px-2 py-0.5 rounded-full">
                         DUE: {asg.dueDate}
@@ -1040,6 +1125,16 @@ export function AssignmentSubmissions({
                   </div>
                 );
               })}
+
+              {visibleStudentAssignments.length === 0 && (
+                <div className="py-12 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl">
+                  <BookOpen className="h-8 w-8 text-slate-300 mx-auto mb-2" />
+                  <p className="font-bold text-xs text-slate-700 dark:text-slate-300">No Pending Tasks</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5 max-w-xs mx-auto">
+                    There are currently no homework or assessment tasks assigned for {studentDept?.name || 'your department'} (Semester {studentSem}).
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 
