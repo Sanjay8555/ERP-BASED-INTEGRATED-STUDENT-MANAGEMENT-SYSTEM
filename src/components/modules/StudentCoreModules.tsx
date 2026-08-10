@@ -995,51 +995,88 @@ export function AssignmentSubmissions({
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           {/* Student View: Course Assignments & Upload Submission */}
           <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900">
-            <h3 className="font-sans text-sm font-bold text-slate-900 dark:text-white mb-4">Course Assignment & Task Portal</h3>
-            <div className="space-y-4">
-              {assignments.map(asg => {
-                const sub = submissions.find(s => s.assignmentId === asg.id && s.studentId === currentStudentId);
-                const course = courses.find(c => c.id === asg.courseId);
-                return (
-                  <div key={asg.id} className="p-4 bg-slate-50 dark:bg-slate-950 border border-slate-200/60 dark:border-slate-800 rounded-2xl">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h4 className="font-bold text-slate-900 dark:text-white">{asg.title}</h4>
-                        <p className="text-[10px] font-bold text-teal-600 mt-0.5">{course?.name}</p>
-                      </div>
-                      <span className="text-[10px] bg-rose-50 border border-rose-100 text-rose-600 dark:bg-rose-950/40 dark:border-rose-900 font-bold px-2 py-0.5 rounded-full">
-                        DUE: {asg.dueDate}
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-600 dark:text-slate-400 mt-3">{asg.description}</p>
-                    
-                    <div className="mt-4 border-t border-slate-200/50 dark:border-slate-800 pt-3 flex items-center justify-between">
-                      <span className="text-[11px] font-mono text-slate-400">Max Score: {asg.maxMarks}</span>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div>
+                <h3 className="font-sans text-sm font-bold text-slate-900 dark:text-white">Course Assignment & Task Portal</h3>
+                <p className="text-[11px] text-slate-500">Assignments specific to your enrolled department and semester.</p>
+              </div>
+              {studentProfile && (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-teal-50 px-3 py-1 text-[11px] font-bold text-teal-700 dark:bg-teal-950/50 dark:text-teal-300 border border-teal-200 dark:border-teal-900">
+                  <BookOpen className="h-3.5 w-3.5" />
+                  {departments.find(d => d.id === studentProfile.departmentId)?.name || 'Department'} • Semester {studentProfile.currentSemester || 1}
+                </span>
+              )}
+            </div>
 
-                      {sub ? (
-                        <div className="flex items-center gap-2">
-                          {sub.fileName && (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-500">
-                              <Paperclip className="h-3 w-3 text-teal-600" /> {sub.fileName}
-                            </span>
-                          )}
-                          <span className="text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-300 px-2.5 py-1 rounded-lg text-xs font-bold inline-flex items-center gap-1">
-                            <CheckCircle className="h-3.5 w-3.5" />
-                            {sub.status === 'Graded' ? `Graded: ${sub.marksObtained}/${asg.maxMarks}` : 'Submitted'}
-                          </span>
+            <div className="space-y-4">
+              {assignments
+                .filter(asg => {
+                  const course = courses.find(c => c.id === asg.courseId);
+                  if (!course) return true;
+                  if (studentProfile) {
+                    const matchDept = !studentProfile.departmentId || course.departmentId === studentProfile.departmentId;
+                    const matchSem = !studentProfile.currentSemester || course.semester === studentProfile.currentSemester;
+                    return matchDept && matchSem;
+                  }
+                  return true;
+                })
+                .map(asg => {
+                  const sub = submissions.find(s => s.assignmentId === asg.id && s.studentId === currentStudentId);
+                  const course = courses.find(c => c.id === asg.courseId);
+                  return (
+                    <div key={asg.id} className="p-4 bg-slate-50 dark:bg-slate-950 border border-slate-200/60 dark:border-slate-800 rounded-2xl">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h4 className="font-bold text-slate-900 dark:text-white">{asg.title}</h4>
+                          <p className="text-[10px] font-bold text-teal-600 mt-0.5">{course?.name} ({course?.code})</p>
                         </div>
-                      ) : (
-                        <button
-                          onClick={() => handleOpenUploadModal(asg)}
-                          className="flex items-center gap-1.5 bg-teal-600 hover:bg-teal-700 text-white px-3.5 py-1.5 rounded-xl text-xs font-bold shadow-xs transition-all"
-                        >
-                          <Upload className="h-3.5 w-3.5" /> Upload & Submit Task
-                        </button>
-                      )}
+                        <span className="text-[10px] bg-rose-50 border border-rose-100 text-rose-600 dark:bg-rose-950/40 dark:border-rose-900 font-bold px-2 py-0.5 rounded-full">
+                          DUE: {asg.dueDate}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-600 dark:text-slate-400 mt-3">{asg.description}</p>
+                      
+                      <div className="mt-4 border-t border-slate-200/50 dark:border-slate-800 pt-3 flex items-center justify-between">
+                        <span className="text-[11px] font-mono text-slate-400">Max Score: {asg.maxMarks}</span>
+
+                        {sub ? (
+                          <div className="flex items-center gap-2">
+                            {sub.fileName && (
+                              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-500">
+                                <Paperclip className="h-3 w-3 text-teal-600" /> {sub.fileName}
+                              </span>
+                            )}
+                            <span className="text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-300 px-2.5 py-1 rounded-lg text-xs font-bold inline-flex items-center gap-1">
+                              <CheckCircle className="h-3.5 w-3.5" />
+                              {sub.status === 'Graded' ? `Graded: ${sub.marksObtained}/${asg.maxMarks}` : 'Submitted'}
+                            </span>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => handleOpenUploadModal(asg)}
+                            className="flex items-center gap-1.5 bg-teal-600 hover:bg-teal-700 text-white px-3.5 py-1.5 rounded-xl text-xs font-bold shadow-xs transition-all"
+                          >
+                            <Upload className="h-3.5 w-3.5" /> Upload & Submit Task
+                          </button>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              {assignments.filter(asg => {
+                const course = courses.find(c => c.id === asg.courseId);
+                if (!course) return true;
+                if (studentProfile) {
+                  const matchDept = !studentProfile.departmentId || course.departmentId === studentProfile.departmentId;
+                  const matchSem = !studentProfile.currentSemester || course.semester === studentProfile.currentSemester;
+                  return matchDept && matchSem;
+                }
+                return true;
+              }).length === 0 && (
+                <div className="py-8 text-center text-slate-400 italic text-xs">
+                  No active assignments found for your department and semester.
+                </div>
+              )}
             </div>
           </div>
 
