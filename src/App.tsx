@@ -403,8 +403,6 @@ export default function App() {
         if (cloudData.booksStore?.length) setBooksStore(cloudData.booksStore);
         if (cloudData.noticesStore?.length) setNoticesStore(cloudData.noticesStore);
         if (cloudData.timetableStore?.length) setTimetableStore(cloudData.timetableStore);
-        if (cloudData.assignmentsStore?.length) setAssignmentsStore(cloudData.assignmentsStore);
-        if (cloudData.submissionsStore?.length) setSubmissionsStore(cloudData.submissionsStore);
 
         setTimeout(() => {
           isRemoteUpdatingRef.current = false;
@@ -429,8 +427,6 @@ export default function App() {
       if (cloudData.booksStore) setBooksStore(cloudData.booksStore);
       if (cloudData.noticesStore) setNoticesStore(cloudData.noticesStore);
       if (cloudData.timetableStore) setTimetableStore(cloudData.timetableStore);
-      if (cloudData.assignmentsStore) setAssignmentsStore(cloudData.assignmentsStore);
-      if (cloudData.submissionsStore) setSubmissionsStore(cloudData.submissionsStore);
 
       setTimeout(() => {
         isRemoteUpdatingRef.current = false;
@@ -454,9 +450,7 @@ export default function App() {
       noticesStore,
       timetableStore,
       gradesStore: resultsStore,
-      attendanceStore,
-      assignmentsStore,
-      submissionsStore
+      attendanceStore
     };
     saveBackendState(syncPayload);
   }, [
@@ -469,9 +463,7 @@ export default function App() {
     noticesStore,
     timetableStore,
     resultsStore,
-    attendanceStore,
-    assignmentsStore,
-    submissionsStore
+    attendanceStore
   ]);
 
   // Auth screen specific state

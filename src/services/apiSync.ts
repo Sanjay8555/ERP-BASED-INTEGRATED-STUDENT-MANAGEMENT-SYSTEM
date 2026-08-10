@@ -20,8 +20,6 @@ export interface SyncPayload {
   timetableStore: any[];
   gradesStore: any[];
   attendanceStore: any[];
-  assignmentsStore?: any[];
-  submissionsStore?: any[];
 }
 
 /**

@@ -1648,42 +1648,8 @@ export const initialTimetable: TimetableEntry[] = [
 ];
 
 export const initialAssignments: Assignment[] = [
-  {
-    id: 'asg-1',
-    title: 'SQL Queries & Schema Normalization',
-    description: 'Complete questions 1 to 15 regarding subqueries, joins, 3NF, and relational algebra in the attached PDF.',
-    courseId: 'c-2',
-    dueDate: '2026-07-10',
-    facultyId: 'f-2',
-    maxMarks: 50
-  },
-  {
-    id: 'asg-2',
-    title: 'Finite Automata & Regular Grammars Construction',
-    description: 'Design DFAs, NFAs, and regular expressions for language specifications given in Chapter 1.',
-    courseId: 'c-1',
-    dueDate: '2026-07-15',
-    facultyId: 'f-1',
-    maxMarks: 40
-  },
-  {
-    id: 'asg-3',
-    title: 'Power System Load Flow & Grid Stability Simulation',
-    description: 'Perform Newton-Raphson load flow analysis for 5-bus systems and compute bus voltage magnitudes.',
-    courseId: 'c-7',
-    dueDate: '2026-07-20',
-    facultyId: 'f-5',
-    maxMarks: 50
-  },
-  {
-    id: 'asg-4',
-    title: 'Convolutional Neural Networks & Image Classification',
-    description: 'Implement ResNet-18 architecture from scratch using PyTorch on the CIFAR-10 dataset.',
-    courseId: 'c-11',
-    dueDate: '2026-07-22',
-    facultyId: 'f-7',
-    maxMarks: 100
-  }
+  { id: 'asg-1', title: 'SQL Queries and Schema Design', description: 'Complete questions 1 to 15 regarding subqueries, joins, and relational algebra operations in the PDF.', courseId: 'c-2', dueDate: '2026-07-10', facultyId: 'f-2', maxMarks: 50 },
+  { id: 'asg-2', title: 'Finite Automata Construction', description: 'Design DFAs and NFAs for regular languages specified in Chapter 1 problems.', courseId: 'c-1', dueDate: '2026-07-15', facultyId: 'f-1', maxMarks: 40 }
 ];
 
 export const initialAssignmentSubmissions: AssignmentSubmission[] = [
