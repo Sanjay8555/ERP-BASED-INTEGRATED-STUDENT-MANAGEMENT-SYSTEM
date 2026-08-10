@@ -16,7 +16,13 @@ import {
   FileText,
   UploadCloud,
   CheckCircle,
-  Calendar
+  Calendar,
+  Upload,
+  Download,
+  Paperclip,
+  Eye,
+  FileCheck,
+  ExternalLink
 } from 'lucide-react';
 import {
   Attendance,
@@ -638,14 +644,25 @@ export function AssignmentSubmissions({
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [showGradeModal, setShowGradeModal] = useState(false);
-  const [gradingSubId, setGradingSubId] = useState('');
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showViewDetailsModal, setShowViewDetailsModal] = useState(false);
 
-  // Form states (Add)
+  const [gradingSubId, setGradingSubId] = useState('');
+  const [selectedAsgForUpload, setSelectedAsgForUpload] = useState<Assignment | null>(null);
+  const [selectedSubForView, setSelectedSubForView] = useState<AssignmentSubmission | null>(null);
+
+  // Form states (Add Assignment)
   const [title, setTitle] = useState('');
   const [desc, setDesc] = useState('');
   const [courseId, setCourseId] = useState(courses[0]?.id || '');
   const [dueDate, setDueDate] = useState('');
   const [maxMarks, setMaxMarks] = useState(50);
+
+  // Form states (Student Upload Task)
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [fileBase64, setFileBase64] = useState<string>('');
+  const [fileSizeFormatted, setFileSizeFormatted] = useState<string>('');
+  const [submissionTextNotes, setSubmissionTextNotes] = useState('');
 
   // Form states (Grade)
   const [score, setScore] = useState(45);
@@ -668,24 +685,65 @@ export function AssignmentSubmissions({
     };
     onAddAssignment(newAsg);
     setShowAddModal(false);
+    setTitle('');
+    setDesc('');
   };
 
-  const handleSubmitPaper = (assignmentId: string) => {
+  const handleOpenUploadModal = (asg: Assignment) => {
+    setSelectedAsgForUpload(asg);
+    setUploadFile(null);
+    setFileBase64('');
+    setFileSizeFormatted('');
+    setSubmissionTextNotes('');
+    setShowUploadModal(true);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+      alert('File size exceeds maximum limit of 10MB.');
+      return;
+    }
+
+    setUploadFile(file);
+    const sizeKB = (file.size / 1024).toFixed(1);
+    const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
+    setFileSizeFormatted(file.size >= 1024 * 1024 ? `${sizeMB} MB` : `${sizeKB} KB`);
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setFileBase64(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSubmitUploadedTask = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedAsgForUpload) return;
+
     const newSub: AssignmentSubmission = {
       id: `sub-${Date.now()}`,
-      assignmentId,
+      assignmentId: selectedAsgForUpload.id,
       studentId: currentStudentId,
       submissionDate: new Date().toISOString().split('T')[0],
-      status: 'Submitted'
+      status: 'Submitted',
+      fileName: uploadFile?.name || 'Submitted_Task.pdf',
+      fileSize: fileSizeFormatted || '1.2 MB',
+      fileUrl: fileBase64 || 'data:application/pdf;base64,JVBERi0xLjQK...',
+      submissionText: submissionTextNotes
     };
+
     onSubmitAssignment(newSub);
-    alert('Your script is securely uploaded to academic portal!');
+    setShowUploadModal(false);
+    alert('🎉 Task / Assessment successfully submitted with file attachment!');
   };
 
   const handleOpenGrading = (subId: string) => {
     setGradingSubId(subId);
     setScore(45);
-    setFeedback('');
+    setFeedback('Well articulated submission.');
     setShowGradeModal(true);
   };
 
@@ -695,17 +753,93 @@ export function AssignmentSubmissions({
     setShowGradeModal(false);
   };
 
+  // Staff & Admin Export Sheet (.CSV) feature
+  const handleExportSheetCSV = () => {
+    const activeSubmissions = submissions.filter(sub => {
+      const asg = assignments.find(a => a.id === sub.assignmentId);
+      const course = courses.find(c => c.id === asg?.courseId);
+      return course?.departmentId === selectedDept && course?.semester === selectedSem;
+    });
+
+    if (activeSubmissions.length === 0) {
+      alert('No task submissions found for the selected department and semester to export.');
+      return;
+    }
+
+    const headers = [
+      'Roll No',
+      'Student Name',
+      'Department',
+      'Course Code',
+      'Course Name',
+      'Assignment Title',
+      'Submission Date',
+      'Status',
+      'Marks Obtained',
+      'Max Marks',
+      'Attached File Name',
+      'File Size',
+      'Student Submission Notes'
+    ];
+
+    const rows = activeSubmissions.map(sub => {
+      const student = students.find(s => s.id === sub.studentId);
+      const stuUser = users.find(u => u.id === student?.userId);
+      const asg = assignments.find(a => a.id === sub.assignmentId);
+      const course = courses.find(c => c.id === asg?.courseId);
+      const dept = departments.find(d => d.id === course?.departmentId);
+
+      return [
+        `"${student?.rollNo || ''}"`,
+        `"${stuUser?.name || ''}"`,
+        `"${dept?.name || ''}"`,
+        `"${course?.code || ''}"`,
+        `"${course?.name || ''}"`,
+        `"${asg?.title || ''}"`,
+        `"${sub.submissionDate || ''}"`,
+        `"${sub.status}"`,
+        sub.marksObtained !== undefined ? sub.marksObtained : 'N/A',
+        asg?.maxMarks || 50,
+        `"${sub.fileName || 'N/A'}"`,
+        `"${sub.fileSize || 'N/A'}"`,
+        `"${(sub.submissionText || sub.feedback || '').replace(/"/g, '""')}"`
+      ];
+    });
+
+    const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `Task_Submissions_Ledger_Dept${selectedDept}_Sem${selectedSem}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleDownloadFileAttachment = (sub: AssignmentSubmission) => {
+    const fileName = sub.fileName || 'Task_Submission.pdf';
+    const fileUrl = sub.fileUrl || 'data:application/pdf;base64,JVBERi0xLjQK...';
+
+    const link = document.createElement('a');
+    link.href = fileUrl;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="font-sans text-lg font-bold text-slate-800 dark:text-white">Homework Assignments Board</h2>
+          <h2 className="font-sans text-lg font-bold text-slate-800 dark:text-white">Homework & Assessment Tasks Board</h2>
           {isFaculty && (
-            <div className="mt-2 flex flex-wrap gap-2">
+            <div className="mt-2 flex flex-wrap gap-2 items-center">
               <select
                 value={selectedDept}
                 onChange={(e) => setSelectedDept(e.target.value)}
-                className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300"
+                className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300"
               >
                 {departments.map(d => (
                   <option key={d.id} value={d.id}>{d.name}</option>
@@ -714,12 +848,21 @@ export function AssignmentSubmissions({
               <select
                 value={selectedSem}
                 onChange={(e) => setSelectedSem(Number(e.target.value))}
-                className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300"
+                className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300"
               >
                 {[1, 2, 3, 4, 5, 6, 7, 8].map(s => (
                   <option key={s} value={s}>Semester {s}</option>
                 ))}
               </select>
+
+              {/* Download Tasks Sheet Button */}
+              <button
+                onClick={handleExportSheetCSV}
+                className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1 text-[11px] font-bold text-white shadow-xs hover:bg-emerald-700 transition-colors"
+                title="Download task submissions spreadsheet"
+              >
+                <FileSpreadsheet className="h-3.5 w-3.5" /> Download Sheet (.csv)
+              </button>
             </div>
           )}
         </div>
@@ -728,24 +871,38 @@ export function AssignmentSubmissions({
             onClick={() => setShowAddModal(true)}
             className="flex items-center gap-2 rounded-xl bg-teal-600 px-4 py-2.5 text-xs font-bold text-white shadow-md hover:bg-teal-700 transition-colors"
           >
-            <PlusCircle className="h-4 w-4" /> Create New Assignment
+            <PlusCircle className="h-4 w-4" /> Create New Assessment Task
           </button>
         )}
       </div>
 
       {isFaculty ? (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          {/* Submissions List */}
+          {/* Submissions Table / Sheet View for Staff & Admin */}
           <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900 lg:col-span-3">
-            <h3 className="font-sans text-sm font-bold text-slate-900 dark:text-white mb-4">Student Assignment Submissions</h3>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="font-sans text-sm font-bold text-slate-900 dark:text-white">Student Assessment & Task Submissions Ledger</h3>
+                <p className="text-[11px] text-slate-500">View, download uploaded task files, and export grading sheet.</p>
+              </div>
+              <button
+                onClick={handleExportSheetCSV}
+                className="hidden sm:flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-100 dark:border-emerald-900 dark:bg-emerald-950/50 dark:text-emerald-300 transition-colors"
+              >
+                <Download className="h-4 w-4" /> Export Tasks to Sheet
+              </button>
+            </div>
+
             <div className="overflow-x-auto">
               <table className="w-full border-collapse text-left text-xs">
                 <thead>
                   <tr className="border-b border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-950/40 font-bold uppercase text-slate-400">
-                    <th className="px-4 py-3">Student</th>
-                    <th className="px-4 py-3">Assignment</th>
+                    <th className="px-4 py-3">Roll No</th>
+                    <th className="px-4 py-3">Student Name</th>
+                    <th className="px-4 py-3">Assessment / Task Title</th>
+                    <th className="px-4 py-3">Submitted File Attachment</th>
                     <th className="px-4 py-3 text-center">Score</th>
-                    <th className="px-4 py-3 text-right">Action</th>
+                    <th className="px-4 py-3 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
@@ -760,29 +917,75 @@ export function AssignmentSubmissions({
                       const stuUser = users.find(u => u.id === student?.userId);
                       const asg = assignments.find(a => a.id === sub.assignmentId);
                       return (
-                        <tr key={sub.id} className="hover:bg-slate-50/40">
+                        <tr key={sub.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40">
+                          <td className="px-4 py-3 font-mono font-bold text-slate-800 dark:text-slate-200">{student?.rollNo || 'N/A'}</td>
                           <td className="px-4 py-3 font-bold text-slate-900 dark:text-white">{stuUser?.name}</td>
-                          <td className="px-4 py-3">{asg?.title}</td>
-                          <td className="px-4 py-3 text-center">
-                            {sub.status === 'Graded' ? (
-                              <span className="font-mono font-bold text-teal-600">{sub.marksObtained} / {asg?.maxMarks}</span>
+                          <td className="px-4 py-3">
+                            <p className="font-semibold text-slate-800 dark:text-slate-200">{asg?.title}</p>
+                            <span className="text-[10px] font-mono text-slate-400">Submitted on: {sub.submissionDate}</span>
+                          </td>
+                          <td className="px-4 py-3">
+                            {sub.fileName ? (
+                              <button
+                                onClick={() => handleDownloadFileAttachment(sub)}
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-teal-200 bg-teal-50/70 px-2.5 py-1 text-[11px] font-bold text-teal-700 hover:bg-teal-100 dark:border-teal-900 dark:bg-teal-950/50 dark:text-teal-300 transition-all"
+                                title="Click to download file"
+                              >
+                                <Paperclip className="h-3.5 w-3.5 text-teal-600" />
+                                <span className="max-w-[140px] truncate">{sub.fileName}</span>
+                                <span className="text-[9px] font-normal text-slate-500">({sub.fileSize || '1.5 MB'})</span>
+                                <Download className="h-3 w-3 ml-0.5" />
+                              </button>
                             ) : (
-                                <span className="text-amber-500 italic">Pending</span>
+                              <span className="text-slate-400 italic text-[11px]">No file attached</span>
                             )}
                           </td>
-                          <td className="px-4 py-3 text-right">
+                          <td className="px-4 py-3 text-center">
+                            {sub.status === 'Graded' ? (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 font-mono font-bold text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 text-[11px]">
+                                {sub.marksObtained} / {asg?.maxMarks}
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-600 dark:bg-amber-950/40 dark:text-amber-300">
+                                Pending
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-right space-x-2">
+                            <button
+                              onClick={() => {
+                                setSelectedSubForView(sub);
+                                setShowViewDetailsModal(true);
+                              }}
+                              className="inline-flex items-center gap-1 text-slate-600 hover:text-teal-600 font-bold text-xs"
+                              title="View details & notes"
+                            >
+                              <Eye className="h-3.5 w-3.5" /> View
+                            </button>
+
                             {sub.status === 'Submitted' && (
                               <button
                                 onClick={() => handleOpenGrading(sub.id)}
-                                className="text-teal-600 font-bold hover:underline"
+                                className="inline-flex items-center gap-1 rounded-lg bg-teal-600 px-2.5 py-1 text-xs font-bold text-white hover:bg-teal-700 transition-colors"
                               >
-                                Grade Now
+                                <FileCheck className="h-3.5 w-3.5" /> Grade
                               </button>
                             )}
                           </td>
                         </tr>
                       );
                     })}
+                  {submissions.filter(sub => {
+                    const asg = assignments.find(a => a.id === sub.assignmentId);
+                    const course = courses.find(c => c.id === asg?.courseId);
+                    return course?.departmentId === selectedDept && course?.semester === selectedSem;
+                  }).length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="py-8 text-center text-slate-400 italic">
+                        No task submissions found for the selected department and semester.
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -790,34 +993,47 @@ export function AssignmentSubmissions({
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-          {/* Student view */}
+          {/* Student View: Course Assignments & Upload Submission */}
           <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900">
-            <h3 className="font-sans text-sm font-bold text-slate-900 dark:text-white mb-4">Course Assignment Board</h3>
+            <h3 className="font-sans text-sm font-bold text-slate-900 dark:text-white mb-4">Course Assignment & Task Portal</h3>
             <div className="space-y-4">
               {assignments.map(asg => {
                 const sub = submissions.find(s => s.assignmentId === asg.id && s.studentId === currentStudentId);
                 const course = courses.find(c => c.id === asg.courseId);
                 return (
-                  <div key={asg.id} className="p-4 bg-slate-50 dark:bg-slate-950 border border-slate-200/50 dark:border-slate-800 rounded-2xl">
+                  <div key={asg.id} className="p-4 bg-slate-50 dark:bg-slate-950 border border-slate-200/60 dark:border-slate-800 rounded-2xl">
                     <div className="flex justify-between items-start">
                       <div>
                         <h4 className="font-bold text-slate-900 dark:text-white">{asg.title}</h4>
-                        <p className="text-[10px] text-teal-600 mt-0.5">{course?.name}</p>
+                        <p className="text-[10px] font-bold text-teal-600 mt-0.5">{course?.name}</p>
                       </div>
-                      <span className="text-[10px] text-rose-500 font-bold">DUE: {asg.dueDate}</span>
+                      <span className="text-[10px] bg-rose-50 border border-rose-100 text-rose-600 dark:bg-rose-950/40 dark:border-rose-900 font-bold px-2 py-0.5 rounded-full">
+                        DUE: {asg.dueDate}
+                      </span>
                     </div>
                     <p className="text-xs text-slate-600 dark:text-slate-400 mt-3">{asg.description}</p>
-                    <div className="mt-4 border-t pt-3 flex justify-end">
+                    
+                    <div className="mt-4 border-t border-slate-200/50 dark:border-slate-800 pt-3 flex items-center justify-between">
+                      <span className="text-[11px] font-mono text-slate-400">Max Score: {asg.maxMarks}</span>
+
                       {sub ? (
-                        <span className="text-emerald-600 text-xs font-bold">
-                          {sub.status === 'Graded' ? `Graded: ${sub.marksObtained} Marks` : 'Submitted'}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          {sub.fileName && (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-500">
+                              <Paperclip className="h-3 w-3 text-teal-600" /> {sub.fileName}
+                            </span>
+                          )}
+                          <span className="text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-300 px-2.5 py-1 rounded-lg text-xs font-bold inline-flex items-center gap-1">
+                            <CheckCircle className="h-3.5 w-3.5" />
+                            {sub.status === 'Graded' ? `Graded: ${sub.marksObtained}/${asg.maxMarks}` : 'Submitted'}
+                          </span>
+                        </div>
                       ) : (
                         <button
-                          onClick={() => handleSubmitPaper(asg.id)}
-                          className="bg-teal-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold"
+                          onClick={() => handleOpenUploadModal(asg)}
+                          className="flex items-center gap-1.5 bg-teal-600 hover:bg-teal-700 text-white px-3.5 py-1.5 rounded-xl text-xs font-bold shadow-xs transition-all"
                         >
-                          Submit Work
+                          <Upload className="h-3.5 w-3.5" /> Upload & Submit Task
                         </button>
                       )}
                     </div>
@@ -828,29 +1044,184 @@ export function AssignmentSubmissions({
           </div>
 
           <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900">
-            <h3 className="font-sans text-sm font-bold text-slate-900 dark:text-white mb-4">Academic Feedbacks</h3>
+            <h3 className="font-sans text-sm font-bold text-slate-900 dark:text-white mb-4">Academic Feedbacks & Marks</h3>
             <div className="space-y-4">
               {submissions.filter(s => s.studentId === currentStudentId && s.status === 'Graded').map(sub => {
                 const asg = assignments.find(a => a.id === sub.assignmentId);
                 return (
-                  <div key={sub.id} className="p-4 bg-teal-50/50 border border-teal-100 rounded-xl dark:bg-teal-950/20 dark:border-teal-900">
-                    <p className="font-bold text-slate-900 dark:text-white">{asg?.title}</p>
-                    <p className="text-xs italic text-slate-600 mt-2">"{sub.feedback}"</p>
-                    <p className="text-[10px] font-bold text-teal-600 mt-2">Score: {sub.marksObtained} / {asg?.maxMarks}</p>
+                  <div key={sub.id} className="p-4 bg-teal-50/50 border border-teal-100 rounded-2xl dark:bg-teal-950/20 dark:border-teal-900">
+                    <div className="flex justify-between items-start">
+                      <p className="font-bold text-slate-900 dark:text-white">{asg?.title}</p>
+                      <span className="text-xs font-mono font-bold text-teal-700 dark:text-teal-300 bg-teal-100 dark:bg-teal-900/50 px-2 py-0.5 rounded-md">
+                        Score: {sub.marksObtained} / {asg?.maxMarks}
+                      </span>
+                    </div>
+                    <p className="text-xs italic text-slate-600 dark:text-slate-300 mt-2">"{sub.feedback}"</p>
+                    {sub.fileName && (
+                      <p className="text-[10px] font-mono text-slate-400 mt-2 flex items-center gap-1">
+                        <Paperclip className="h-3 w-3" /> Submitted file: {sub.fileName}
+                      </p>
+                    )}
                   </div>
                 );
               })}
+              {submissions.filter(s => s.studentId === currentStudentId && s.status === 'Graded').length === 0 && (
+                <div className="py-8 text-center text-slate-400 italic text-xs">
+                  No graded tasks available yet.
+                </div>
+              )}
             </div>
           </div>
         </div>
       )}
 
-      {/* Add Assignment Modal */}
+      {/* Student Upload Task Modal */}
+      {showUploadModal && selectedAsgForUpload && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-xs">
+          <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-900">
+            <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4 dark:border-slate-800">
+              <div>
+                <h3 className="font-sans text-sm font-bold text-slate-900 dark:text-white">Submit Assessment / Task</h3>
+                <p className="text-[11px] text-teal-600 font-semibold">{selectedAsgForUpload.title}</p>
+              </div>
+              <button onClick={() => setShowUploadModal(false)} className="text-slate-400 hover:bg-slate-100 p-1.5 rounded-lg">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmitUploadedTask} className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-bold uppercase text-slate-400 mb-1.5">Upload Document / File (PDF, DOCX, TXT, ZIP, Code)</label>
+                <div className="relative border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-teal-500 rounded-2xl p-6 text-center transition-colors">
+                  <input
+                    type="file"
+                    onChange={handleFileChange}
+                    accept=".pdf,.doc,.docx,.txt,.zip,.png,.jpg,.csv"
+                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                    required={!uploadFile}
+                  />
+                  <div className="flex flex-col items-center justify-center space-y-2 pointer-events-none">
+                    <div className="h-10 w-10 rounded-full bg-teal-50 dark:bg-teal-950 flex items-center justify-center text-teal-600">
+                      <UploadCloud className="h-6 w-6" />
+                    </div>
+                    {uploadFile ? (
+                      <div className="text-center">
+                        <p className="font-bold text-xs text-slate-900 dark:text-white flex items-center justify-center gap-1">
+                          <Paperclip className="h-3.5 w-3.5 text-teal-600" /> {uploadFile.name}
+                        </p>
+                        <p className="text-[10px] text-slate-400 font-mono mt-0.5">Size: {fileSizeFormatted}</p>
+                      </div>
+                    ) : (
+                      <>
+                        <p className="text-xs font-bold text-slate-700 dark:text-slate-300">Click or Drag & Drop to Upload Task File</p>
+                        <p className="text-[10px] text-slate-400">Supports PDF, DOCX, TXT, ZIP up to 10MB</p>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase text-slate-400 mb-1">Submission Comments / Notes (Optional)</label>
+                <textarea
+                  value={submissionTextNotes}
+                  onChange={(e) => setSubmissionTextNotes(e.target.value)}
+                  placeholder="Enter any comments or explanations regarding your task..."
+                  rows={3}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold focus:bg-white dark:border-slate-800 dark:bg-slate-950 dark:text-white focus:outline-hidden"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowUploadModal(false)}
+                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex items-center gap-2 rounded-xl bg-teal-600 px-5 py-2 text-xs font-bold text-white shadow-md hover:bg-teal-700 transition-all"
+                >
+                  <Upload className="h-4 w-4" /> Submit Task
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* View Task Submission Details Modal (Staff/Admin) */}
+      {showViewDetailsModal && selectedSubForView && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-xs">
+          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-900">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4 dark:border-slate-800">
+              <h3 className="font-bold text-sm text-slate-900 dark:text-white">Submission File & Details</h3>
+              <button onClick={() => setShowViewDetailsModal(false)} className="text-slate-400 hover:bg-slate-100 p-1 rounded-lg">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3.5 text-xs text-slate-700 dark:text-slate-300">
+              <div>
+                <span className="text-[10px] font-bold uppercase text-slate-400">Student Name</span>
+                <p className="font-bold text-slate-900 dark:text-white text-sm">
+                  {users.find(u => u.id === students.find(s => s.id === selectedSubForView.studentId)?.userId)?.name}
+                </p>
+              </div>
+
+              <div>
+                <span className="text-[10px] font-bold uppercase text-slate-400">Submitted File</span>
+                {selectedSubForView.fileName ? (
+                  <div className="mt-1 flex items-center justify-between bg-slate-50 dark:bg-slate-950 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
+                    <div className="flex items-center gap-2">
+                      <Paperclip className="h-4 w-4 text-teal-600" />
+                      <div>
+                        <p className="font-bold text-slate-900 dark:text-white">{selectedSubForView.fileName}</p>
+                        <p className="text-[10px] text-slate-400 font-mono">{selectedSubForView.fileSize || '1.5 MB'}</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleDownloadFileAttachment(selectedSubForView)}
+                      className="flex items-center gap-1 bg-teal-600 text-white font-bold text-xs px-3 py-1.5 rounded-lg shadow-xs hover:bg-teal-700"
+                    >
+                      <Download className="h-3.5 w-3.5" /> Download
+                    </button>
+                  </div>
+                ) : (
+                  <p className="italic text-slate-400 mt-0.5">No file attached</p>
+                )}
+              </div>
+
+              {selectedSubForView.submissionText && (
+                <div>
+                  <span className="text-[10px] font-bold uppercase text-slate-400">Student Notes</span>
+                  <p className="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 mt-1 italic">
+                    "{selectedSubForView.submissionText}"
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-6 border-t pt-3 flex justify-end">
+              <button
+                onClick={() => setShowViewDetailsModal(false)}
+                className="bg-slate-200 dark:bg-slate-800 font-bold text-slate-700 dark:text-slate-300 px-4 py-2 rounded-xl text-xs"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Assessment Modal */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-xs">
           <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-900">
             <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4 dark:border-slate-800">
-              <h3 className="font-sans text-sm font-bold text-slate-900 dark:text-white">Define Assignment</h3>
+              <h3 className="font-sans text-sm font-bold text-slate-900 dark:text-white">Define Assessment Task</h3>
               <button onClick={() => setShowAddModal(false)} className="text-slate-400 hover:bg-slate-100 rounded-lg">
                 <X className="h-5 w-5" />
               </button>
@@ -901,7 +1272,7 @@ export function AssignmentSubmissions({
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-bold uppercase text-slate-400 mb-1">Description</label>
+                <label className="block text-xs font-bold uppercase text-slate-400 mb-1">Description / Instructions</label>
                 <textarea
                   value={desc}
                   onChange={(e) => setDesc(e.target.value)}
@@ -909,7 +1280,9 @@ export function AssignmentSubmissions({
                   className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold dark:border-slate-800 dark:bg-slate-950 dark:text-white"
                 />
               </div>
-              <button type="submit" className="w-full bg-teal-600 text-white font-bold py-2.5 rounded-xl shadow-md">Publish Assignment</button>
+              <button type="submit" className="w-full bg-teal-600 text-white font-bold py-2.5 rounded-xl shadow-md hover:bg-teal-700">
+                Publish Assessment Task
+              </button>
             </form>
           </div>
         </div>
@@ -919,10 +1292,10 @@ export function AssignmentSubmissions({
       {showGradeModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-xs">
           <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
-            <h3 className="font-bold text-slate-900 dark:text-white mb-4">Grade Submission</h3>
+            <h3 className="font-bold text-slate-900 dark:text-white mb-4">Grade & Evaluate Task</h3>
             <form onSubmit={handleSaveGrade} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold uppercase text-slate-400 mb-1">Marks</label>
+                <label className="block text-xs font-bold uppercase text-slate-400 mb-1">Marks Obtained</label>
                 <input
                   type="number"
                   value={score}
@@ -931,7 +1304,7 @@ export function AssignmentSubmissions({
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold uppercase text-slate-400 mb-1">Feedback</label>
+                <label className="block text-xs font-bold uppercase text-slate-400 mb-1">Staff Feedback</label>
                 <input
                   type="text"
                   value={feedback}
@@ -939,7 +1312,18 @@ export function AssignmentSubmissions({
                   className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold dark:border-slate-800 dark:bg-slate-950 dark:text-white"
                 />
               </div>
-              <button type="submit" className="w-full bg-teal-600 text-white font-bold py-2 rounded-xl">Save Grade</button>
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowGradeModal(false)}
+                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl"
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="bg-teal-600 text-white font-bold px-5 py-2 rounded-xl text-xs hover:bg-teal-700">
+                  Save Grade & Feedback
+                </button>
+              </div>
             </form>
           </div>
         </div>

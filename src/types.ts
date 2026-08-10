@@ -156,6 +156,10 @@ export interface AssignmentSubmission {
   status: 'Submitted' | 'Graded';
   marksObtained?: number;
   feedback?: string;
+  fileUrl?: string;
+  fileName?: string;
+  fileSize?: string;
+  submissionText?: string;
 }
 
 export interface Notice {

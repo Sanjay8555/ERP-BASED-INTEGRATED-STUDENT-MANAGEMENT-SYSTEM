@@ -1653,8 +1653,30 @@ export const initialAssignments: Assignment[] = [
 ];
 
 export const initialAssignmentSubmissions: AssignmentSubmission[] = [
-  { id: 'sub-1', assignmentId: 'asg-1', studentId: 's-1', submissionDate: '2026-07-02', status: 'Submitted' },
-  { id: 'sub-2', assignmentId: 'asg-1', studentId: 's-2', submissionDate: '2026-07-01', status: 'Graded', marksObtained: 46, feedback: 'Excellent work. Relational algebra notation is perfect.' }
+  {
+    id: 'sub-1',
+    assignmentId: 'asg-1',
+    studentId: 's-1',
+    submissionDate: '2026-07-02',
+    status: 'Submitted',
+    fileName: 'SQL_Assignment_Sanjay_K.pdf',
+    fileSize: '1.8 MB',
+    fileUrl: 'data:application/pdf;base64,JVBERi0xLjQK...',
+    submissionText: 'Respected Sir, Please find attached my completed SQL queries for Subqueries & Joins.'
+  },
+  {
+    id: 'sub-2',
+    assignmentId: 'asg-1',
+    studentId: 's-2',
+    submissionDate: '2026-07-01',
+    status: 'Graded',
+    marksObtained: 46,
+    feedback: 'Excellent work. Relational algebra notation is perfect.',
+    fileName: 'Database_HW1_Roll102.pdf',
+    fileSize: '2.4 MB',
+    fileUrl: 'data:application/pdf;base64,JVBERi0xLjQK...',
+    submissionText: 'Submitted all 15 questions with ER diagrams attached.'
+  }
 ];
 
 export const initialNotices: Notice[] = [
