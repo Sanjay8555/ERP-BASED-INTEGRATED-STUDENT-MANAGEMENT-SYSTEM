@@ -18,6 +18,14 @@ export default defineConfig(() => {
           target: 'http://localhost:5000',
           changeOrigin: true,
           secure: false,
+          configure: (proxy) => {
+            proxy.on('error', (err) => {
+              if ((err as any).code === 'ECONNREFUSED') {
+                return;
+              }
+              console.log('proxy error', err);
+            });
+          },
         },
       },
       // HMR is disabled in AI Studio via DISABLE_HMR env var.
@@ -33,6 +41,14 @@ export default defineConfig(() => {
           target: 'http://localhost:5000',
           changeOrigin: true,
           secure: false,
+          configure: (proxy) => {
+            proxy.on('error', (err) => {
+              if ((err as any).code === 'ECONNREFUSED') {
+                return;
+              }
+              console.log('proxy error', err);
+            });
+          },
         },
       },
     },
