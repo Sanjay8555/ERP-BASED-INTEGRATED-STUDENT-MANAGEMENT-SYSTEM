@@ -623,27 +623,46 @@ interface AssignmentSubmissionsProps {
 }
 
 export function AssignmentSubmissions({
-  assignments,
-  submissions,
-  courses,
-  students,
-  users,
-  role,
+  assignments = [],
+  submissions = [],
+  courses = [],
+  students = [],
+  users = [],
+  role = 'Student',
   onAddAssignment,
   onSubmitAssignment,
   onGradeSubmission,
   currentUser,
-  departments
+  departments = []
 }: AssignmentSubmissionsProps) {
-  const studentProfile = students.find(s => s.userId === currentUser?.id);
+  const safeAssignments = Array.isArray(assignments) ? assignments.filter(Boolean) : [];
+  const safeSubmissions = Array.isArray(submissions) ? submissions.filter(Boolean) : [];
+  const safeCourses = Array.isArray(courses) ? courses.filter(Boolean) : [];
+  const safeStudents = Array.isArray(students) ? students.filter(Boolean) : [];
+  const safeUsers = Array.isArray(users) ? users.filter(Boolean) : [];
+  const safeDepartments = Array.isArray(departments) ? departments.filter(Boolean) : [];
+
+  const studentProfile = safeStudents.find(s => s && s.userId === currentUser?.id);
   const currentStudentId = studentProfile?.id || 's-1';
 
   // Department & Semester filter states (initialized to student's profile if student, or default dept/sem)
-  const [selectedDept, setSelectedDept] = useState(() => studentProfile?.departmentId || departments[0]?.id || 'dept-5');
-  const [selectedSem, setSelectedSem] = useState(() => studentProfile?.currentSemester || 4);
+  const defaultDeptId = studentProfile?.departmentId || safeDepartments[0]?.id || 'dept-5';
+  const defaultSem = Number(studentProfile?.currentSemester) || 4;
 
-  const selectedDepartmentObj = departments.find(d => d.id === selectedDept);
-  const selectedSemYear = Math.ceil(selectedSem / 2);
+  const [selectedDept, setSelectedDept] = useState(defaultDeptId);
+  const [selectedSem, setSelectedSem] = useState(defaultSem);
+
+  useEffect(() => {
+    if (studentProfile?.departmentId) {
+      setSelectedDept(studentProfile.departmentId);
+    }
+    if (studentProfile?.currentSemester) {
+      setSelectedSem(Number(studentProfile.currentSemester));
+    }
+  }, [studentProfile?.departmentId, studentProfile?.currentSemester]);
+
+  const selectedDepartmentObj = safeDepartments.find(d => d && d.id === selectedDept) || safeDepartments[0];
+  const selectedSemYear = Math.ceil((Number(selectedSem) || 4) / 2);
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [showGradeModal, setShowGradeModal] = useState(false);
@@ -674,10 +693,11 @@ export function AssignmentSubmissions({
   const isFaculty = role === 'Faculty' || role === 'Admin';
 
   // Filter student assignments strictly by selected department and semester/year
-  const visibleStudentAssignments = assignments.filter(asg => {
-    const course = courses.find(c => c.id === asg.courseId);
+  const visibleStudentAssignments = safeAssignments.filter(asg => {
+    if (!asg) return false;
+    const course = safeCourses.find(c => c && c.id === asg.courseId);
     if (!course) return true;
-    return course.departmentId === selectedDept && course.semester === selectedSem;
+    return course.departmentId === selectedDept && Number(course.semester) === Number(selectedSem);
   });
 
   const handleOpenAddModal = () => {
@@ -1089,14 +1109,15 @@ export function AssignmentSubmissions({
 
             <div className="space-y-4">
               {visibleStudentAssignments.map(asg => {
-                const sub = submissions.find(s => s.assignmentId === asg.id && (s.studentId === currentStudentId || s.studentId === currentUser?.id));
-                const course = courses.find(c => c.id === asg.courseId);
+                if (!asg) return null;
+                const sub = safeSubmissions.find(s => s && s.assignmentId === asg.id && (s.studentId === currentStudentId || s.studentId === currentUser?.id || s.studentId === studentProfile?.id));
+                const course = safeCourses.find(c => c && c.id === asg.courseId);
                 return (
                   <div key={asg.id} className="p-4 bg-slate-50 dark:bg-slate-950 border border-slate-200/60 dark:border-slate-800 rounded-2xl">
                     <div className="flex justify-between items-start">
                       <div>
                         <h4 className="font-bold text-slate-900 dark:text-white">{asg.title}</h4>
-                        <p className="text-[10px] font-bold text-teal-600 mt-0.5">{course?.code} - {course?.name}</p>
+                        <p className="text-[10px] font-bold text-teal-600 mt-0.5">{course?.code || 'COURSE'} - {course?.name || 'General'}</p>
                       </div>
                       <span className="text-[10px] bg-rose-50 border border-rose-100 text-rose-600 dark:bg-rose-950/40 dark:border-rose-900 font-bold px-2 py-0.5 rounded-full">
                         DUE: {asg.dueDate}
@@ -1147,14 +1168,15 @@ export function AssignmentSubmissions({
           <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900">
             <h3 className="font-sans text-sm font-bold text-slate-900 dark:text-white mb-4">Academic Feedbacks & Marks</h3>
             <div className="space-y-4">
-              {submissions.filter(s => s.studentId === currentStudentId && s.status === 'Graded').map(sub => {
-                const asg = assignments.find(a => a.id === sub.assignmentId);
+              {safeSubmissions.filter(s => s && (s.studentId === currentStudentId || s.studentId === currentUser?.id || s.studentId === studentProfile?.id) && s.status === 'Graded').map(sub => {
+                if (!sub) return null;
+                const asg = safeAssignments.find(a => a && a.id === sub.assignmentId);
                 return (
                   <div key={sub.id} className="p-4 bg-teal-50/50 border border-teal-100 rounded-2xl dark:bg-teal-950/20 dark:border-teal-900">
                     <div className="flex justify-between items-start">
-                      <p className="font-bold text-slate-900 dark:text-white">{asg?.title}</p>
+                      <p className="font-bold text-slate-900 dark:text-white">{asg?.title || 'Assignment'}</p>
                       <span className="text-xs font-mono font-bold text-teal-700 dark:text-teal-300 bg-teal-100 dark:bg-teal-900/50 px-2 py-0.5 rounded-md">
-                        Score: {sub.marksObtained} / {asg?.maxMarks}
+                        Score: {sub.marksObtained} / {asg?.maxMarks || 50}
                       </span>
                     </div>
                     <p className="text-xs italic text-slate-600 dark:text-slate-300 mt-2">"{sub.feedback}"</p>
@@ -1166,7 +1188,7 @@ export function AssignmentSubmissions({
                   </div>
                 );
               })}
-              {submissions.filter(s => s.studentId === currentStudentId && s.status === 'Graded').length === 0 && (
+              {safeSubmissions.filter(s => s && (s.studentId === currentStudentId || s.studentId === currentUser?.id || s.studentId === studentProfile?.id) && s.status === 'Graded').length === 0 && (
                 <div className="py-8 text-center text-slate-400 italic text-xs">
                   No graded tasks available yet.
                 </div>
