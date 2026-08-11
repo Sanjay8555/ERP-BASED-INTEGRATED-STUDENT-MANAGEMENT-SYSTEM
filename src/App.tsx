@@ -510,11 +510,14 @@ export default function App() {
       return;
     }
 
+    const searchEmail = loginEmail.trim().toLowerCase();
+
     // 1. Standard credential lookup in usersStore
     let matchedUser = usersStore.find(
       u =>
-        (u.email.toLowerCase() === loginEmail.toLowerCase() ||
-          u.username.toLowerCase() === loginEmail.toLowerCase()) &&
+        u &&
+        ((u.email && u.email.trim().toLowerCase() === searchEmail) ||
+          (u.username && u.username.trim().toLowerCase() === searchEmail)) &&
         u.password === loginPassword
     );
 
@@ -522,18 +525,20 @@ export default function App() {
     if (!matchedUser) {
       const parentStudentMatch = studentsStore.find(
         s =>
-          s.parentEmail.toLowerCase() === loginEmail.toLowerCase() &&
+          s &&
+          s.parentEmail &&
+          s.parentEmail.trim().toLowerCase() === searchEmail &&
           (s.parentPassword || 'parentPass2026!') === loginPassword
       );
       if (parentStudentMatch) {
         matchedUser = {
           id: `u-parent-${parentStudentMatch.id}`,
-          username: parentStudentMatch.parentEmail.split('@')[0],
+          username: (parentStudentMatch.parentEmail || 'parent').split('@')[0],
           email: parentStudentMatch.parentEmail,
           password: parentStudentMatch.parentPassword || 'parentPass2026!',
-          name: parentStudentMatch.parentName,
+          name: parentStudentMatch.parentName || 'Parent Guardian',
           role: 'Parent',
-          phone: parentStudentMatch.parentPhone,
+          phone: parentStudentMatch.parentPhone || '',
           photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=120'
         };
       }
@@ -552,7 +557,7 @@ export default function App() {
 
   // Action: Quick demo login bypass
   const handleDemoLogin = (roleType: UserRole) => {
-    const matchedUser = usersStore.find(u => u.role === roleType);
+    const matchedUser = usersStore.find(u => u && u.role === roleType);
     if (matchedUser) {
       setCurrentUser(matchedUser);
       setActiveRole(roleType);
@@ -566,53 +571,63 @@ export default function App() {
   const handleAddStudent = (newStudent: StudentProfile, newUser: User) => {
     setStudentsStore(prev => [newStudent, ...prev]);
 
-    // Create/Sync parent user record in usersStore if email provided
-    const newParentUser: User = {
-      id: `u-parent-${newStudent.id}`,
-      username: newStudent.parentEmail.split('@')[0],
-      email: newStudent.parentEmail,
-      password: newStudent.parentPassword || 'parentPass2026!',
-      name: newStudent.parentName,
-      role: 'Parent',
-      phone: newStudent.parentPhone,
-      photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=120'
-    };
+    if (newStudent.parentEmail) {
+      const newParentUser: User = {
+        id: `u-parent-${newStudent.id}`,
+        username: (newStudent.parentEmail || 'parent').split('@')[0],
+        email: newStudent.parentEmail,
+        password: newStudent.parentPassword || 'parentPass2026!',
+        name: newStudent.parentName || 'Parent Guardian',
+        role: 'Parent',
+        phone: newStudent.parentPhone || '',
+        photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=120'
+      };
 
-    setUsersStore(prev => {
-      const filtered = prev.filter(u => u.email.toLowerCase() !== newStudent.parentEmail.toLowerCase());
-      return [newUser, newParentUser, ...filtered];
-    });
+      setUsersStore(prev => {
+        const filtered = prev.filter(u => u && u.email && u.email.trim().toLowerCase() !== (newStudent.parentEmail || '').trim().toLowerCase());
+        return [newUser, newParentUser, ...filtered];
+      });
+    } else {
+      setUsersStore(prev => [newUser, ...prev]);
+    }
   };
 
   const handleUpdateStudent = (updatedStudent: StudentProfile, updatedUser: User) => {
     setStudentsStore(prev => prev.map(s => s.id === updatedStudent.id ? updatedStudent : s));
 
-    const updatedParentUser: User = {
-      id: `u-parent-${updatedStudent.id}`,
-      username: updatedStudent.parentEmail.split('@')[0],
-      email: updatedStudent.parentEmail,
-      password: updatedStudent.parentPassword || 'parentPass2026!',
-      name: updatedStudent.parentName,
-      role: 'Parent',
-      phone: updatedStudent.parentPhone,
-      photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=120'
-    };
+    if (updatedStudent.parentEmail) {
+      const updatedParentUser: User = {
+        id: `u-parent-${updatedStudent.id}`,
+        username: (updatedStudent.parentEmail || 'parent').split('@')[0],
+        email: updatedStudent.parentEmail,
+        password: updatedStudent.parentPassword || 'parentPass2026!',
+        name: updatedStudent.parentName || 'Parent Guardian',
+        role: 'Parent',
+        phone: updatedStudent.parentPhone || '',
+        photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=120'
+      };
 
-    setUsersStore(prev => {
-      const updatedList = prev.map(u => u.id === updatedUser.id ? updatedUser : u);
-      const existingParentIndex = updatedList.findIndex(u => u.email.toLowerCase() === updatedStudent.parentEmail.toLowerCase() || u.id === `u-parent-${updatedStudent.id}`);
-      if (existingParentIndex >= 0) {
-        updatedList[existingParentIndex] = {
-          ...updatedList[existingParentIndex],
-          name: updatedStudent.parentName,
-          email: updatedStudent.parentEmail,
-          password: updatedStudent.parentPassword || 'parentPass2026!',
-          phone: updatedStudent.parentPhone
-        };
-        return updatedList;
-      }
-      return [updatedParentUser, ...updatedList];
-    });
+      setUsersStore(prev => {
+        const updatedList = prev.map(u => u.id === updatedUser.id ? updatedUser : u);
+        const parentEmailLower = (updatedStudent.parentEmail || '').trim().toLowerCase();
+        const existingParentIndex = updatedList.findIndex(
+          u => u && ((u.email && u.email.trim().toLowerCase() === parentEmailLower) || u.id === `u-parent-${updatedStudent.id}`)
+        );
+        if (existingParentIndex >= 0) {
+          updatedList[existingParentIndex] = {
+            ...updatedList[existingParentIndex],
+            name: updatedStudent.parentName || updatedList[existingParentIndex].name,
+            email: updatedStudent.parentEmail,
+            password: updatedStudent.parentPassword || 'parentPass2026!',
+            phone: updatedStudent.parentPhone || updatedList[existingParentIndex].phone
+          };
+          return updatedList;
+        }
+        return [updatedParentUser, ...updatedList];
+      });
+    } else {
+      setUsersStore(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
+    }
   };
 
   const handleDeleteStudent = (studentId: string) => {
@@ -620,7 +635,8 @@ export default function App() {
       const student = studentsStore.find(s => s.id === studentId);
       setStudentsStore(prev => prev.filter(s => s.id !== studentId));
       if (student) {
-        setUsersStore(prev => prev.filter(u => u.id !== student.userId && u.email.toLowerCase() !== student.parentEmail.toLowerCase()));
+        const parentEmailLower = (student.parentEmail || '').trim().toLowerCase();
+        setUsersStore(prev => prev.filter(u => u.id !== student.userId && (!parentEmailLower || (u.email || '').trim().toLowerCase() !== parentEmailLower)));
       }
     }
   };
@@ -804,7 +820,9 @@ export default function App() {
             books={booksStore}
             bookIssues={bookIssuesStore}
             notices={noticesStore}
+            exams={examsStore}
             setActiveTab={setActiveTab}
+            currentUser={currentUser}
           />
         );
       case 'students':

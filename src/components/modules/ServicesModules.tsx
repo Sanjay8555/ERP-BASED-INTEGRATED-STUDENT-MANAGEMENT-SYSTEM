@@ -59,8 +59,10 @@ export function FeeCollections({
   onPrintReceipt,
   currentUser
 }: FeeCollectionsProps) {
-  // Find student profile for the current user (if student)
-  const studentProfile = students.find(s => s.userId === currentUser?.id);
+  // Find student profile for the current user (if student or parent)
+  const studentProfile = students.find(
+    s => s && (s.userId === currentUser?.id || (s.parentEmail && s.parentEmail.trim().toLowerCase() === (currentUser?.email || '').trim().toLowerCase()))
+  );
   const currentStudentId = studentProfile?.id || 's-1'; // fallback to s-1 for demo if no profile found
 
   const [selectedStudent, setSelectedStudent] = useState(currentStudentId);

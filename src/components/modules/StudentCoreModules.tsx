@@ -60,8 +60,10 @@ export function AttendanceTracker({
   currentUser,
   departments
 }: AttendanceTrackerProps) {
-  // Find student profile for the current user (if student)
-  const studentProfile = students.find(s => s.userId === currentUser?.id);
+  // Find student profile for the current user (or parent's ward)
+  const studentProfile = students.find(
+    s => s && (s.userId === currentUser?.id || (s.parentEmail && s.parentEmail.trim().toLowerCase() === (currentUser?.email || '').trim().toLowerCase()))
+  );
   const currentStudentId = studentProfile?.id || 's-1';
 
   // Faculty Filter states
@@ -338,7 +340,9 @@ export function ExaminationGrades({
   currentUser,
   departments
 }: ExaminationGradesProps) {
-  const studentProfile = students.find(s => s.userId === currentUser?.id);
+  const studentProfile = students.find(
+    s => s && (s.userId === currentUser?.id || (s.parentEmail && s.parentEmail.trim().toLowerCase() === (currentUser?.email || '').trim().toLowerCase()))
+  );
   const currentStudentId = studentProfile?.id || 's-1';
 
   // Faculty Filter states
@@ -635,7 +639,9 @@ export function AssignmentSubmissions({
   currentUser,
   departments
 }: AssignmentSubmissionsProps) {
-  const studentProfile = students.find(s => s.userId === currentUser?.id);
+  const studentProfile = students.find(
+    s => s && (s.userId === currentUser?.id || (s.parentEmail && s.parentEmail.trim().toLowerCase() === (currentUser?.email || '').trim().toLowerCase()))
+  );
   const currentStudentId = studentProfile?.id || 's-1';
 
   // Faculty Filter states

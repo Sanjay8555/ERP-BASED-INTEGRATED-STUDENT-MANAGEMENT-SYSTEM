@@ -66,8 +66,10 @@ interface DashboardsProps {
   books: Book[];
   bookIssues: BookIssue[];
   notices: Notice[];
+  exams?: Exam[];
   setActiveTab: (tab: string) => void;
   onOpenQuickModal?: (action: string) => void;
+  currentUser?: User;
 }
 
 export default function Dashboards({
@@ -83,8 +85,10 @@ export default function Dashboards({
   books,
   bookIssues,
   notices,
+  exams = [],
   setActiveTab,
-  onOpenQuickModal
+  onOpenQuickModal,
+  currentUser
 }: DashboardsProps) {
   // Chart Colors
   const COLORS = ['#6366f1', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#ec4899'];
@@ -526,17 +530,42 @@ export default function Dashboards({
 
   // Render Parent Dashboard
   const renderParentDashboard = () => {
-    // Ward Jane Doe academic metrics
-    const overallAtt = studentIT_Attendance();
-    const currentGPA = 3.84;
-    const unpaidFee = 150.00; // Sports fee pending
+    // Dynamically find the ward for the logged-in parent
+    const parentEmail = (currentUser?.email || '').trim().toLowerCase();
+    const wardStudent = students.find(s => s && s.parentEmail && s.parentEmail.trim().toLowerCase() === parentEmail) || students[0];
+    const wardUser = wardStudent ? users.find(u => u && u.id === wardStudent.userId) : null;
+    const wardDept = departments.find(d => d && d.id === wardStudent?.departmentId);
 
-    const gradeData = [
-      { name: 'CS-201', Marks: 85 },
-      { name: 'CS-202', Marks: 88 },
-      { name: 'CS-203', Marks: 82 },
-      { name: 'CS-204', Marks: 90 }
-    ];
+    const wardAttendanceLogs = wardStudent ? attendance.filter(a => a && a.studentId === wardStudent.id) : [];
+    const totalAtt = wardAttendanceLogs.length;
+    const presentAtt = wardAttendanceLogs.filter(a => a.status === 'Present').length;
+    const overallAtt = totalAtt > 0 ? Math.round((presentAtt / totalAtt) * 100) : 92;
+
+    const currentGPA = wardStudent?.cgpa || 3.84;
+
+    const wardResults = wardStudent ? results.filter(r => r && r.studentId === wardStudent.id) : [];
+    const gradeData = wardResults.length > 0
+      ? wardResults.slice(0, 5).map(r => {
+          const exam = exams.find(e => e && e.id === r.examId);
+          const course = courses.find(c => c && c.id === exam?.courseId);
+          return {
+            name: course?.code || exam?.name || 'Subject',
+            Marks: Math.round((r.totalMarks / 150) * 100)
+          };
+        })
+      : [
+          { name: 'CS-201', Marks: 85 },
+          { name: 'CS-202', Marks: 88 },
+          { name: 'CS-203', Marks: 82 },
+          { name: 'CS-204', Marks: 90 }
+        ];
+
+    const wardName = wardUser?.name || 'Jane Doe';
+    const wardRoll = wardStudent?.rollNo || 'IT-2026-001';
+    const wardDeptName = wardDept?.name || 'Information Technology';
+    const wardSem = wardStudent?.currentSemester || 4;
+    const wardBatch = wardStudent?.batch || '2024-2028';
+    const wardPhoto = wardUser?.photo || 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80&w=120';
 
     return (
       <div className="space-y-6">
@@ -545,14 +574,14 @@ export default function Dashboards({
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-4">
               <img
-                src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80&w=120"
-                alt="Jane Doe"
+                src={wardPhoto}
+                alt={wardName}
                 className="h-16 w-16 rounded-full object-cover border-2 border-teal-600"
               />
               <div>
-                <h3 className="font-sans text-md font-bold text-slate-900 dark:text-white">Jane Doe (Ward Profile)</h3>
-                <p className="text-xs text-slate-500">Roll No: IT-2026-001 • Information Technology</p>
-                <p className="text-[11px] font-mono text-slate-400 mt-0.5">Semester 4 • Batch 2024-2028</p>
+                <h3 className="font-sans text-md font-bold text-slate-900 dark:text-white">{wardName} (Ward Profile)</h3>
+                <p className="text-xs text-slate-500">Roll No: {wardRoll} • {wardDeptName}</p>
+                <p className="text-[11px] font-mono text-slate-400 mt-0.5">Semester {wardSem} • Batch {wardBatch}</p>
               </div>
             </div>
             <div className="flex gap-2">
