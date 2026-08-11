@@ -17,7 +17,9 @@ import {
   MapPin,
   Mail,
   User,
-  Camera
+  Camera,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { StudentProfile, User as UserType, Department } from '../../types';
 import ProfilePhotoModal from '../shared/ProfilePhotoModal';
@@ -58,6 +60,8 @@ export default function StudentManagement({
   const [parentName, setParentName] = useState('');
   const [parentPhone, setParentPhone] = useState('');
   const [parentEmail, setParentEmail] = useState('');
+  const [parentPassword, setParentPassword] = useState('');
+  const [showParentPassword, setShowParentPassword] = useState(false);
   const [address, setAddress] = useState('');
   const [departmentId, setDepartmentId] = useState('');
   const [photo, setPhoto] = useState('https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=120');
@@ -78,6 +82,8 @@ export default function StudentManagement({
     setParentName('');
     setParentPhone('');
     setParentEmail('');
+    setParentPassword('');
+    setShowParentPassword(false);
     setAddress('');
     setDepartmentId(departments[0]?.id || '');
     setPhoto('https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=120');
@@ -104,6 +110,8 @@ export default function StudentManagement({
     setParentName(student.parentName);
     setParentPhone(student.parentPhone);
     setParentEmail(student.parentEmail);
+    setParentPassword(student.parentPassword || 'parentPass2026!');
+    setShowParentPassword(false);
     setAddress(student.address);
     setDepartmentId(student.departmentId);
     setPhoto(user?.photo || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=120');
@@ -130,6 +138,8 @@ export default function StudentManagement({
     e.preventDefault();
     if (!validate()) return;
 
+    const finalParentPassword = parentPassword || 'parentPass2026!';
+
     if (editingStudent) {
       const updatedUser: UserType = {
         id: editingStudent.userId,
@@ -152,6 +162,7 @@ export default function StudentManagement({
         parentName,
         parentPhone,
         parentEmail,
+        parentPassword: finalParentPassword,
         address,
         departmentId
       };
@@ -181,6 +192,7 @@ export default function StudentManagement({
         parentName,
         parentPhone,
         parentEmail,
+        parentPassword: finalParentPassword,
         address,
         departmentId
       };
@@ -491,7 +503,7 @@ export default function StudentManagement({
               {/* Parent Info */}
               <div className="border-t border-slate-100 dark:border-slate-800 pt-4">
                 <h4 className="font-sans text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">Parent / Guardian Information</h4>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>
                     <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Guardian Full Name</label>
                     <input
@@ -523,6 +535,28 @@ export default function StudentManagement({
                       className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-800 focus:bg-white focus:outline-hidden dark:border-slate-800 dark:bg-slate-950 dark:text-white"
                     />
                     {errors.parentEmail && <p className="text-[9px] font-semibold text-rose-500 mt-1">{errors.parentEmail}</p>}
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Guardian Login Password</label>
+                    <div className="relative">
+                      <input
+                        type={showParentPassword ? 'text' : 'password'}
+                        value={parentPassword}
+                        onChange={(e) => setParentPassword(e.target.value)}
+                        placeholder="parentPass2026!"
+                        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 pr-9 text-xs font-semibold text-slate-800 focus:bg-white focus:outline-hidden dark:border-slate-800 dark:bg-slate-950 dark:text-white"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowParentPassword(!showParentPassword)}
+                        className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                        title={showParentPassword ? 'Hide password' : 'Show password'}
+                      >
+                        {showParentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                    <p className="text-[9px] text-slate-400 mt-1">If blank, defaults to: parentPass2026!</p>
                   </div>
                 </div>
               </div>

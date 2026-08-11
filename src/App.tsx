@@ -510,13 +510,34 @@ export default function App() {
       return;
     }
 
-    // Standard credential lookup - accepts username or email AND validates password
-    const matchedUser = usersStore.find(
+    // 1. Standard credential lookup in usersStore
+    let matchedUser = usersStore.find(
       u =>
         (u.email.toLowerCase() === loginEmail.toLowerCase() ||
           u.username.toLowerCase() === loginEmail.toLowerCase()) &&
         u.password === loginPassword
     );
+
+    // 2. Parent credential lookup in studentsStore
+    if (!matchedUser) {
+      const parentStudentMatch = studentsStore.find(
+        s =>
+          s.parentEmail.toLowerCase() === loginEmail.toLowerCase() &&
+          (s.parentPassword || 'parentPass2026!') === loginPassword
+      );
+      if (parentStudentMatch) {
+        matchedUser = {
+          id: `u-parent-${parentStudentMatch.id}`,
+          username: parentStudentMatch.parentEmail.split('@')[0],
+          email: parentStudentMatch.parentEmail,
+          password: parentStudentMatch.parentPassword || 'parentPass2026!',
+          name: parentStudentMatch.parentName,
+          role: 'Parent',
+          phone: parentStudentMatch.parentPhone,
+          photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=120'
+        };
+      }
+    }
 
     if (matchedUser) {
       setCurrentUser(matchedUser);
@@ -544,12 +565,54 @@ export default function App() {
   // Modifying: Student Management
   const handleAddStudent = (newStudent: StudentProfile, newUser: User) => {
     setStudentsStore(prev => [newStudent, ...prev]);
-    setUsersStore(prev => [newUser, ...prev]);
+
+    // Create/Sync parent user record in usersStore if email provided
+    const newParentUser: User = {
+      id: `u-parent-${newStudent.id}`,
+      username: newStudent.parentEmail.split('@')[0],
+      email: newStudent.parentEmail,
+      password: newStudent.parentPassword || 'parentPass2026!',
+      name: newStudent.parentName,
+      role: 'Parent',
+      phone: newStudent.parentPhone,
+      photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=120'
+    };
+
+    setUsersStore(prev => {
+      const filtered = prev.filter(u => u.email.toLowerCase() !== newStudent.parentEmail.toLowerCase());
+      return [newUser, newParentUser, ...filtered];
+    });
   };
 
   const handleUpdateStudent = (updatedStudent: StudentProfile, updatedUser: User) => {
     setStudentsStore(prev => prev.map(s => s.id === updatedStudent.id ? updatedStudent : s));
-    setUsersStore(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
+
+    const updatedParentUser: User = {
+      id: `u-parent-${updatedStudent.id}`,
+      username: updatedStudent.parentEmail.split('@')[0],
+      email: updatedStudent.parentEmail,
+      password: updatedStudent.parentPassword || 'parentPass2026!',
+      name: updatedStudent.parentName,
+      role: 'Parent',
+      phone: updatedStudent.parentPhone,
+      photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=120'
+    };
+
+    setUsersStore(prev => {
+      const updatedList = prev.map(u => u.id === updatedUser.id ? updatedUser : u);
+      const existingParentIndex = updatedList.findIndex(u => u.email.toLowerCase() === updatedStudent.parentEmail.toLowerCase() || u.id === `u-parent-${updatedStudent.id}`);
+      if (existingParentIndex >= 0) {
+        updatedList[existingParentIndex] = {
+          ...updatedList[existingParentIndex],
+          name: updatedStudent.parentName,
+          email: updatedStudent.parentEmail,
+          password: updatedStudent.parentPassword || 'parentPass2026!',
+          phone: updatedStudent.parentPhone
+        };
+        return updatedList;
+      }
+      return [updatedParentUser, ...updatedList];
+    });
   };
 
   const handleDeleteStudent = (studentId: string) => {
@@ -557,7 +620,7 @@ export default function App() {
       const student = studentsStore.find(s => s.id === studentId);
       setStudentsStore(prev => prev.filter(s => s.id !== studentId));
       if (student) {
-        setUsersStore(prev => prev.filter(u => u.id !== student.userId));
+        setUsersStore(prev => prev.filter(u => u.id !== student.userId && u.email.toLowerCase() !== student.parentEmail.toLowerCase()));
       }
     }
   };

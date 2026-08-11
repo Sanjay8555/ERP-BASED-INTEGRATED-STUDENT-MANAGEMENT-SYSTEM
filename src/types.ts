@@ -28,6 +28,7 @@ export interface StudentProfile {
   parentName: string;
   parentPhone: string;
   parentEmail: string;
+  parentPassword?: string;
   address: string;
   departmentId: string;
 }

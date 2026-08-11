@@ -535,6 +535,7 @@ export const initialStudentProfiles: StudentProfile[] = [
     parentName: 'Richard Doe',
     parentPhone: '+1 (555) 012-4820',
     parentEmail: 'parent@university.edu',
+    parentPassword: 'parentPass2026!',
     address: 'Sathy Road, Coimbatore, Tamil Nadu',
     departmentId: 'dept-5'
   },
@@ -549,6 +550,7 @@ export const initialStudentProfiles: StudentProfile[] = [
     parentName: 'Monica Rivera',
     parentPhone: '+1 (555) 018-7711',
     parentEmail: 'monica@rivera.com',
+    parentPassword: 'parentPass2026!',
     address: 'Avinashi Road, Coimbatore, Tamil Nadu',
     departmentId: 'dept-5'
   },
@@ -563,6 +565,7 @@ export const initialStudentProfiles: StudentProfile[] = [
     parentName: 'Rajasekar R',
     parentPhone: '+91 94441 55667',
     parentEmail: 'rajasekar@gmail.com',
+    parentPassword: 'parentPass2026!',
     address: 'Gandhipuram, Coimbatore, Tamil Nadu',
     departmentId: 'dept-5'
   },
@@ -577,6 +580,7 @@ export const initialStudentProfiles: StudentProfile[] = [
     parentName: 'Sundara Moorthy',
     parentPhone: '+91 94442 88990',
     parentEmail: 'sundar@gmail.com',
+    parentPassword: 'parentPass2026!',
     address: 'Peelamedu, Coimbatore, Tamil Nadu',
     departmentId: 'dept-5'
   },
@@ -591,6 +595,7 @@ export const initialStudentProfiles: StudentProfile[] = [
     parentName: 'Krishnan K',
     parentPhone: '+91 94443 11223',
     parentEmail: 'krishnan@gmail.com',
+    parentPassword: 'parentPass2026!',
     address: 'Saravanampatti, Coimbatore, Tamil Nadu',
     departmentId: 'dept-5'
   },
@@ -605,6 +610,7 @@ export const initialStudentProfiles: StudentProfile[] = [
     parentName: 'Selvakumar S',
     parentPhone: '+91 94444 33445',
     parentEmail: 'selvakumar@gmail.com',
+    parentPassword: 'parentPass2026!',
     address: 'Singanallur, Coimbatore, Tamil Nadu',
     departmentId: 'dept-5'
   },
@@ -619,6 +625,7 @@ export const initialStudentProfiles: StudentProfile[] = [
     parentName: 'Ganesan G',
     parentPhone: '+91 94445 55667',
     parentEmail: 'ganesan@gmail.com',
+    parentPassword: 'parentPass2026!',
     address: 'Pollachi, Tamil Nadu',
     departmentId: 'dept-5'
   },
@@ -633,6 +640,7 @@ export const initialStudentProfiles: StudentProfile[] = [
     parentName: 'Velusamy V',
     parentPhone: '+91 94446 77889',
     parentEmail: 'velusamy@gmail.com',
+    parentPassword: 'parentPass2026!',
     address: 'Tiruppur, Tamil Nadu',
     departmentId: 'dept-5'
   }
