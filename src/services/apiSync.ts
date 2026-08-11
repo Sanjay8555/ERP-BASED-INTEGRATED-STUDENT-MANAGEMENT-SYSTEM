@@ -27,6 +27,8 @@ export interface SyncPayload {
   submissionsStore?: any[];
 }
 
+let lastLocalSaveTimestamp = 0;
+
 /**
  * Fetch latest global state from backend server
  */
@@ -48,6 +50,7 @@ export async function fetchBackendState(): Promise<SyncPayload | null> {
  * Send state update to backend server (broadcasts to all other connected devices)
  */
 export async function saveBackendState(data: SyncPayload): Promise<boolean> {
+  lastLocalSaveTimestamp = Date.now();
   try {
     const res = await fetch(`${API_BASE}/state`, {
       method: 'POST',
@@ -62,6 +65,35 @@ export async function saveBackendState(data: SyncPayload): Promise<boolean> {
     return res.ok;
   } catch (err) {
     console.warn('Failed to push state update to backend API:', err);
+    return false;
+  }
+}
+
+/**
+ * Entity-level REST helpers
+ */
+export async function saveEntityApi(endpoint: string, item: any): Promise<boolean> {
+  lastLocalSaveTimestamp = Date.now();
+  try {
+    const res = await fetch(`${API_BASE}/${endpoint}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(item)
+    });
+    return res.ok;
+  } catch (e) {
+    return false;
+  }
+}
+
+export async function deleteEntityApi(endpoint: string, id: string): Promise<boolean> {
+  lastLocalSaveTimestamp = Date.now();
+  try {
+    const res = await fetch(`${API_BASE}/${endpoint}/${id}`, {
+      method: 'DELETE'
+    });
+    return res.ok;
+  } catch (e) {
     return false;
   }
 }
@@ -93,20 +125,23 @@ export function subscribeToRealtimeSync(onUpdate: (newState: SyncPayload) => voi
     };
 
     eventSource.onerror = () => {
-      // SSE connection lost - fallback to periodic polling every 4 seconds
       console.warn('[Realtime Sync] SSE connection dropped. Reconnecting...');
     };
   } catch (e) {
     console.warn('[Realtime Sync] SSE not supported, using polling fallback.');
   }
 
-  // Backup polling mechanism (runs every 4 seconds) to ensure cross-device consistency
+  // Backup polling mechanism (runs every 5 seconds) to ensure cross-device consistency
   pollingInterval = setInterval(async () => {
+    // Skip polling overwrite if local client saved state within last 3 seconds
+    if (Date.now() - lastLocalSaveTimestamp < 3000) {
+      return;
+    }
     const latest = await fetchBackendState();
     if (latest) {
       onUpdate(latest);
     }
-  }, 4000);
+  }, 5000);
 
   // Return unsubscribe cleanup function
   return () => {

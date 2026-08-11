@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "server": "node server.js",
-    "dev": "node server.js & vite --port=3000 --host=0.0.0.0",
+    "dev": "node scripts/dev-runner.mjs",
     "build": "vite build",
     "preview": "node server.js",
     "clean": "rm -rf dist",

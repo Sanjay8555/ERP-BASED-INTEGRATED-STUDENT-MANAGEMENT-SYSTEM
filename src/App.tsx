@@ -270,38 +270,11 @@ export default function App() {
     }
   });
 
-  // Automatically migrate/synchronize database state if outdated localStorage is detected
+  // Seed initial stores if local state is completely empty
   useEffect(() => {
-    const hasSanjayK = usersStore.some(u => u.name === 'Sanjay K');
-    const hasMurugesan = usersStore.some(u => u.name.includes('Murugesan'));
-    const hasTOC = coursesStore.some(c => c.name === 'TOC');
-    const hasAdminRajesh = usersStore.some(u => u.username === 'admin' && u.name === 'RAJESH');
-
-    if (!hasSanjayK || !hasMurugesan || !hasTOC || !hasAdminRajesh) {
-      console.log('Synchronizing updated ERP database seeds...');
-      const syncedUsers = initialUsers.map(user => user.username === 'admin' ? { ...user, name: 'RAJESH' } : user);
-      setUsersStore(syncedUsers);
-      setStudentsStore(initialStudentProfiles);
-      setFacultyStore(initialFacultyProfiles);
-      setCoursesStore(initialCourses);
-      setFeePaymentsStore(initialFeePayments);
-      setFeeStructuresStore(initialFeeStructures);
-      setAttendanceStore(initialAttendance);
-      setExamsStore(initialExams);
-      setResultsStore(initialResults);
-      setCurrentUser(syncedUsers[0]);
-
-      // Safe helper to avoid QuotaExceededError blank screen crashes
-      safeLocalStorageSet('usersStore', JSON.stringify(syncedUsers));
-      safeLocalStorageSet('studentsStore', JSON.stringify(initialStudentProfiles));
-      safeLocalStorageSet('facultyStore', JSON.stringify(initialFacultyProfiles));
-      safeLocalStorageSet('coursesStore', JSON.stringify(initialCourses));
-      safeLocalStorageSet('feePaymentsStore', JSON.stringify(initialFeePayments));
-      safeLocalStorageSet('feeStructuresStore', JSON.stringify(initialFeeStructures));
-      safeLocalStorageSet('attendanceStore', JSON.stringify(initialAttendance));
-      safeLocalStorageSet('examsStore', JSON.stringify(initialExams));
-      safeLocalStorageSet('resultsStore', JSON.stringify(initialResults));
-      safeLocalStorageSet('currentUser', JSON.stringify(syncedUsers[0]));
+    if (!usersStore || usersStore.length === 0) {
+      setUsersStore(initialUsers);
+      safeLocalStorageSet('usersStore', JSON.stringify(initialUsers));
     }
   }, []);
 
@@ -397,59 +370,42 @@ export default function App() {
 
   // Ref to prevent circular echo re-triggers during incoming cloud updates
   const isRemoteUpdatingRef = useRef(false);
+  const isInitialMountRef = useRef(true);
 
   // Load initial backend state & subscribe to real-time SSE stream across devices
   useEffect(() => {
+    const applyCloudState = (cloudData: any) => {
+      isRemoteUpdatingRef.current = true;
+      if (cloudData.usersStore?.length) setUsersStore(cloudData.usersStore);
+      if (cloudData.studentsStore?.length) setStudentsStore(cloudData.studentsStore);
+      if (cloudData.facultyStore?.length) setFacultyStore(cloudData.facultyStore);
+      if (cloudData.coursesStore?.length) setCoursesStore(cloudData.coursesStore);
+      if (cloudData.feePaymentsStore?.length) setFeePaymentsStore(cloudData.feePaymentsStore);
+      if (cloudData.feeStructuresStore?.length) setFeeStructuresStore(cloudData.feeStructuresStore);
+      if (cloudData.booksStore?.length) setBooksStore(cloudData.booksStore);
+      if (cloudData.bookIssuesStore?.length) setBookIssuesStore(cloudData.bookIssuesStore);
+      if (cloudData.noticesStore?.length) setNoticesStore(cloudData.noticesStore);
+      if (cloudData.timetableStore?.length) setTimetableStore(cloudData.timetableStore);
+      if (cloudData.examsStore?.length) setExamsStore(cloudData.examsStore);
+      if (cloudData.assignmentsStore?.length) setAssignmentsStore(cloudData.assignmentsStore);
+      if (cloudData.submissionsStore?.length) setSubmissionsStore(cloudData.submissionsStore);
+
+      // Release remote lock immediately after React state updates are scheduled
+      setTimeout(() => {
+        isRemoteUpdatingRef.current = false;
+      }, 50);
+    };
+
     // 1. Initial Cloud Sync Fetch
     fetchBackendState().then(cloudData => {
       if (cloudData) {
-        isRemoteUpdatingRef.current = true;
-        if (cloudData.usersStore?.length) setUsersStore(cloudData.usersStore);
-        if (cloudData.studentsStore?.length) setStudentsStore(cloudData.studentsStore);
-        if (cloudData.facultyStore?.length) setFacultyStore(cloudData.facultyStore);
-        if (cloudData.coursesStore?.length) setCoursesStore(cloudData.coursesStore);
-        if (cloudData.feePaymentsStore?.length) setFeePaymentsStore(cloudData.feePaymentsStore);
-        if (cloudData.feeStructuresStore?.length) setFeeStructuresStore(cloudData.feeStructuresStore);
-        if (cloudData.booksStore?.length) setBooksStore(cloudData.booksStore);
-        if (cloudData.bookIssuesStore?.length) setBookIssuesStore(cloudData.bookIssuesStore);
-        if (cloudData.noticesStore?.length) setNoticesStore(cloudData.noticesStore);
-        if (cloudData.timetableStore?.length) setTimetableStore(cloudData.timetableStore);
-        if (cloudData.examsStore?.length) setExamsStore(cloudData.examsStore);
-        if (cloudData.assignmentsStore?.length) setAssignmentsStore(cloudData.assignmentsStore);
-        if (cloudData.submissionsStore?.length) setSubmissionsStore(cloudData.submissionsStore);
-
-        setTimeout(() => {
-          isRemoteUpdatingRef.current = false;
-        }, 500);
+        applyCloudState(cloudData);
       }
     });
 
     // 2. Real-Time Cross-Device SSE Subscription
     const unsubscribe = subscribeToRealtimeSync((cloudData) => {
-      isRemoteUpdatingRef.current = true;
-      if (cloudData.usersStore) {
-        setUsersStore(cloudData.usersStore);
-        setCurrentUser(prev => {
-          const updated = cloudData.usersStore.find((u: any) => u.id === prev.id);
-          return updated ? { ...prev, ...updated } : prev;
-        });
-      }
-      if (cloudData.studentsStore) setStudentsStore(cloudData.studentsStore);
-      if (cloudData.facultyStore) setFacultyStore(cloudData.facultyStore);
-      if (cloudData.coursesStore) setCoursesStore(cloudData.coursesStore);
-      if (cloudData.feePaymentsStore) setFeePaymentsStore(cloudData.feePaymentsStore);
-      if (cloudData.feeStructuresStore) setFeeStructuresStore(cloudData.feeStructuresStore);
-      if (cloudData.booksStore) setBooksStore(cloudData.booksStore);
-      if (cloudData.bookIssuesStore) setBookIssuesStore(cloudData.bookIssuesStore);
-      if (cloudData.noticesStore) setNoticesStore(cloudData.noticesStore);
-      if (cloudData.timetableStore) setTimetableStore(cloudData.timetableStore);
-      if (cloudData.examsStore) setExamsStore(cloudData.examsStore);
-      if (cloudData.assignmentsStore) setAssignmentsStore(cloudData.assignmentsStore);
-      if (cloudData.submissionsStore) setSubmissionsStore(cloudData.submissionsStore);
-
-      setTimeout(() => {
-        isRemoteUpdatingRef.current = false;
-      }, 500);
+      applyCloudState(cloudData);
     });
 
     return () => unsubscribe();
@@ -457,7 +413,12 @@ export default function App() {
 
   // Sync local changes to cloud backend whenever local stores update
   useEffect(() => {
+    if (isInitialMountRef.current) {
+      isInitialMountRef.current = false;
+      return;
+    }
     if (isRemoteUpdatingRef.current) return;
+
     const syncPayload = {
       usersStore,
       studentsStore,

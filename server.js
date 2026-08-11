@@ -17,7 +17,7 @@ const PORT = process.env.PORT || 5000;
 const DATA_DIR = path.join(__dirname, 'data');
 const DB_FILE = path.join(DATA_DIR, 'db.json');
 
-app.use(express.json({ limit: '15mb' }));
+app.use(express.json({ limit: '50mb' }));
 
 // Enable CORS for cross-origin client requests
 app.use((req, res, next) => {
@@ -77,11 +77,53 @@ function broadcastStateUpdate(data, senderId = null) {
   });
 }
 
+// Ensure state is initialized on startup
+loadState();
+
+// Helper to ensure state structure exists
+function getStateOrEmpty() {
+  let current = loadState();
+  if (!current) {
+    current = {
+      usersStore: [],
+      studentsStore: [],
+      facultyStore: [],
+      departmentsStore: [],
+      coursesStore: [],
+      feePaymentsStore: [],
+      feeStructuresStore: [],
+      booksStore: [],
+      bookIssuesStore: [],
+      noticesStore: [],
+      timetableStore: [],
+      gradesStore: [],
+      attendanceStore: [],
+      examsStore: [],
+      assignmentsStore: [],
+      submissionsStore: []
+    };
+    saveState(current);
+  }
+  return current;
+}
+
 // ================= API ENDPOINTS =================
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', time: new Date().toISOString(), clientsCount: sseClients.length });
+  const state = getStateOrEmpty();
+  res.json({
+    status: 'ok',
+    time: new Date().toISOString(),
+    clientsCount: sseClients.length,
+    counts: {
+      users: state.usersStore?.length || 0,
+      students: state.studentsStore?.length || 0,
+      faculty: state.facultyStore?.length || 0,
+      notices: state.noticesStore?.length || 0,
+      feePayments: state.feePaymentsStore?.length || 0
+    }
+  });
 });
 
 // GET Global State
@@ -103,6 +145,160 @@ app.post('/api/state', (req, res) => {
   saveState(data);
   broadcastStateUpdate(data, senderId);
   res.json({ success: true, timestamp: Date.now() });
+});
+
+// --- ENTITY SPECIFIC REST ENDPOINTS ---
+
+// Users REST API
+app.get('/api/users', (req, res) => {
+  const state = getStateOrEmpty();
+  res.json(state.usersStore || []);
+});
+
+app.post('/api/users', (req, res) => {
+  const newUser = req.body;
+  const state = getStateOrEmpty();
+  const index = (state.usersStore || []).findIndex(u => u.id === newUser.id);
+  if (index >= 0) {
+    state.usersStore[index] = { ...state.usersStore[index], ...newUser };
+  } else {
+    state.usersStore = [newUser, ...(state.usersStore || [])];
+  }
+  saveState(state);
+  broadcastStateUpdate(state);
+  res.json({ success: true, user: newUser });
+});
+
+app.put('/api/users/:id', (req, res) => {
+  const { id } = req.params;
+  const updatedUser = req.body;
+  const state = getStateOrEmpty();
+  state.usersStore = (state.usersStore || []).map(u => u.id === id ? { ...u, ...updatedUser } : u);
+  saveState(state);
+  broadcastStateUpdate(state);
+  res.json({ success: true });
+});
+
+app.delete('/api/users/:id', (req, res) => {
+  const { id } = req.params;
+  const state = getStateOrEmpty();
+  state.usersStore = (state.usersStore || []).filter(u => u.id !== id);
+  saveState(state);
+  broadcastStateUpdate(state);
+  res.json({ success: true });
+});
+
+// Students REST API
+app.get('/api/students', (req, res) => {
+  const state = getStateOrEmpty();
+  res.json(state.studentsStore || []);
+});
+
+app.post('/api/students', (req, res) => {
+  const newStudent = req.body;
+  const state = getStateOrEmpty();
+  const index = (state.studentsStore || []).findIndex(s => s.id === newStudent.id);
+  if (index >= 0) {
+    state.studentsStore[index] = newStudent;
+  } else {
+    state.studentsStore = [newStudent, ...(state.studentsStore || [])];
+  }
+  saveState(state);
+  broadcastStateUpdate(state);
+  res.json({ success: true, student: newStudent });
+});
+
+app.put('/api/students/:id', (req, res) => {
+  const { id } = req.params;
+  const updatedStudent = req.body;
+  const state = getStateOrEmpty();
+  state.studentsStore = (state.studentsStore || []).map(s => s.id === id ? { ...s, ...updatedStudent } : s);
+  saveState(state);
+  broadcastStateUpdate(state);
+  res.json({ success: true });
+});
+
+app.delete('/api/students/:id', (req, res) => {
+  const { id } = req.params;
+  const state = getStateOrEmpty();
+  state.studentsStore = (state.studentsStore || []).filter(s => s.id !== id);
+  saveState(state);
+  broadcastStateUpdate(state);
+  res.json({ success: true });
+});
+
+// Faculty REST API
+app.get('/api/faculty', (req, res) => {
+  const state = getStateOrEmpty();
+  res.json(state.facultyStore || []);
+});
+
+app.post('/api/faculty', (req, res) => {
+  const newFaculty = req.body;
+  const state = getStateOrEmpty();
+  const index = (state.facultyStore || []).findIndex(f => f.id === newFaculty.id);
+  if (index >= 0) {
+    state.facultyStore[index] = newFaculty;
+  } else {
+    state.facultyStore = [newFaculty, ...(state.facultyStore || [])];
+  }
+  saveState(state);
+  broadcastStateUpdate(state);
+  res.json({ success: true, faculty: newFaculty });
+});
+
+app.put('/api/faculty/:id', (req, res) => {
+  const { id } = req.params;
+  const updatedFaculty = req.body;
+  const state = getStateOrEmpty();
+  state.facultyStore = (state.facultyStore || []).map(f => f.id === id ? { ...f, ...updatedFaculty } : f);
+  saveState(state);
+  broadcastStateUpdate(state);
+  res.json({ success: true });
+});
+
+app.delete('/api/faculty/:id', (req, res) => {
+  const { id } = req.params;
+  const state = getStateOrEmpty();
+  state.facultyStore = (state.facultyStore || []).filter(f => f.id !== id);
+  saveState(state);
+  broadcastStateUpdate(state);
+  res.json({ success: true });
+});
+
+// Fee Payments REST API
+app.get('/api/fees', (req, res) => {
+  const state = getStateOrEmpty();
+  res.json(state.feePaymentsStore || []);
+});
+
+app.post('/api/fees', (req, res) => {
+  const payment = req.body;
+  const state = getStateOrEmpty();
+  const index = (state.feePaymentsStore || []).findIndex(p => p.id === payment.id);
+  if (index >= 0) {
+    state.feePaymentsStore[index] = payment;
+  } else {
+    state.feePaymentsStore = [payment, ...(state.feePaymentsStore || [])];
+  }
+  saveState(state);
+  broadcastStateUpdate(state);
+  res.json({ success: true });
+});
+
+// Notices REST API
+app.get('/api/notices', (req, res) => {
+  const state = getStateOrEmpty();
+  res.json(state.noticesStore || []);
+});
+
+app.post('/api/notices', (req, res) => {
+  const notice = req.body;
+  const state = getStateOrEmpty();
+  state.noticesStore = [notice, ...(state.noticesStore || [])];
+  saveState(state);
+  broadcastStateUpdate(state);
+  res.json({ success: true });
 });
 
 // Real-Time Server-Sent Events (SSE) Stream
