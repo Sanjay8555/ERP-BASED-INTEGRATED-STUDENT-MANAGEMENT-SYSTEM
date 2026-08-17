@@ -76,6 +76,7 @@ import Navbar from './components/shared/Navbar';
 // Functional Feature Modules
 import Dashboards from './components/dashboards/Dashboards';
 import LeetCodeTracker from './components/modules/LeetCodeTracker';
+import GitHubTracker from './components/modules/GitHubTracker';
 import StudentManagement from './components/modules/StudentManagement';
 import {
   FacultyManagement,
@@ -1010,6 +1011,17 @@ export default function App() {
       case 'leetcode':
         return (
           <LeetCodeTracker
+            students={studentsStore}
+            users={usersStore}
+            departments={departmentsStore}
+            role={activeRole}
+            onUpdateStudent={handleUpdateStudent}
+            currentUser={currentUser}
+          />
+        );
+      case 'github':
+        return (
+          <GitHubTracker
             students={studentsStore}
             users={usersStore}
             departments={departmentsStore}

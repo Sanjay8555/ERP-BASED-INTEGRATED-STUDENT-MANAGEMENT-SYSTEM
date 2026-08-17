@@ -539,7 +539,9 @@ export const initialStudentProfiles: StudentProfile[] = [
     address: 'Sathy Road, Coimbatore, Tamil Nadu',
     departmentId: 'dept-5',
     leetcodeUrl: 'https://leetcode.com/u/sanjay/',
-    leetcodeUsername: 'sanjay'
+    leetcodeUsername: 'sanjay',
+    githubUrl: 'https://github.com/sanjay-k',
+    githubUsername: 'sanjay-k'
   },
   {
     id: 's-2',
@@ -556,7 +558,9 @@ export const initialStudentProfiles: StudentProfile[] = [
     address: 'Avinashi Road, Coimbatore, Tamil Nadu',
     departmentId: 'dept-5',
     leetcodeUrl: 'https://leetcode.com/u/neal_wu/',
-    leetcodeUsername: 'neal_wu'
+    leetcodeUsername: 'neal_wu',
+    githubUrl: 'https://github.com/nealwu',
+    githubUsername: 'nealwu'
   },
   {
     id: 's-3',
@@ -573,7 +577,9 @@ export const initialStudentProfiles: StudentProfile[] = [
     address: 'Gandhipuram, Coimbatore, Tamil Nadu',
     departmentId: 'dept-5',
     leetcodeUrl: 'https://leetcode.com/u/tourist/',
-    leetcodeUsername: 'tourist'
+    leetcodeUsername: 'tourist',
+    githubUrl: 'https://github.com/tourist',
+    githubUsername: 'tourist'
   },
   {
     id: 's-4',
@@ -590,7 +596,9 @@ export const initialStudentProfiles: StudentProfile[] = [
     address: 'Peelamedu, Coimbatore, Tamil Nadu',
     departmentId: 'dept-5',
     leetcodeUrl: 'https://leetcode.com/u/sanjays/',
-    leetcodeUsername: 'sanjays'
+    leetcodeUsername: 'sanjays',
+    githubUrl: 'https://github.com/sanjays',
+    githubUsername: 'sanjays'
   },
   {
     id: 's-5',
@@ -607,7 +615,9 @@ export const initialStudentProfiles: StudentProfile[] = [
     address: 'Saravanampatti, Coimbatore, Tamil Nadu',
     departmentId: 'dept-5',
     leetcodeUrl: 'https://leetcode.com/u/santhoshk/',
-    leetcodeUsername: 'santhoshk'
+    leetcodeUsername: 'santhoshk',
+    githubUrl: 'https://github.com/santhoshk',
+    githubUsername: 'santhoshk'
   },
   {
     id: 's-6',
@@ -624,7 +634,9 @@ export const initialStudentProfiles: StudentProfile[] = [
     address: 'Singanallur, Coimbatore, Tamil Nadu',
     departmentId: 'dept-5',
     leetcodeUrl: 'https://leetcode.com/u/tharun/',
-    leetcodeUsername: 'tharun'
+    leetcodeUsername: 'tharun',
+    githubUrl: 'https://github.com/tharun-k',
+    githubUsername: 'tharun-k'
   },
   {
     id: 's-7',
@@ -641,7 +653,9 @@ export const initialStudentProfiles: StudentProfile[] = [
     address: 'Pollachi, Tamil Nadu',
     departmentId: 'dept-5',
     leetcodeUrl: 'https://leetcode.com/u/alexander/',
-    leetcodeUsername: 'alexander'
+    leetcodeUsername: 'alexander',
+    githubUrl: 'https://github.com/alexander',
+    githubUsername: 'alexander'
   },
   {
     id: 's-8',
@@ -658,7 +672,9 @@ export const initialStudentProfiles: StudentProfile[] = [
     address: 'Tiruppur, Tamil Nadu',
     departmentId: 'dept-5',
     leetcodeUrl: 'https://leetcode.com/u/vijay/',
-    leetcodeUsername: 'vijay'
+    leetcodeUsername: 'vijay',
+    githubUrl: 'https://github.com/vijay-dev',
+    githubUsername: 'vijay-dev'
   }
 ];
 

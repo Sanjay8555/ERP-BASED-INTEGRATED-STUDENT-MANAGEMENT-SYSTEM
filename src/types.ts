@@ -33,6 +33,57 @@ export interface StudentProfile {
   departmentId: string;
   leetcodeUrl?: string;
   leetcodeUsername?: string;
+  githubUrl?: string;
+  githubUsername?: string;
+}
+
+export interface GitHubRepo {
+  id: string | number;
+  name: string;
+  fullName: string;
+  description?: string;
+  htmlUrl: string;
+  stars: number;
+  forks: number;
+  language: string;
+  updatedAt: string;
+  isFork?: boolean;
+}
+
+export interface GitHubActivityDay {
+  date: string;
+  day: string;
+  count: number;
+  active: boolean;
+}
+
+export interface GitHubLanguageShare {
+  language: string;
+  count: number;
+  percentage: number;
+  color: string;
+}
+
+export interface GitHubStats {
+  username: string;
+  name?: string;
+  avatar?: string;
+  bio?: string;
+  publicRepos: number;
+  publicGists?: number;
+  followers: number;
+  following: number;
+  totalStars: number;
+  totalForks: number;
+  totalContributions: number;
+  currentStreak: number;
+  topLanguages: GitHubLanguageShare[];
+  topRepos: GitHubRepo[];
+  weeklyActivity?: GitHubActivityDay[];
+  htmlUrl: string;
+  found: boolean;
+  lastFetched?: string;
+  error?: string;
 }
 
 export interface LeetCodeRecentSubmission {
