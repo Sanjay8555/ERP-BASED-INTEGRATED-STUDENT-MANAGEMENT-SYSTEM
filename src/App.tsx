@@ -92,6 +92,7 @@ import {
   LibraryCatalog,
   Reports
 } from './components/modules/ServicesModules';
+import { CourseCurriculumManagement } from './components/modules/CourseCurriculumManagement';
 import PrintReceiptPage from './components/modules/PrintReceiptPage';
 import SettingsModule from './components/modules/SettingsModule';
 
@@ -829,6 +830,32 @@ export default function App() {
     }
   };
 
+  // Modifying: Courses / Subject Curriculum
+  const handleAddCourse = (newCourse: Course) => {
+    setCoursesStore(prev => [newCourse, ...prev]);
+    fetch('http://localhost:5000/api/courses', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newCourse)
+    }).catch(console.error);
+  };
+
+  const handleUpdateCourse = (updatedCourse: Course) => {
+    setCoursesStore(prev => prev.map(c => c.id === updatedCourse.id ? updatedCourse : c));
+    fetch(`http://localhost:5000/api/courses/${updatedCourse.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updatedCourse)
+    }).catch(console.error);
+  };
+
+  const handleDeleteCourse = (courseId: string) => {
+    setCoursesStore(prev => prev.filter(c => c.id !== courseId));
+    fetch(`http://localhost:5000/api/courses/${courseId}`, {
+      method: 'DELETE'
+    }).catch(console.error);
+  };
+
   // Modifying: Attendance Logs
   const handleSaveAttendance = (newRecords: Attendance[]) => {
     setAttendanceStore(prev => [...newRecords, ...prev]);
@@ -1003,6 +1030,20 @@ export default function App() {
             onDeleteStudent={handleDeleteStudent}
           />
         );
+      case 'courses':
+        return (
+          <CourseCurriculumManagement
+            courses={coursesStore}
+            departments={departmentsStore}
+            faculty={facultyStore}
+            users={usersStore}
+            role={activeRole}
+            onAddCourse={handleAddCourse}
+            onUpdateCourse={handleUpdateCourse}
+            onDeleteCourse={handleDeleteCourse}
+            currentUser={currentUser}
+          />
+        );
       case 'faculty':
         return (
           <FacultyManagement
@@ -1026,6 +1067,7 @@ export default function App() {
             onSaveAttendance={handleSaveAttendance}
             currentUser={currentUser}
             departments={departmentsStore}
+            onAddCourse={handleAddCourse}
           />
         );
       case 'exams':
@@ -1159,6 +1201,7 @@ export default function App() {
       { id: 'dashboard', val: `${activeRole} Dashboard Panel` },
       { id: 'leetcode', val: 'University LeetCode Problem Solving Hub' },
       { id: 'students', val: 'Student Accounts Directory' },
+      { id: 'courses', val: 'Department Subjects & Semester Curriculum' },
       { id: 'faculty', val: 'Faculty Roster Administration' },
       { id: 'attendance', val: 'Attendance Registry' },
       { id: 'exams', val: 'Examinations, Grades & Transcripts' },

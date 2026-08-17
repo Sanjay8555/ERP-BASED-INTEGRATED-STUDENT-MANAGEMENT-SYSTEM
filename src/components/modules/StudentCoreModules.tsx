@@ -48,6 +48,7 @@ interface AttendanceTrackerProps {
   onSaveAttendance: (records: Attendance[]) => void;
   currentUser?: User;
   departments: Department[];
+  onAddCourse?: (course: Course) => void;
 }
 
 export function AttendanceTracker({
@@ -58,7 +59,8 @@ export function AttendanceTracker({
   role,
   onSaveAttendance,
   currentUser,
-  departments
+  departments,
+  onAddCourse
 }: AttendanceTrackerProps) {
   // Find student profile for the current user (or parent's ward)
   const studentProfile = students.find(
@@ -78,6 +80,12 @@ export function AttendanceTracker({
   const [selectedDept, setSelectedDept] = useState(departments[0]?.id || '');
   const [selectedSem, setSelectedSem] = useState(1);
   const [selectedCourse, setSelectedCourse] = useState('');
+
+  // Quick Add Subject Modal states
+  const [showQuickAddModal, setShowQuickAddModal] = useState(false);
+  const [newSubName, setNewSubName] = useState('');
+  const [newSubCode, setNewSubCode] = useState('');
+  const [newSubCredits, setNewSubCredits] = useState(3);
 
   const [attendanceDate, setAttendanceDate] = useState(new Date().toISOString().split('T')[0]);
   const [markingRecords, setMarkingRecords] = useState<Record<string, 'Present' | 'Absent'>>({});
@@ -226,7 +234,23 @@ export function AttendanceTracker({
                 </select>
               </div>
               <div>
-                <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Prescribed Subject</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-[10px] font-bold uppercase text-slate-400">Prescribed Subject</label>
+                  {onAddCourse && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNewSubName('');
+                        setNewSubCode('');
+                        setNewSubCredits(3);
+                        setShowQuickAddModal(true);
+                      }}
+                      className="text-[10px] font-bold text-teal-600 dark:text-teal-400 hover:underline inline-flex items-center gap-0.5"
+                    >
+                      + Add Subject
+                    </button>
+                  )}
+                </div>
                 <select
                   value={selectedCourse}
                   onChange={(e) => setSelectedCourse(e.target.value)}
@@ -243,6 +267,98 @@ export function AttendanceTracker({
                 </select>
               </div>
             </div>
+
+            {/* Quick Add Subject Modal */}
+            {showQuickAddModal && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-xs">
+                <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-900 overflow-hidden">
+                  <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3.5 dark:border-slate-800 bg-slate-50 dark:bg-slate-950">
+                    <h4 className="font-sans text-xs font-bold text-slate-900 dark:text-white">
+                      Add Subject to {departments.find(d => d.id === selectedDept)?.code} (Sem {selectedSem})
+                    </h4>
+                    <button
+                      type="button"
+                      onClick={() => setShowQuickAddModal(false)}
+                      className="text-slate-400 hover:text-slate-600"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <div className="p-5 space-y-3">
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Subject Title *</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Artificial Intelligence Systems"
+                        value={newSubName}
+                        onChange={(e) => setNewSubName(e.target.value)}
+                        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold focus:bg-white focus:outline-hidden dark:border-slate-800 dark:bg-slate-950 dark:text-white"
+                        required
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Course Code *</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. CS-405"
+                          value={newSubCode}
+                          onChange={(e) => setNewSubCode(e.target.value)}
+                          className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-mono font-bold focus:bg-white focus:outline-hidden dark:border-slate-800 dark:bg-slate-950 dark:text-white"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Credits *</label>
+                        <select
+                          value={newSubCredits}
+                          onChange={(e) => setNewSubCredits(Number(e.target.value))}
+                          className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold focus:bg-white focus:outline-hidden dark:border-slate-800 dark:bg-slate-950 dark:text-white"
+                        >
+                          {[1, 2, 3, 4, 5, 6].map(c => (
+                            <option key={c} value={c}>{c} Credit{c > 1 ? 's' : ''}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                    <div className="flex justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                      <button
+                        type="button"
+                        onClick={() => setShowQuickAddModal(false)}
+                        className="rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-100 dark:border-slate-800 dark:text-slate-400"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!newSubName.trim() || !newSubCode.trim()) {
+                            alert('Please provide subject title and course code');
+                            return;
+                          }
+                          const newCourse: Course = {
+                            id: `c-${Date.now()}`,
+                            name: newSubName.trim(),
+                            code: newSubCode.trim().toUpperCase(),
+                            departmentId: selectedDept,
+                            semester: selectedSem,
+                            credits: newSubCredits
+                          };
+                          if (onAddCourse) {
+                            onAddCourse(newCourse);
+                            setSelectedCourse(newCourse.id);
+                          }
+                          setShowQuickAddModal(false);
+                        }}
+                        className="rounded-xl bg-teal-600 px-4 py-1.5 text-xs font-bold text-white shadow-md hover:bg-teal-700"
+                      >
+                        Save Subject
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="overflow-hidden rounded-xl border border-slate-200/65 dark:border-slate-800 mb-6">

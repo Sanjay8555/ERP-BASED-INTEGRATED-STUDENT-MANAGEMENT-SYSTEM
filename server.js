@@ -377,6 +377,56 @@ app.delete('/api/students/:id', (req, res) => {
   res.json({ success: true });
 });
 
+// ================= COURSES / SUBJECTS REST API =================
+app.get('/api/courses', (req, res) => {
+  const state = getStateOrEmpty();
+  res.json(state.coursesStore || []);
+});
+
+app.post('/api/courses', (req, res) => {
+  const newCourse = req.body;
+  if (!newCourse.name || !newCourse.code || !newCourse.departmentId) {
+    return res.status(400).json({ error: 'Name, code, and department are required' });
+  }
+
+  const courseWithId = {
+    ...newCourse,
+    id: newCourse.id || `c-${Date.now()}`,
+    semester: Number(newCourse.semester) || 1,
+    credits: Number(newCourse.credits) || 3
+  };
+
+  const state = getStateOrEmpty();
+  const index = (state.coursesStore || []).findIndex(c => c.id === courseWithId.id);
+  if (index >= 0) {
+    state.coursesStore[index] = courseWithId;
+  } else {
+    state.coursesStore = [courseWithId, ...(state.coursesStore || [])];
+  }
+  saveState(state);
+  broadcastStateUpdate(state);
+  res.json({ success: true, course: courseWithId });
+});
+
+app.put('/api/courses/:id', (req, res) => {
+  const { id } = req.params;
+  const updatedCourse = req.body;
+  const state = getStateOrEmpty();
+  state.coursesStore = (state.coursesStore || []).map(c => c.id === id ? { ...c, ...updatedCourse, semester: Number(updatedCourse.semester || c.semester), credits: Number(updatedCourse.credits || c.credits) } : c);
+  saveState(state);
+  broadcastStateUpdate(state);
+  res.json({ success: true });
+});
+
+app.delete('/api/courses/:id', (req, res) => {
+  const { id } = req.params;
+  const state = getStateOrEmpty();
+  state.coursesStore = (state.coursesStore || []).filter(c => c.id !== id);
+  saveState(state);
+  broadcastStateUpdate(state);
+  res.json({ success: true });
+});
+
 // ================= LEETCODE REALTIME API PROXY =================
 
 // LeetCode Stats In-Memory Cache (5 minutes TTL)
