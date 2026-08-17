@@ -63,8 +63,16 @@ export function AttendanceTracker({
   // Find student profile for the current user (or parent's ward)
   const studentProfile = students.find(
     s => s && (s.userId === currentUser?.id || (s.parentEmail && s.parentEmail.trim().toLowerCase() === (currentUser?.email || '').trim().toLowerCase()))
-  );
-  const currentStudentId = studentProfile?.id || 's-1';
+  ) || students[0];
+
+  const currentStudentUser = users.find(u => u.id === studentProfile.userId);
+  const studentDept = departments.find(d => d.id === studentProfile.departmentId);
+  const studentCurrentSem = studentProfile.currentSemester || 4;
+  const studentCurrentYear = Math.ceil(studentCurrentSem / 2);
+
+  // Student Prescribed Semester view state (defaults strictly to current student's semester)
+  const [activeSemFilter, setActiveSemFilter] = useState<number>(studentCurrentSem);
+  const [selectedLogSubjectFilter, setSelectedLogSubjectFilter] = useState<string>('All');
 
   // Faculty Filter states
   const [selectedDept, setSelectedDept] = useState(departments[0]?.id || '');
@@ -76,7 +84,47 @@ export function AttendanceTracker({
 
   const isFaculty = role === 'Faculty' || role === 'Admin';
 
-  // Update selected course when dept/sem changes
+  // Strictly filter prescribed courses for student's department and semester
+  const studentPrescribedCourses = React.useMemo(() => {
+    return courses.filter(
+      c => c.departmentId === studentProfile.departmentId && c.semester === activeSemFilter
+    );
+  }, [courses, studentProfile.departmentId, activeSemFilter]);
+
+  const studentPrescribedCourseIds = React.useMemo(() => {
+    return new Set(studentPrescribedCourses.map(c => c.id));
+  }, [studentPrescribedCourses]);
+
+  // Filter student attendance logs strictly for prescribed courses
+  const studentPrescribedLogs = React.useMemo(() => {
+    return attendance.filter(
+      a => a && a.studentId === studentProfile.id && studentPrescribedCourseIds.has(a.courseId)
+    );
+  }, [attendance, studentProfile.id, studentPrescribedCourseIds]);
+
+  // Overall statistics for the student across prescribed courses
+  const studentOverallStats = React.useMemo(() => {
+    let totalLectures = 0;
+    let totalPresent = 0;
+
+    studentPrescribedCourses.forEach(course => {
+      const courseLogs = attendance.filter(a => a.courseId === course.id && a.studentId === studentProfile.id);
+      const total = courseLogs.length > 0 ? courseLogs.length : 3;
+      const present = courseLogs.filter(a => a.status === 'Present').length;
+      totalLectures += total;
+      totalPresent += present;
+    });
+
+    const percentage = totalLectures > 0 ? Math.round((totalPresent / totalLectures) * 100) : 100;
+    return {
+      percentage,
+      totalLectures,
+      totalPresent,
+      coursesCount: studentPrescribedCourses.length
+    };
+  }, [studentPrescribedCourses, attendance, studentProfile.id]);
+
+  // Update selected course when dept/sem changes for Faculty
   React.useEffect(() => {
     if (isFaculty) {
       const filtered = courses.filter(c => c.departmentId === selectedDept && c.semester === selectedSem);
@@ -85,12 +133,10 @@ export function AttendanceTracker({
       } else {
         setSelectedCourse('');
       }
-    } else {
-       setSelectedCourse(courses[0]?.id || '');
     }
-  }, [selectedDept, selectedSem, isFaculty]);
+  }, [selectedDept, selectedSem, isFaculty, courses]);
 
-  // Initialize markings
+  // Initialize markings for Faculty
   React.useEffect(() => {
     const initial: Record<string, 'Present' | 'Absent'> = {};
     const filteredStudents = students.filter(s => s.departmentId === selectedDept && s.currentSemester === selectedSem);
@@ -108,6 +154,10 @@ export function AttendanceTracker({
   };
 
   const handleSave = () => {
+    if (!selectedCourse) {
+      alert('Please select a valid subject course first.');
+      return;
+    }
     const newRecords: Attendance[] = Object.entries(markingRecords).map(([studentId, status]) => ({
       id: `att-${Date.now()}-${studentId}`,
       studentId,
@@ -120,11 +170,10 @@ export function AttendanceTracker({
     alert('Attendance logs synced to University ledger!');
   };
 
-  // Student specific view: calculations
-  const calculateStudentPercentage = (courseId: string, studentId: string = 's-1') => {
+  // Student specific calculation for individual prescribed course
+  const calculateStudentPercentage = (courseId: string, studentId: string) => {
     const courseLogs = attendance.filter(a => a.courseId === courseId && a.studentId === studentId);
-    const total = courseLogs.length;
-    if (total === 0) return { percent: 100, present: 0, total: 0 }; // default/good start
+    const total = courseLogs.length > 0 ? courseLogs.length : 3;
     const present = courseLogs.filter(a => a.status === 'Present').length;
     return {
       percent: Math.round((present / total) * 100),
@@ -160,7 +209,7 @@ export function AttendanceTracker({
                   className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold focus:outline-hidden dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300"
                 >
                   {departments.map(d => (
-                    <option key={d.id} value={d.id}>{d.name}</option>
+                    <option key={d.id} value={d.id}>{d.name} ({d.code})</option>
                   ))}
                 </select>
               </div>
@@ -172,12 +221,12 @@ export function AttendanceTracker({
                   className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold focus:outline-hidden dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300"
                 >
                   {[1, 2, 3, 4, 5, 6, 7, 8].map(s => (
-                    <option key={s} value={s}>Semester {s}</option>
+                    <option key={s} value={s}>Semester {s} (Year {Math.ceil(s / 2)})</option>
                   ))}
                 </select>
               </div>
               <div>
-                <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Subject Course</label>
+                <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Prescribed Subject</label>
                 <select
                   value={selectedCourse}
                   onChange={(e) => setSelectedCourse(e.target.value)}
@@ -189,7 +238,7 @@ export function AttendanceTracker({
                       <option key={c.id} value={c.id}>{c.name} ({c.code})</option>
                     ))}
                   {courses.filter(c => c.departmentId === selectedDept && c.semester === selectedSem).length === 0 && (
-                    <option value="">No subjects found</option>
+                    <option value="">No prescribed subjects for this term</option>
                   )}
                 </select>
               </div>
@@ -240,6 +289,13 @@ export function AttendanceTracker({
                     </tr>
                   );
                 })}
+                {students.filter(s => s.departmentId === selectedDept && s.currentSemester === selectedSem).length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="px-6 py-8 text-center text-slate-400 italic">
+                      No enrolled students found in this department and semester.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -254,58 +310,223 @@ export function AttendanceTracker({
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-          {/* Student percentage panel */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900">
-            <h3 className="font-sans text-sm font-bold text-slate-900 dark:text-white mb-4">Course-wise Attendance Statistics</h3>
-            <div className="space-y-4">
-              {courses.map(course => {
-                const stat = calculateStudentPercentage(course.id, currentStudentId);
-                const progressColor = stat.percent >= 75 ? 'bg-emerald-500' : 'bg-rose-500';
-                return (
-                  <div key={course.id} className="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200/50 dark:border-slate-800 rounded-xl">
-                    <div className="flex items-center justify-between font-bold">
-                      <span className="text-slate-800 dark:text-white">{course.name} ({course.code})</span>
-                      <span className={`text-xs ${stat.percent >= 75 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                        {stat.percent}%
-                      </span>
-                    </div>
-                    {/* Progress Bar */}
-                    <div className="h-2 w-full bg-slate-200 dark:bg-slate-850 rounded-full mt-2 overflow-hidden">
-                      <div className={`h-full ${progressColor} rounded-full transition-all`} style={{ width: `${stat.percent}%` }} />
-                    </div>
-                    <div className="flex justify-between text-[10px] text-slate-400 mt-1.5 font-mono">
-                      <span>Attended: {stat.present} lectures</span>
-                      <span>Total Syllabus Lectures: {stat.total || 3}</span>
-                    </div>
-                  </div>
-                );
-              })}
+        <div className="space-y-6">
+          {/* Prescribed Curriculum & Department Identification Banner */}
+          <div className="rounded-3xl border border-teal-200/80 bg-linear-to-r from-teal-500/10 via-slate-50 to-indigo-500/10 p-6 shadow-sm dark:border-teal-900/30 dark:from-teal-950/30 dark:via-slate-900 dark:to-indigo-950/20">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="rounded-md bg-teal-500 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-white shadow-xs">
+                    {studentDept?.code || 'CSE'}
+                  </span>
+                  <span className="text-xs font-bold uppercase tracking-wider text-teal-700 dark:text-teal-400">
+                    Prescribed Department Curriculum
+                  </span>
+                </div>
+                <h3 className="font-sans text-lg font-extrabold text-slate-900 dark:text-white mt-1">
+                  {studentDept?.name || 'Computer Science & Engineering'}
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-mono">
+                  Student: <strong>{currentStudentUser?.name}</strong> • Roll No: <strong>{studentProfile.rollNo}</strong> • Year {studentCurrentYear} (Active Term: Sem {studentCurrentSem})
+                </p>
+              </div>
+
+              {/* Semester Switcher Pills strictly within Department */}
+              <div className="flex flex-wrap items-center gap-1.5 bg-white/80 p-1.5 rounded-2xl border border-slate-200/80 dark:bg-slate-950/80 dark:border-slate-800">
+                {[1, 2, 3, 4, 5, 6, 7, 8].map(semNum => {
+                  const isCurrent = semNum === studentCurrentSem;
+                  const isSelected = semNum === activeSemFilter;
+                  return (
+                    <button
+                      key={semNum}
+                      onClick={() => {
+                        setActiveSemFilter(semNum);
+                        setSelectedLogSubjectFilter('All');
+                      }}
+                      className={`rounded-xl px-3 py-1.5 text-xs font-bold transition-all ${
+                        isSelected
+                          ? 'bg-teal-600 text-white shadow-md'
+                          : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800'
+                      }`}
+                    >
+                      <span>Sem {semNum}</span>
+                      {isCurrent && <span className="ml-1 text-[9px] opacity-80">(Current)</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Prescribed Term Summary Metrics Grid */}
+            <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div className="rounded-2xl border border-teal-200/80 bg-white/90 p-4 backdrop-blur-xs shadow-2xs dark:border-teal-900/40 dark:bg-slate-900/90">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Prescribed Term Rate</span>
+                <h4 className="text-2xl font-black font-mono text-teal-600 dark:text-teal-400 mt-1">
+                  {studentOverallStats.percentage}%
+                </h4>
+                <p className="text-[10px] font-mono text-slate-400 mt-0.5">
+                  Semester {activeSemFilter} Subjects
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200/80 bg-white/90 p-4 backdrop-blur-xs shadow-2xs dark:border-slate-800 dark:bg-slate-900/90">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Prescribed Subjects</span>
+                <h4 className="text-2xl font-black font-mono text-slate-800 dark:text-white mt-1">
+                  {studentPrescribedCourses.length} Courses
+                </h4>
+                <p className="text-[10px] font-mono text-slate-400 mt-0.5">
+                  {studentDept?.code} Year {Math.ceil(activeSemFilter / 2)}
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200/80 bg-white/90 p-4 backdrop-blur-xs shadow-2xs dark:border-slate-800 dark:bg-slate-900/90">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Lectures</span>
+                <h4 className="text-2xl font-black font-mono text-slate-800 dark:text-white mt-1">
+                  {studentOverallStats.totalPresent} / {studentOverallStats.totalLectures}
+                </h4>
+                <p className="text-[10px] font-mono text-slate-400 mt-0.5">
+                  Lectures Attended
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-emerald-200/80 bg-emerald-50/70 p-4 backdrop-blur-xs shadow-2xs dark:border-emerald-900/40 dark:bg-slate-900/90">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">Exam Eligibility</span>
+                <h4 className="text-sm font-black text-emerald-700 dark:text-emerald-300 mt-1.5 flex items-center gap-1">
+                  {studentOverallStats.percentage >= 75 ? '✓ Compliant' : '⚠ Shortage Alert'}
+                </h4>
+                <p className="text-[10px] font-mono text-emerald-600/80 dark:text-emerald-400/80 mt-0.5">
+                  Threshold: 75% Required
+                </p>
+              </div>
             </div>
           </div>
 
-          {/* Daily chronological log panel */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900">
-            <h3 className="font-sans text-sm font-bold text-slate-900 dark:text-white mb-4">My Lecture Logs</h3>
-            <div className="space-y-3.5 max-h-[350px] overflow-y-auto pr-1">
-              {attendance.filter(a => a.studentId === currentStudentId).map(log => {
-                const c = courses.find(course => course.id === log.courseId);
-                return (
-                  <div key={log.id} className="flex items-center justify-between border-b border-slate-100 pb-2.5 dark:border-slate-800">
-                    <div>
-                      <p className="font-semibold text-slate-800 dark:text-slate-200">{c?.name}</p>
-                      <span className="font-mono text-[9px] text-slate-400">{log.date}</span>
-                    </div>
-                    <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
-                      log.status === 'Present'
-                        ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300'
-                        : 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300'
-                    }`}>
-                      {log.status}
-                    </span>
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+            {/* Prescribed Course-wise Attendance Statistics (7 cols) */}
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900 lg:col-span-7">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="font-sans text-sm font-bold text-slate-900 dark:text-white">
+                    Prescribed Course Attendance ({studentDept?.code} Sem {activeSemFilter})
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">Only subjects officially registered for your department & year</p>
+                </div>
+                <span className="font-mono text-xs font-bold text-teal-600 dark:text-teal-400">
+                  {studentPrescribedCourses.length} Prescribed Subjects
+                </span>
+              </div>
+
+              <div className="space-y-3">
+                {studentPrescribedCourses.length > 0 ? (
+                  studentPrescribedCourses.map(course => {
+                    const stat = calculateStudentPercentage(course.id, studentProfile.id);
+                    const progressColor = stat.percent >= 75 ? 'bg-emerald-500' : 'bg-rose-500';
+                    return (
+                      <div key={course.id} className="p-3.5 bg-slate-50/80 dark:bg-slate-950 border border-slate-200/60 dark:border-slate-800 rounded-xl space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="rounded-md bg-teal-500/10 px-2 py-0.5 text-[10px] font-mono font-bold text-teal-700 dark:text-teal-300">
+                              {course.code}
+                            </span>
+                            <span className="font-bold text-slate-900 dark:text-white text-xs">
+                              {course.name}
+                            </span>
+                            <span className="text-[10px] font-mono text-slate-400">
+                              ({course.credits} Credits)
+                            </span>
+                          </div>
+                          <span className={`font-mono text-xs font-black ${stat.percent >= 75 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                            {stat.percent}%
+                          </span>
+                        </div>
+
+                        {/* Progress Bar */}
+                        <div className="h-2 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                          <div className={`h-full ${progressColor} rounded-full transition-all duration-500`} style={{ width: `${stat.percent}%` }} />
+                        </div>
+
+                        <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono pt-0.5">
+                          <span>Attended: <strong className="text-slate-700 dark:text-slate-300">{stat.present}</strong> of <strong className="text-slate-700 dark:text-slate-300">{stat.total}</strong> lectures</span>
+                          <span className={`font-bold ${stat.percent >= 75 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                            {stat.percent >= 75 ? '✓ Safe Compliance' : '⚠ Shortage Warning'}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="p-8 text-center text-slate-400 italic bg-slate-50 dark:bg-slate-950 rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
+                    No prescribed subjects configured for {studentDept?.name} in Semester {activeSemFilter}.
                   </div>
-                );
-              })}
+                )}
+              </div>
+            </div>
+
+            {/* Prescribed Lecture Attendance Logs (5 cols) */}
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900 lg:col-span-5 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <h3 className="font-sans text-sm font-bold text-slate-900 dark:text-white">Prescribed Subject Lecture Logs</h3>
+                    <p className="text-xs text-slate-400 mt-0.5">Recent lecture session records</p>
+                  </div>
+                </div>
+
+                {/* Filter dropdown by prescribed subject */}
+                <div className="mb-3">
+                  <select
+                    value={selectedLogSubjectFilter}
+                    onChange={(e) => setSelectedLogSubjectFilter(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold focus:outline-hidden dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300"
+                  >
+                    <option value="All">All Prescribed Subjects ({studentPrescribedCourses.length})</option>
+                    {studentPrescribedCourses.map(c => (
+                      <option key={c.id} value={c.id}>{c.code} - {c.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-2.5 max-h-[380px] overflow-y-auto pr-1">
+                  {studentPrescribedLogs
+                    .filter(log => selectedLogSubjectFilter === 'All' || log.courseId === selectedLogSubjectFilter)
+                    .map(log => {
+                      const c = studentPrescribedCourses.find(course => course.id === log.courseId) || courses.find(course => course.id === log.courseId);
+                      return (
+                        <div key={log.id} className="flex items-center justify-between rounded-xl bg-slate-50/80 p-2.5 text-xs border border-slate-100 dark:bg-slate-950/70 dark:border-slate-800">
+                          <div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-mono text-[10px] font-bold text-teal-600 dark:text-teal-400">
+                                {c?.code}
+                              </span>
+                              <span className="font-bold text-slate-800 dark:text-slate-200">
+                                {c?.name}
+                              </span>
+                            </div>
+                            <span className="font-mono text-[9px] text-slate-400">{log.date}</span>
+                          </div>
+                          <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
+                            log.status === 'Present'
+                              ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300'
+                              : 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300'
+                          }`}>
+                            {log.status}
+                          </span>
+                        </div>
+                      );
+                    })}
+
+                  {studentPrescribedLogs.filter(log => selectedLogSubjectFilter === 'All' || log.courseId === selectedLogSubjectFilter).length === 0 && (
+                    <p className="text-xs text-slate-400 italic text-center py-6">
+                      No attendance session logs recorded for this prescribed subject.
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 text-[10px] text-slate-400 font-mono flex items-center justify-between">
+                <span>Verified by Department Faculty Ledger</span>
+                <span>Term: Sem {activeSemFilter}</span>
+              </div>
             </div>
           </div>
         </div>

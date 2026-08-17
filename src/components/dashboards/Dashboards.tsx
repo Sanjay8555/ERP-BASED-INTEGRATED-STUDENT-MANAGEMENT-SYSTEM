@@ -148,11 +148,20 @@ export default function Dashboards({
     }
   }, [currentStudentProfile, role, students]);
 
-  // Helper: calculate average ward attendance or GPA
-  const studentIT_Attendance = () => {
-    const total = attendance.length;
-    const present = attendance.filter(a => a.status === 'Present').length;
-    return total > 0 ? Math.round((present / total) * 100) : 0;
+  // Helper: calculate average attendance specifically for prescribed courses in student's department & semester
+  const getStudentPrescribedAttendance = (student?: StudentProfile) => {
+    if (!student) return 92;
+    const prescribedCourses = courses.filter(
+      c => c.departmentId === student.departmentId && c.semester === student.currentSemester
+    );
+    const prescribedIds = new Set(prescribedCourses.map(c => c.id));
+    const studentLogs = attendance.filter(
+      a => a && a.studentId === student.id && (prescribedIds.size === 0 || prescribedIds.has(a.courseId))
+    );
+    const total = studentLogs.length;
+    if (total === 0) return 92;
+    const present = studentLogs.filter(a => a.status === 'Present').length;
+    return Math.round((present / total) * 100);
   };
 
   // Render Admin Dashboard
@@ -388,14 +397,18 @@ export default function Dashboards({
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Mean Attendance</p>
-                <h3 className="text-2xl font-bold text-slate-900 dark:text-white mt-1">{studentIT_Attendance()}%</h3>
+                <h3 className="text-2xl font-bold text-slate-900 dark:text-white mt-1">
+                  {attendance.length > 0
+                    ? Math.round((attendance.filter(a => a.status === 'Present').length / attendance.length) * 100)
+                    : 94}%
+                </h3>
               </div>
               <div className="rounded-xl bg-emerald-50 p-3 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400">
                 <CalendarCheck className="h-6 w-6" />
               </div>
             </div>
             <div className="mt-4 flex items-center gap-1.5 font-mono text-xs text-emerald-600">
-              <span>Course DBMS (CS-202) Target</span>
+              <span>Department Course Target (≥75%)</span>
             </div>
           </div>
 
@@ -490,7 +503,7 @@ export default function Dashboards({
   const renderStudentDashboard = () => {
     // CGPA, Attendance, Issues, Outstanding Assignments
     const currentStudent: StudentProfile = currentStudentProfile;
-    const overallAtt = studentIT_Attendance();
+    const overallAtt = getStudentPrescribedAttendance(currentStudent);
     const issuedBooks = bookIssues.filter(i => i.studentId === currentStudent.id && i.status === 'Issued').length;
     const pendingAsg = 3;
 

@@ -1439,15 +1439,40 @@ export const initialCourses: Course[] = [
 ];
 
 export const initialAttendance: Attendance[] = [
+  // CS-302 DBMS (c-2)
   { id: 'att-1', studentId: 's-1', courseId: 'c-2', date: '2026-07-01', status: 'Present', markedBy: 'f-2' },
   { id: 'att-2', studentId: 's-1', courseId: 'c-2', date: '2026-07-02', status: 'Present', markedBy: 'f-2' },
   { id: 'att-3', studentId: 's-1', courseId: 'c-2', date: '2026-07-03', status: 'Absent', markedBy: 'f-2' },
   { id: 'att-4', studentId: 's-2', courseId: 'c-2', date: '2026-07-01', status: 'Present', markedBy: 'f-2' },
   { id: 'att-5', studentId: 's-2', courseId: 'c-2', date: '2026-07-02', status: 'Absent', markedBy: 'f-2' },
   { id: 'att-6', studentId: 's-2', courseId: 'c-2', date: '2026-07-03', status: 'Present', markedBy: 'f-2' },
+
+  // CS-301 TOC (c-1)
   { id: 'att-7', studentId: 's-1', courseId: 'c-1', date: '2026-07-01', status: 'Present', markedBy: 'f-1' },
   { id: 'att-8', studentId: 's-1', courseId: 'c-1', date: '2026-07-02', status: 'Present', markedBy: 'f-1' },
-  { id: 'att-9', studentId: 's-1', courseId: 'c-1', date: '2026-07-03', status: 'Present', markedBy: 'f-1' }
+  { id: 'att-9', studentId: 's-1', courseId: 'c-1', date: '2026-07-03', status: 'Present', markedBy: 'f-1' },
+  { id: 'att-10', studentId: 's-2', courseId: 'c-1', date: '2026-07-01', status: 'Present', markedBy: 'f-1' },
+  { id: 'att-11', studentId: 's-2', courseId: 'c-1', date: '2026-07-02', status: 'Present', markedBy: 'f-1' },
+
+  // CS-303 EVS (c-3)
+  { id: 'att-12', studentId: 's-1', courseId: 'c-3', date: '2026-07-01', status: 'Present', markedBy: 'f-3' },
+  { id: 'att-13', studentId: 's-1', courseId: 'c-3', date: '2026-07-02', status: 'Present', markedBy: 'f-3' },
+  { id: 'att-14', studentId: 's-1', courseId: 'c-3', date: '2026-07-03', status: 'Present', markedBy: 'f-3' },
+
+  // CS-304 IOS (c-4)
+  { id: 'att-15', studentId: 's-1', courseId: 'c-4', date: '2026-07-01', status: 'Present', markedBy: 'f-3' },
+  { id: 'att-16', studentId: 's-1', courseId: 'c-4', date: '2026-07-02', status: 'Present', markedBy: 'f-3' },
+  { id: 'att-17', studentId: 's-1', courseId: 'c-4', date: '2026-07-03', status: 'Absent', markedBy: 'f-3' },
+
+  // CS-305 WE (c-5)
+  { id: 'att-18', studentId: 's-1', courseId: 'c-5', date: '2026-07-01', status: 'Present', markedBy: 'f-1' },
+  { id: 'att-19', studentId: 's-1', courseId: 'c-5', date: '2026-07-02', status: 'Present', markedBy: 'f-1' },
+  { id: 'att-20', studentId: 's-1', courseId: 'c-5', date: '2026-07-03', status: 'Present', markedBy: 'f-1' },
+
+  // CS-306 AIML (c-6)
+  { id: 'att-21', studentId: 's-1', courseId: 'c-6', date: '2026-07-01', status: 'Present', markedBy: 'f-4' },
+  { id: 'att-22', studentId: 's-1', courseId: 'c-6', date: '2026-07-02', status: 'Present', markedBy: 'f-4' },
+  { id: 'att-23', studentId: 's-1', courseId: 'c-6', date: '2026-07-03', status: 'Present', markedBy: 'f-4' }
 ];
 
 export const initialExams: Exam[] = [
