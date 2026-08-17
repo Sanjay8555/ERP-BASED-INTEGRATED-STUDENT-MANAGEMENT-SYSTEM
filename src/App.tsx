@@ -67,6 +67,7 @@ import Navbar from './components/shared/Navbar';
 
 // Functional Feature Modules
 import Dashboards from './components/dashboards/Dashboards';
+import LeetCodeTracker from './components/modules/LeetCodeTracker';
 import StudentManagement from './components/modules/StudentManagement';
 import {
   FacultyManagement,
@@ -825,6 +826,17 @@ export default function App() {
             currentUser={currentUser}
           />
         );
+      case 'leetcode':
+        return (
+          <LeetCodeTracker
+            students={studentsStore}
+            users={usersStore}
+            departments={departmentsStore}
+            role={activeRole}
+            onUpdateStudent={handleUpdateStudent}
+            currentUser={currentUser}
+          />
+        );
       case 'students':
         return (
           <StudentManagement
@@ -1110,6 +1122,7 @@ export default function App() {
   const getTabTitle = () => {
     const tabObj = [
       { id: 'dashboard', val: `${activeRole} Dashboard Panel` },
+      { id: 'leetcode', val: 'University LeetCode Problem Solving Hub' },
       { id: 'students', val: 'Student Accounts Directory' },
       { id: 'faculty', val: 'Faculty Roster Administration' },
       { id: 'attendance', val: 'Attendance Registry' },

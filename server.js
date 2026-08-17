@@ -218,6 +218,31 @@ app.put('/api/students/:id', (req, res) => {
   res.json({ success: true });
 });
 
+// Admin shortcut endpoint to update a student's LeetCode Profile URL / Username
+app.put('/api/students/:id/leetcode', (req, res) => {
+  const { id } = req.params;
+  const { leetcodeUrl, leetcodeUsername } = req.body;
+  const state = getStateOrEmpty();
+  const index = (state.studentsStore || []).findIndex(s => s.id === id);
+  if (index === -1) {
+    return res.status(404).json({ error: 'Student not found' });
+  }
+
+  const cleanHandle = extractLeetCodeUsername(leetcodeUsername || leetcodeUrl || '');
+  state.studentsStore[index] = {
+    ...state.studentsStore[index],
+    leetcodeUrl: leetcodeUrl !== undefined ? leetcodeUrl : (cleanHandle ? `https://leetcode.com/u/${cleanHandle}/` : ''),
+    leetcodeUsername: cleanHandle
+  };
+
+  saveState(state);
+  broadcastStateUpdate(state);
+  res.json({
+    success: true,
+    student: state.studentsStore[index]
+  });
+});
+
 app.delete('/api/students/:id', (req, res) => {
   const { id } = req.params;
   const state = getStateOrEmpty();
@@ -225,6 +250,176 @@ app.delete('/api/students/:id', (req, res) => {
   saveState(state);
   broadcastStateUpdate(state);
   res.json({ success: true });
+});
+
+// ================= LEETCODE REALTIME API PROXY =================
+
+// LeetCode Stats In-Memory Cache (5 minutes TTL)
+const leetcodeCache = new Map();
+const LEETCODE_CACHE_TTL = 5 * 60 * 1000;
+
+function extractLeetCodeUsername(input) {
+  if (!input) return '';
+  let clean = String(input).trim();
+  try {
+    if (clean.startsWith('http://') || clean.startsWith('https://')) {
+      const parsedUrl = new URL(clean);
+      const pathname = parsedUrl.pathname.replace(/^\/+/g, '').replace(/\/+$/g, '');
+      const parts = pathname.split('/');
+      if (parts[0] === 'u' && parts[1]) {
+        return parts[1];
+      }
+      return parts[0] || '';
+    }
+  } catch (e) {}
+  return clean.replace(/^@/, '').replace(/\/+$/, '');
+}
+
+async function fetchLeetCodeStatsFromApi(rawUsername) {
+  const username = extractLeetCodeUsername(rawUsername);
+  if (!username) {
+    return { found: false, username: '', error: 'Username or URL required' };
+  }
+
+  const now = Date.now();
+  const cached = leetcodeCache.get(username.toLowerCase());
+  if (cached && (now - cached.timestamp < LEETCODE_CACHE_TTL)) {
+    return cached.data;
+  }
+
+  const query = `
+    query userProblemsSolved($username: String!) {
+      allQuestionsCount {
+        difficulty
+        count
+      }
+      matchedUser(username: $username) {
+        username
+        profile {
+          ranking
+          userAvatar
+          realName
+          reputation
+        }
+        submitStatsGlobal {
+          acSubmissionNum {
+            difficulty
+            count
+          }
+        }
+      }
+    }
+  `;
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+    const response = await fetch('https://leetcode.com/graphql', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Referer': 'https://leetcode.com',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      },
+      body: JSON.stringify({ query, variables: { username } }),
+      signal: controller.signal
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      throw new Error(`LeetCode API status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    const matched = result?.data?.matchedUser;
+
+    if (!matched) {
+      const notFoundData = {
+        found: false,
+        username,
+        error: 'LeetCode user not found'
+      };
+      leetcodeCache.set(username.toLowerCase(), { timestamp: now - (LEETCODE_CACHE_TTL - 60000), data: notFoundData });
+      return notFoundData;
+    }
+
+    const allQuestions = result?.data?.allQuestionsCount || [];
+    const totalQuestions = allQuestions.find(q => q.difficulty === 'All')?.count || 3300;
+    const totalEasy = allQuestions.find(q => q.difficulty === 'Easy')?.count || 850;
+    const totalMedium = allQuestions.find(q => q.difficulty === 'Medium')?.count || 1700;
+    const totalHard = allQuestions.find(q => q.difficulty === 'Hard')?.count || 750;
+
+    const acSubmissions = matched.submitStatsGlobal?.acSubmissionNum || [];
+    const totalSolved = acSubmissions.find(s => s.difficulty === 'All')?.count || 0;
+    const easySolved = acSubmissions.find(s => s.difficulty === 'Easy')?.count || 0;
+    const mediumSolved = acSubmissions.find(s => s.difficulty === 'Medium')?.count || 0;
+    const hardSolved = acSubmissions.find(s => s.difficulty === 'Hard')?.count || 0;
+
+    const statsData = {
+      found: true,
+      username: matched.username,
+      totalSolved,
+      easySolved,
+      mediumSolved,
+      hardSolved,
+      totalQuestions,
+      totalEasy,
+      totalMedium,
+      totalHard,
+      ranking: matched.profile?.ranking || 0,
+      avatar: matched.profile?.userAvatar || '',
+      realName: matched.profile?.realName || '',
+      reputation: matched.profile?.reputation || 0,
+      lastFetched: new Date().toISOString()
+    };
+
+    leetcodeCache.set(username.toLowerCase(), { timestamp: now, data: statsData });
+    return statsData;
+  } catch (err) {
+    console.error(`[LeetCode Proxy] Error fetching stats for ${username}:`, err.message);
+    if (cached) {
+      return cached.data;
+    }
+    return {
+      found: false,
+      username,
+      error: `Failed to fetch LeetCode data: ${err.message}`
+    };
+  }
+}
+
+// Single student real-time LeetCode stats
+app.get('/api/leetcode/:username', async (req, res) => {
+  const { username } = req.params;
+  const stats = await fetchLeetCodeStatsFromApi(username);
+  res.json(stats);
+});
+
+// Batch fetch real-time LeetCode stats for multiple students
+app.post('/api/leetcode/batch', async (req, res) => {
+  const { handles } = req.body;
+  if (!Array.isArray(handles)) {
+    return res.status(400).json({ error: 'handles array required' });
+  }
+
+  const results = {};
+  await Promise.all(
+    handles.map(async (h) => {
+      if (!h) return;
+      const clean = extractLeetCodeUsername(h);
+      if (clean) {
+        results[clean] = await fetchLeetCodeStatsFromApi(clean);
+        // Also map original string if different
+        if (h !== clean) {
+          results[h] = results[clean];
+        }
+      }
+    })
+  );
+
+  res.json(results);
 });
 
 // Faculty REST API

@@ -18,7 +18,8 @@ import {
   FileDown,
   Settings,
   X,
-  Building
+  Building,
+  Code2
 } from 'lucide-react';
 import { UserRole } from '../../types';
 
@@ -34,6 +35,7 @@ export default function Sidebar({ activeTab, setActiveTab, role, isOpen, setIsOp
   // Define menu items and their role permissions
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: GraduationCap, roles: ['Admin', 'Faculty', 'Student', 'Parent', 'Accountant'] },
+    { id: 'leetcode', label: 'LeetCode Hub', icon: Code2, roles: ['Admin', 'Faculty', 'Student'] },
     { id: 'students', label: 'Students', icon: Users, roles: ['Admin', 'Faculty', 'Accountant'] },
     { id: 'faculty', label: 'Faculty', icon: Briefcase, roles: ['Admin', 'Faculty'] },
     { id: 'attendance', label: 'Attendance', icon: CalendarDays, roles: ['Admin', 'Faculty', 'Student', 'Parent'] },

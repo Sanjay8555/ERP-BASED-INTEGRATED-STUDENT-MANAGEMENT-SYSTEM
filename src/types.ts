@@ -31,6 +31,28 @@ export interface StudentProfile {
   parentPassword?: string;
   address: string;
   departmentId: string;
+  leetcodeUrl?: string;
+  leetcodeUsername?: string;
+}
+
+export interface LeetCodeStats {
+  username: string;
+  totalSolved: number;
+  easySolved: number;
+  mediumSolved: number;
+  hardSolved: number;
+  totalQuestions?: number;
+  totalEasy?: number;
+  totalMedium?: number;
+  totalHard?: number;
+  ranking?: number;
+  acceptanceRate?: number;
+  avatar?: string;
+  realName?: string;
+  reputation?: number;
+  found: boolean;
+  lastFetched?: string;
+  error?: string;
 }
 
 export interface FacultyProfile {
