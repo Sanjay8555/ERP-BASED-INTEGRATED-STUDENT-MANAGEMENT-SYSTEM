@@ -35,6 +35,7 @@ import {
   AssignmentSubmission,
   Department
 } from '../../types';
+import AssignmentSubmissionPreviewModal from './AssignmentSubmissionPreviewModal';
 
 // ==========================================
 // 1. ATTENDANCE TRACKER SUB-COMPONENT
@@ -988,11 +989,14 @@ export function AssignmentSubmissions({
   const [showAddModal, setShowAddModal] = useState(false);
   const [showGradeModal, setShowGradeModal] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
-  const [showViewDetailsModal, setShowViewDetailsModal] = useState(false);
+
+  // In-App Zero-Download Preview State
+  const [selectedSubForPreview, setSelectedSubForPreview] = useState<AssignmentSubmission | null>(null);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [submissionSuccessBanner, setSubmissionSuccessBanner] = useState<string | null>(null);
 
   const [gradingSubId, setGradingSubId] = useState('');
   const [selectedAsgForUpload, setSelectedAsgForUpload] = useState<Assignment | null>(null);
-  const [selectedSubForView, setSelectedSubForView] = useState<AssignmentSubmission | null>(null);
 
   // Form states (Add Assignment)
   const [title, setTitle] = useState('');
@@ -1091,7 +1095,12 @@ export function AssignmentSubmissions({
       setUploadFile(null);
       setFileBase64('');
       setSubmissionTextNotes('');
-      alert('🎉 Task / Assessment successfully submitted with file attachment!');
+
+      // Instantly open the preview modal so student can preview their submission right after submitting!
+      setSelectedSubForPreview(newSub);
+      setShowPreviewModal(true);
+      setSubmissionSuccessBanner(`Task "${newSub.fileName}" successfully submitted! You can review your submission preview below.`);
+      setTimeout(() => setSubmissionSuccessBanner(null), 6000);
     } catch (err) {
       console.error('Submission error:', err);
       setShowUploadModal(false);
@@ -1100,10 +1109,16 @@ export function AssignmentSubmissions({
   };
 
   const handleOpenGrading = (subId: string) => {
-    setGradingSubId(subId);
-    setScore(45);
-    setFeedback('Well articulated submission.');
-    setShowGradeModal(true);
+    const sub = submissions.find(s => s.id === subId);
+    if (sub) {
+      setSelectedSubForPreview(sub);
+      setShowPreviewModal(true);
+    } else {
+      setGradingSubId(subId);
+      setScore(45);
+      setFeedback('Well articulated submission.');
+      setShowGradeModal(true);
+    }
   };
 
   const handleSaveGrade = (e: React.FormEvent) => {
@@ -1190,6 +1205,25 @@ export function AssignmentSubmissions({
 
   return (
     <div className="space-y-6">
+      {/* Student Post-Submission Banner */}
+      {submissionSuccessBanner && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-200 bg-emerald-50/90 px-4 py-3 text-xs font-bold text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-200 animate-in fade-in duration-200">
+          <div className="flex items-center gap-2">
+            <CheckCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <span>{submissionSuccessBanner}</span>
+          </div>
+          {selectedSubForPreview && (
+            <button
+              onClick={() => setShowPreviewModal(true)}
+              className="inline-flex items-center gap-1 rounded-xl bg-emerald-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 transition-colors"
+            >
+              <Eye className="h-3.5 w-3.5" />
+              <span>Preview Now</span>
+            </button>
+          )}
+        </div>
+      )}
+
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="font-sans text-lg font-bold text-slate-800 dark:text-white">Homework & Assessment Tasks Board</h2>
@@ -1242,7 +1276,7 @@ export function AssignmentSubmissions({
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="font-sans text-sm font-bold text-slate-900 dark:text-white">Student Assessment & Task Submissions Ledger</h3>
-                <p className="text-[11px] text-slate-500">View, download uploaded task files, and export grading sheet.</p>
+                <p className="text-[11px] text-slate-500">Click on any submission or file to preview directly in-app without downloading.</p>
               </div>
               <button
                 onClick={handleExportSheetCSV}
@@ -1259,7 +1293,7 @@ export function AssignmentSubmissions({
                     <th className="px-4 py-3">Roll No</th>
                     <th className="px-4 py-3">Student Name</th>
                     <th className="px-4 py-3">Assessment / Task Title</th>
-                    <th className="px-4 py-3">Submitted File Attachment</th>
+                    <th className="px-4 py-3">Submitted File Attachment (Zero-Download Preview)</th>
                     <th className="px-4 py-3 text-center">Score</th>
                     <th className="px-4 py-3 text-right">Actions</th>
                   </tr>
@@ -1285,16 +1319,32 @@ export function AssignmentSubmissions({
                           </td>
                           <td className="px-4 py-3">
                             {sub.fileName ? (
-                              <button
-                                onClick={() => handleDownloadFileAttachment(sub)}
-                                className="inline-flex items-center gap-1.5 rounded-lg border border-teal-200 bg-teal-50/70 px-2.5 py-1 text-[11px] font-bold text-teal-700 hover:bg-teal-100 dark:border-teal-900 dark:bg-teal-950/50 dark:text-teal-300 transition-all"
-                                title="Click to download file"
-                              >
-                                <Paperclip className="h-3.5 w-3.5 text-teal-600" />
-                                <span className="max-w-[140px] truncate">{sub.fileName}</span>
-                                <span className="text-[9px] font-normal text-slate-500">({sub.fileSize || '1.5 MB'})</span>
-                                <Download className="h-3 w-3 ml-0.5" />
-                              </button>
+                              <div className="flex items-center gap-1.5">
+                                {/* Primary Zero-Download In-App Preview Trigger */}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedSubForPreview(sub);
+                                    setShowPreviewModal(true);
+                                  }}
+                                  className="inline-flex items-center gap-1.5 rounded-lg border border-teal-200 bg-teal-50/70 px-2.5 py-1 text-[11px] font-bold text-teal-700 hover:bg-teal-100 dark:border-teal-900 dark:bg-teal-950/50 dark:text-teal-300 transition-all cursor-pointer"
+                                  title="Click to preview file directly in-app without downloading"
+                                >
+                                  <Eye className="h-3.5 w-3.5 text-teal-600" />
+                                  <span className="max-w-[130px] truncate">{sub.fileName}</span>
+                                  <span className="text-[9px] font-normal text-slate-500">({sub.fileSize || '1.5 MB'})</span>
+                                </button>
+
+                                {/* Optional secondary download button */}
+                                <button
+                                  type="button"
+                                  onClick={() => handleDownloadFileAttachment(sub)}
+                                  className="p-1 rounded-lg text-slate-400 hover:text-teal-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                                  title="Download original file copy"
+                                >
+                                  <Download className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
                             ) : (
                               <span className="text-slate-400 italic text-[11px]">No file attached</span>
                             )}
@@ -1312,20 +1362,27 @@ export function AssignmentSubmissions({
                           </td>
                           <td className="px-4 py-3 text-right space-x-2">
                             <button
+                              type="button"
                               onClick={() => {
-                                setSelectedSubForView(sub);
-                                setShowViewDetailsModal(true);
+                                setSelectedSubForPreview(sub);
+                                setShowPreviewModal(true);
                               }}
-                              className="inline-flex items-center gap-1 text-slate-600 hover:text-teal-600 font-bold text-xs"
-                              title="View details & notes"
+                              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-bold text-slate-700 hover:bg-teal-50 hover:text-teal-700 hover:border-teal-300 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 transition-colors"
+                              title="Preview submission document and notes without downloading"
                             >
-                              <Eye className="h-3.5 w-3.5" /> View
+                              <Eye className="h-3.5 w-3.5 text-teal-600" />
+                              <span>Preview</span>
                             </button>
 
                             {sub.status === 'Submitted' && (
                               <button
-                                onClick={() => handleOpenGrading(sub.id)}
-                                className="inline-flex items-center gap-1 rounded-lg bg-teal-600 px-2.5 py-1 text-xs font-bold text-white hover:bg-teal-700 transition-colors"
+                                type="button"
+                                onClick={() => {
+                                  setSelectedSubForPreview(sub);
+                                  setShowPreviewModal(true);
+                                }}
+                                className="inline-flex items-center gap-1 rounded-lg bg-teal-600 px-2.5 py-1 text-xs font-bold text-white hover:bg-teal-700 transition-colors shadow-xs"
+                                title="Grade this submission"
                               >
                                 <FileCheck className="h-3.5 w-3.5" /> Grade
                               </button>
@@ -1395,16 +1452,25 @@ export function AssignmentSubmissions({
                       </div>
                       <p className="text-xs text-slate-600 dark:text-slate-400 mt-3">{asg.description}</p>
                       
-                      <div className="mt-4 border-t border-slate-200/50 dark:border-slate-800 pt-3 flex items-center justify-between">
+                      <div className="mt-4 border-t border-slate-200/50 dark:border-slate-800 pt-3 flex flex-wrap items-center justify-between gap-2">
                         <span className="text-[11px] font-mono text-slate-400">Max Score: {asg.maxMarks}</span>
 
                         {sub ? (
-                          <div className="flex items-center gap-2">
-                            {sub.fileName && (
-                              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-500">
-                                <Paperclip className="h-3 w-3 text-teal-600" /> {sub.fileName}
-                              </span>
-                            )}
+                          <div className="flex flex-wrap items-center gap-2">
+                            {/* Preview Submitted Assignment Button */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedSubForPreview(sub);
+                                setShowPreviewModal(true);
+                              }}
+                              className="inline-flex items-center gap-1.5 rounded-xl border border-teal-200 bg-teal-50/90 px-3 py-1 text-xs font-bold text-teal-700 hover:bg-teal-100 dark:border-teal-900 dark:bg-teal-950/50 dark:text-teal-300 transition-all shadow-2xs"
+                              title="Preview your submitted assignment without downloading"
+                            >
+                              <Eye className="h-3.5 w-3.5" />
+                              <span>Preview Submission</span>
+                            </button>
+
                             <span className="text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-300 px-2.5 py-1 rounded-lg text-xs font-bold inline-flex items-center gap-1">
                               <CheckCircle className="h-3.5 w-3.5" />
                               {sub.status === 'Graded' ? `Graded: ${sub.marksObtained}/${asg.maxMarks}` : 'Submitted'}
@@ -1412,6 +1478,7 @@ export function AssignmentSubmissions({
                           </div>
                         ) : (
                           <button
+                            type="button"
                             onClick={() => handleOpenUploadModal(asg)}
                             className="flex items-center gap-1.5 bg-teal-600 hover:bg-teal-700 text-white px-3.5 py-1.5 rounded-xl text-xs font-bold shadow-xs transition-all"
                           >
@@ -1445,19 +1512,31 @@ export function AssignmentSubmissions({
               {submissions.filter(s => s.studentId === currentStudentId && s.status === 'Graded').map(sub => {
                 const asg = assignments.find(a => a.id === sub.assignmentId);
                 return (
-                  <div key={sub.id} className="p-4 bg-teal-50/50 border border-teal-100 rounded-2xl dark:bg-teal-950/20 dark:border-teal-900">
+                  <div key={sub.id} className="p-4 bg-teal-50/50 border border-teal-100 rounded-2xl dark:bg-teal-950/20 dark:border-teal-900 space-y-2">
                     <div className="flex justify-between items-start">
                       <p className="font-bold text-slate-900 dark:text-white">{asg?.title}</p>
                       <span className="text-xs font-mono font-bold text-teal-700 dark:text-teal-300 bg-teal-100 dark:bg-teal-900/50 px-2 py-0.5 rounded-md">
                         Score: {sub.marksObtained} / {asg?.maxMarks}
                       </span>
                     </div>
-                    <p className="text-xs italic text-slate-600 dark:text-slate-300 mt-2">"{sub.feedback}"</p>
-                    {sub.fileName && (
-                      <p className="text-[10px] font-mono text-slate-400 mt-2 flex items-center gap-1">
-                        <Paperclip className="h-3 w-3" /> Submitted file: {sub.fileName}
-                      </p>
-                    )}
+                    <p className="text-xs italic text-slate-600 dark:text-slate-300">"{sub.feedback}"</p>
+                    <div className="pt-2 border-t border-teal-100/80 dark:border-teal-900/60 flex items-center justify-between">
+                      {sub.fileName && (
+                        <p className="text-[10px] font-mono text-slate-400 flex items-center gap-1">
+                          <Paperclip className="h-3 w-3 text-teal-600" /> {sub.fileName}
+                        </p>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedSubForPreview(sub);
+                          setShowPreviewModal(true);
+                        }}
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-teal-600 hover:underline dark:text-teal-400 ml-auto"
+                      >
+                        <Eye className="h-3 w-3" /> Preview Submission
+                      </button>
+                    </div>
                   </div>
                 );
               })}
@@ -1548,68 +1627,26 @@ export function AssignmentSubmissions({
         </div>
       )}
 
-      {/* View Task Submission Details Modal (Staff/Admin) */}
-      {showViewDetailsModal && selectedSubForView && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-xs">
-          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-900">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4 dark:border-slate-800">
-              <h3 className="font-bold text-sm text-slate-900 dark:text-white">Submission File & Details</h3>
-              <button onClick={() => setShowViewDetailsModal(false)} className="text-slate-400 hover:bg-slate-100 p-1 rounded-lg">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <div className="space-y-3.5 text-xs text-slate-700 dark:text-slate-300">
-              <div>
-                <span className="text-[10px] font-bold uppercase text-slate-400">Student Name</span>
-                <p className="font-bold text-slate-900 dark:text-white text-sm">
-                  {users.find(u => u.id === students.find(s => s.id === selectedSubForView.studentId)?.userId)?.name}
-                </p>
-              </div>
-
-              <div>
-                <span className="text-[10px] font-bold uppercase text-slate-400">Submitted File</span>
-                {selectedSubForView.fileName ? (
-                  <div className="mt-1 flex items-center justify-between bg-slate-50 dark:bg-slate-950 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
-                    <div className="flex items-center gap-2">
-                      <Paperclip className="h-4 w-4 text-teal-600" />
-                      <div>
-                        <p className="font-bold text-slate-900 dark:text-white">{selectedSubForView.fileName}</p>
-                        <p className="text-[10px] text-slate-400 font-mono">{selectedSubForView.fileSize || '1.5 MB'}</p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => handleDownloadFileAttachment(selectedSubForView)}
-                      className="flex items-center gap-1 bg-teal-600 text-white font-bold text-xs px-3 py-1.5 rounded-lg shadow-xs hover:bg-teal-700"
-                    >
-                      <Download className="h-3.5 w-3.5" /> Download
-                    </button>
-                  </div>
-                ) : (
-                  <p className="italic text-slate-400 mt-0.5">No file attached</p>
-                )}
-              </div>
-
-              {selectedSubForView.submissionText && (
-                <div>
-                  <span className="text-[10px] font-bold uppercase text-slate-400">Student Notes</span>
-                  <p className="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 mt-1 italic">
-                    "{selectedSubForView.submissionText}"
-                  </p>
-                </div>
-              )}
-            </div>
-
-            <div className="mt-6 border-t pt-3 flex justify-end">
-              <button
-                onClick={() => setShowViewDetailsModal(false)}
-                className="bg-slate-200 dark:bg-slate-800 font-bold text-slate-700 dark:text-slate-300 px-4 py-2 rounded-xl text-xs"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* In-App Zero-Download Assignment Submission Document Previewer Modal */}
+      {showPreviewModal && selectedSubForPreview && (
+        <AssignmentSubmissionPreviewModal
+          submission={selectedSubForPreview}
+          assignment={assignments.find(a => a.id === selectedSubForPreview.assignmentId)}
+          course={courses.find(c => c.id === assignments.find(a => a.id === selectedSubForPreview.assignmentId)?.courseId)}
+          student={students.find(s => s.id === selectedSubForPreview.studentId)}
+          studentUser={users.find(u => u.id === students.find(s => s.id === selectedSubForPreview.studentId)?.userId)}
+          department={departments.find(d => d.id === courses.find(c => c.id === assignments.find(a => a.id === selectedSubForPreview.assignmentId)?.courseId)?.departmentId)}
+          isOpen={showPreviewModal}
+          onClose={() => {
+            setShowPreviewModal(false);
+            setSelectedSubForPreview(null);
+          }}
+          canGrade={isFaculty}
+          onGrade={(subId, marksVal, feedbackVal) => {
+            onGradeSubmission(subId, marksVal, feedbackVal);
+          }}
+          onDownloadFile={handleDownloadFileAttachment}
+        />
       )}
 
       {/* Add Assessment Modal */}
