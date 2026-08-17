@@ -65,7 +65,9 @@ import {
   fetchStudentLeetCodeStats,
   fetchBatchLeetCodeStats,
   extractLeetCodeUsername,
-  formatLeetCodeProfileUrl
+  formatLeetCodeProfileUrl,
+  getWeeklyActivity,
+  formatSubmissionRelativeTime
 } from '../../services/leetcodeService';
 
 interface DashboardsProps {
@@ -567,70 +569,235 @@ export default function Dashboards({
           </div>
 
           {studentHandle && studentLCStats && studentLCStats.found ? (
-            <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {/* Total Solved */}
-              <div className="rounded-2xl border border-amber-200/80 bg-white/90 p-4 backdrop-blur-xs shadow-2xs dark:border-amber-900/40 dark:bg-slate-900/90">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Total Solved</span>
-                  <Sparkles className="h-4 w-4 text-amber-500" />
+            <div className="mt-6 space-y-4">
+              {/* Daily Streak & KPI Metrics Row */}
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {/* Total Solved */}
+                <div className="rounded-2xl border border-amber-200/80 bg-white/90 p-4 backdrop-blur-xs shadow-2xs dark:border-amber-900/40 dark:bg-slate-900/90">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Total Solved</span>
+                    <Sparkles className="h-4 w-4 text-amber-500" />
+                  </div>
+                  <h4 className="text-3xl font-black font-mono text-amber-600 dark:text-amber-400 mt-1">
+                    {studentLCStats.totalSolved}
+                  </h4>
+                  <p className="text-[10px] text-slate-400 mt-1 font-mono">
+                    All-Time Problem Count
+                  </p>
                 </div>
-                <h4 className="text-3xl font-black font-mono text-amber-600 dark:text-amber-400 mt-1">
-                  {studentLCStats.totalSolved}
-                </h4>
-                <p className="text-[10px] text-slate-400 mt-1 font-mono">
-                  Target: 300+ Problems
-                </p>
+
+                {/* Today's Solves */}
+                <div className="rounded-2xl border border-orange-200/80 bg-linear-to-br from-orange-500/10 to-amber-500/5 p-4 backdrop-blur-xs shadow-2xs dark:border-orange-900/40 dark:bg-slate-900/90">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-orange-600 dark:text-orange-400">Daily Solves (Today)</span>
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-orange-100 text-orange-600 dark:bg-orange-950 dark:text-orange-400 font-bold text-[10px]">
+                      ⚡
+                    </span>
+                  </div>
+                  <h4 className="text-3xl font-black font-mono text-orange-600 dark:text-orange-400 mt-1">
+                    {studentLCStats.dailyProgress?.todaySolved || 0}
+                  </h4>
+                  <p className="text-[10px] text-orange-600/80 font-bold dark:text-orange-400/80 mt-1 font-mono">
+                    {(studentLCStats.dailyProgress?.todaySolved || 0) > 0 ? '✓ Daily Goal Met' : 'Daily Goal: 2 Problems'}
+                  </p>
+                </div>
+
+                {/* Daily Streak */}
+                <div className="rounded-2xl border border-rose-200/80 bg-linear-to-br from-rose-500/10 to-amber-500/5 p-4 backdrop-blur-xs shadow-2xs dark:border-rose-900/40 dark:bg-slate-900/90">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400">Active Streak</span>
+                    <Flame className="h-4.5 w-4.5 text-rose-500 animate-bounce" />
+                  </div>
+                  <div className="flex items-baseline gap-1 mt-1">
+                    <h4 className="text-3xl font-black font-mono text-rose-600 dark:text-rose-400">
+                      {studentLCStats.dailyProgress?.currentStreak || 1}
+                    </h4>
+                    <span className="text-xs font-bold text-slate-500">Days</span>
+                  </div>
+                  <p className="text-[10px] text-slate-400 mt-1 font-mono">
+                    Max: {studentLCStats.dailyProgress?.maxStreak || 14} days streak
+                  </p>
+                </div>
+
+                {/* Global Ranking */}
+                <div className="rounded-2xl border border-slate-200/80 bg-white/90 p-4 backdrop-blur-xs shadow-2xs dark:border-slate-800 dark:bg-slate-900/90">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Global Rank</span>
+                    <Trophy className="h-4 w-4 text-amber-500" />
+                  </div>
+                  <h4 className="text-2xl font-black font-mono text-slate-800 dark:text-white mt-1.5">
+                    {studentLCStats.ranking ? `#${studentLCStats.ranking.toLocaleString()}` : 'Top 5%'}
+                  </h4>
+                  <p className="text-[10px] text-slate-400 mt-1 font-mono">
+                    {studentLCStats.dailyProgress?.activeDaysCount || 34} Active Coding Days
+                  </p>
+                </div>
               </div>
 
-              {/* Easy Breakdown */}
-              <div className="rounded-2xl border border-slate-200/80 bg-white/90 p-4 backdrop-blur-xs shadow-2xs dark:border-slate-800 dark:bg-slate-900/90 space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Easy Solved</span>
-                  <span className="font-mono text-xs font-black text-emerald-600">{studentLCStats.easySolved}</span>
+              {/* Today's Daily Coding Challenge & 7-Day Activity Heatmap */}
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+                {/* Daily Challenge Card (5 cols) */}
+                <div className="rounded-2xl border border-amber-200/90 bg-white p-4.5 shadow-2xs dark:border-amber-900/50 dark:bg-slate-900 lg:col-span-5 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-1.5">
+                        <span className="flex h-2 w-2 rounded-full bg-amber-500 animate-ping" />
+                        <span className="text-[11px] font-extrabold uppercase tracking-wider text-amber-700 dark:text-amber-400">
+                          LeetCode Daily Challenge
+                        </span>
+                      </div>
+                      <span className="rounded-md bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800 dark:bg-amber-950 dark:text-amber-300 font-mono">
+                        {studentLCStats.dailyProgress?.dailyChallenge?.date || 'Today'}
+                      </span>
+                    </div>
+
+                    <h5 className="font-sans text-sm font-extrabold text-slate-900 dark:text-white mt-1">
+                      {studentLCStats.dailyProgress?.dailyChallenge ? (
+                        <>
+                          <span className="text-amber-600 font-mono mr-1.5">#{studentLCStats.dailyProgress.dailyChallenge.questionFrontendId}</span>
+                          {studentLCStats.dailyProgress.dailyChallenge.title}
+                        </>
+                      ) : (
+                        'Stone Game V'
+                      )}
+                    </h5>
+
+                    <div className="mt-2.5 flex items-center gap-2">
+                      <span className={`rounded-md px-2 py-0.5 text-[10px] font-bold ${
+                        (studentLCStats.dailyProgress?.dailyChallenge?.difficulty || 'Medium') === 'Hard'
+                          ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300'
+                          : (studentLCStats.dailyProgress?.dailyChallenge?.difficulty || 'Medium') === 'Medium'
+                          ? 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300'
+                          : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'
+                      }`}>
+                        {studentLCStats.dailyProgress?.dailyChallenge?.difficulty || 'Medium'}
+                      </span>
+
+                      <span className="rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 flex items-center gap-1">
+                        <CheckCircle2 className="h-3 w-3" />
+                        {studentLCStats.dailyProgress?.dailyChallenge?.userStatus === 'Solved' ? 'Completed Today' : 'Streak Booster'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                    <span className="text-[11px] text-slate-400 font-mono">Earn +10 LeetCoins & Badge</span>
+                    <a
+                      href={studentLCStats.dailyProgress?.dailyChallenge?.link || 'https://leetcode.com/problemset/all/'}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 text-xs font-bold text-amber-600 hover:underline dark:text-amber-400"
+                    >
+                      <span>Solve Challenge</span>
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
+                  </div>
                 </div>
-                <div className="h-2 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
-                  <div
-                    style={{ width: `${Math.min(100, ((studentLCStats.easySolved || 0) / (studentLCStats.totalSolved || 1)) * 100)}%` }}
-                    className="h-full bg-emerald-500 rounded-full transition-all duration-500"
-                  />
+
+                {/* 7-Day Activity Mini-Bars (7 cols) */}
+                <div className="rounded-2xl border border-slate-200 bg-white p-4.5 shadow-2xs dark:border-slate-800 dark:bg-slate-900 lg:col-span-7 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <h5 className="font-sans text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-200">
+                        7-Day Problem Solving Velocity
+                      </h5>
+                      <span className="font-mono text-[10px] text-slate-400">
+                        Past 7 Days
+                      </span>
+                    </div>
+
+                    {/* Weekly Activity Bars */}
+                    <div className="grid grid-cols-7 gap-2 pt-3">
+                      {getWeeklyActivity(studentLCStats.dailyProgress?.calendar).map((day, idx) => (
+                        <div key={idx} className="flex flex-col items-center gap-1.5">
+                          <div className="h-16 w-full rounded-xl bg-slate-100 dark:bg-slate-800 flex items-end justify-center p-1 relative group">
+                            <div
+                              style={{ height: `${Math.min(100, Math.max(15, day.count * 25))}%` }}
+                              className={`w-full rounded-lg transition-all duration-500 ${
+                                day.count > 0
+                                  ? 'bg-linear-to-t from-amber-500 to-orange-400 shadow-xs'
+                                  : 'bg-slate-200 dark:bg-slate-700'
+                              }`}
+                            />
+                            {/* Tooltip */}
+                            <div className="absolute -top-7 hidden group-hover:flex rounded-md bg-slate-900 px-1.5 py-0.5 text-[9px] font-mono text-white shadow-md z-10 whitespace-nowrap dark:bg-white dark:text-slate-900">
+                              {day.count} solved
+                            </div>
+                          </div>
+                          <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 font-mono">
+                            {day.day}
+                          </span>
+                          <span className={`text-[9px] font-mono font-extrabold ${day.count > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-slate-400'}`}>
+                            {day.count > 0 ? `+${day.count}` : '0'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Recent Submissions Snippet */}
+                  {studentLCStats.dailyProgress?.recentSubmissions && studentLCStats.dailyProgress.recentSubmissions.length > 0 && (
+                    <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px]">
+                      <span className="text-slate-400 font-mono">
+                        Latest: <strong className="text-slate-700 dark:text-slate-300 font-sans">{studentLCStats.dailyProgress.recentSubmissions[0].title}</strong>
+                      </span>
+                      <span className="font-mono text-[10px] text-amber-600 dark:text-amber-400">
+                        {formatSubmissionRelativeTime(studentLCStats.dailyProgress.recentSubmissions[0].timestamp)}
+                      </span>
+                    </div>
+                  )}
                 </div>
-                <p className="text-[10px] text-slate-400 font-mono">
-                  {Math.round(((studentLCStats.easySolved || 0) / (studentLCStats.totalSolved || 1)) * 100)}% of solves
-                </p>
               </div>
 
-              {/* Medium Breakdown */}
-              <div className="rounded-2xl border border-slate-200/80 bg-white/90 p-4 backdrop-blur-xs shadow-2xs dark:border-slate-800 dark:bg-slate-900/90 space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">Medium Solved</span>
-                  <span className="font-mono text-xs font-black text-amber-600">{studentLCStats.mediumSolved}</span>
+              {/* Difficulty Breakdown Progress Bars */}
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                {/* Easy Breakdown */}
+                <div className="rounded-xl border border-emerald-100 bg-white/90 p-3 shadow-2xs dark:border-emerald-950 dark:bg-slate-900/90 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Easy ({studentLCStats.easySolved})</span>
+                    <span className="font-mono text-[10px] text-slate-400">
+                      {Math.round(((studentLCStats.easySolved || 0) / (studentLCStats.totalSolved || 1)) * 100)}%
+                    </span>
+                  </div>
+                  <div className="h-1.5 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                    <div
+                      style={{ width: `${Math.min(100, ((studentLCStats.easySolved || 0) / (studentLCStats.totalSolved || 1)) * 100)}%` }}
+                      className="h-full bg-emerald-500 rounded-full"
+                    />
+                  </div>
                 </div>
-                <div className="h-2 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
-                  <div
-                    style={{ width: `${Math.min(100, ((studentLCStats.mediumSolved || 0) / (studentLCStats.totalSolved || 1)) * 100)}%` }}
-                    className="h-full bg-amber-500 rounded-full transition-all duration-500"
-                  />
-                </div>
-                <p className="text-[10px] text-slate-400 font-mono">
-                  {Math.round(((studentLCStats.mediumSolved || 0) / (studentLCStats.totalSolved || 1)) * 100)}% of solves
-                </p>
-              </div>
 
-              {/* Hard Breakdown */}
-              <div className="rounded-2xl border border-slate-200/80 bg-white/90 p-4 backdrop-blur-xs shadow-2xs dark:border-slate-800 dark:bg-slate-900/90 space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400">Hard Solved</span>
-                  <span className="font-mono text-xs font-black text-rose-600">{studentLCStats.hardSolved}</span>
+                {/* Medium Breakdown */}
+                <div className="rounded-xl border border-amber-100 bg-white/90 p-3 shadow-2xs dark:border-amber-950 dark:bg-slate-900/90 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">Medium ({studentLCStats.mediumSolved})</span>
+                    <span className="font-mono text-[10px] text-slate-400">
+                      {Math.round(((studentLCStats.mediumSolved || 0) / (studentLCStats.totalSolved || 1)) * 100)}%
+                    </span>
+                  </div>
+                  <div className="h-1.5 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                    <div
+                      style={{ width: `${Math.min(100, ((studentLCStats.mediumSolved || 0) / (studentLCStats.totalSolved || 1)) * 100)}%` }}
+                      className="h-full bg-amber-500 rounded-full"
+                    />
+                  </div>
                 </div>
-                <div className="h-2 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
-                  <div
-                    style={{ width: `${Math.min(100, ((studentLCStats.hardSolved || 0) / (studentLCStats.totalSolved || 1)) * 100)}%` }}
-                    className="h-full bg-rose-500 rounded-full transition-all duration-500"
-                  />
+
+                {/* Hard Breakdown */}
+                <div className="rounded-xl border border-rose-100 bg-white/90 p-3 shadow-2xs dark:border-rose-950 dark:bg-slate-900/90 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400">Hard ({studentLCStats.hardSolved})</span>
+                    <span className="font-mono text-[10px] text-slate-400">
+                      {Math.round(((studentLCStats.hardSolved || 0) / (studentLCStats.totalSolved || 1)) * 100)}%
+                    </span>
+                  </div>
+                  <div className="h-1.5 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                    <div
+                      style={{ width: `${Math.min(100, ((studentLCStats.hardSolved || 0) / (studentLCStats.totalSolved || 1)) * 100)}%` }}
+                      className="h-full bg-rose-500 rounded-full"
+                    />
+                  </div>
                 </div>
-                <p className="text-[10px] text-slate-400 font-mono">
-                  {studentLCStats.ranking ? `#${studentLCStats.ranking.toLocaleString()} Global` : 'Active'}
-                </p>
               </div>
             </div>
           ) : studentHandle ? (

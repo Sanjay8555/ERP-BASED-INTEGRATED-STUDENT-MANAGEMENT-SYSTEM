@@ -46,6 +46,70 @@ export function formatLeetCodeProfileUrl(input?: string): string {
 }
 
 /**
+ * Formats a unix timestamp (seconds or milliseconds) into relative time: e.g. "2h ago", "Yesterday", "3d ago"
+ */
+export function formatSubmissionRelativeTime(timestamp?: string | number): string {
+  if (!timestamp) return 'Recently';
+  let ts = typeof timestamp === 'string' ? parseInt(timestamp, 10) : timestamp;
+  if (ts < 10000000000) ts *= 1000; // convert seconds to ms
+
+  const diffMs = Date.now() - ts;
+  const diffSec = Math.floor(diffMs / 1000);
+  const diffMin = Math.floor(diffSec / 60);
+  const diffHours = Math.floor(diffMin / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffSec < 60) return 'Just now';
+  if (diffMin < 60) return `${diffMin}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
+/**
+ * Returns structured 7-day daily activity for charts and UI bars
+ */
+export function getWeeklyActivity(calendar?: Record<string, number>): { day: string; date: string; count: number; active: boolean }[] {
+  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const result: { day: string; date: string; count: number; active: boolean }[] = [];
+  const now = new Date();
+
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    d.setHours(0, 0, 0, 0);
+    const dayName = days[d.getDay()];
+    const dateStr = d.toISOString().split('T')[0];
+    const dayMidnightSec = Math.floor(d.getTime() / 1000);
+
+    let count = 0;
+    if (calendar) {
+      Object.entries(calendar).forEach(([tsStr, c]) => {
+        const ts = parseInt(tsStr, 10);
+        if (Math.abs(ts - dayMidnightSec) < 43200) {
+          count += c;
+        }
+      });
+    }
+
+    // If calendar is sparse or empty in mock mode, provide a friendly non-zero trend
+    if (count === 0 && !calendar) {
+      count = ((i * 3 + 2) % 4) + (i === 0 ? 2 : 0);
+    }
+
+    result.push({
+      day: dayName,
+      date: dateStr,
+      count,
+      active: count > 0
+    });
+  }
+
+  return result;
+}
+
+/**
  * Deterministic fallback stats generator for offline mode or mock demonstrations
  */
 function generateFallbackStats(username: string): LeetCodeStats {
@@ -59,6 +123,18 @@ function generateFallbackStats(username: string): LeetCodeStats {
   const easySolved = Math.floor(totalSolved * 0.38);
   const mediumSolved = Math.floor(totalSolved * 0.48);
   const hardSolved = Math.max(0, totalSolved - easySolved - mediumSolved);
+
+  const todaySolved = (positiveHash % 4) + 1;
+  const currentStreak = (positiveHash % 18) + 3;
+  const maxStreak = Math.max(currentStreak, (positiveHash % 35) + 12);
+  const activeDaysCount = (positiveHash % 90) + 25;
+
+  const nowSec = Math.floor(Date.now() / 1000);
+  const calendar: Record<string, number> = {};
+  for (let i = 0; i < 14; i++) {
+    const ts = nowSec - i * 86400;
+    calendar[ts.toString()] = ((positiveHash + i * 7) % 5) + 1;
+  }
 
   return {
     username,
@@ -74,6 +150,42 @@ function generateFallbackStats(username: string): LeetCodeStats {
     avatar: `https://images.unsplash.com/photo-${1534528741775 + (positiveHash % 1000)}?auto=format&fit=crop&q=80&w=120`,
     realName: username.toUpperCase(),
     reputation: (positiveHash % 80) + 10,
+    dailyProgress: {
+      todaySolved,
+      currentStreak,
+      maxStreak,
+      activeDaysCount,
+      calendar,
+      dailyChallenge: {
+        date: new Date().toISOString().split('T')[0],
+        userStatus: 'Solved',
+        link: 'https://leetcode.com/problems/stone-game-v/',
+        questionFrontendId: '1563',
+        title: 'Stone Game V',
+        titleSlug: 'stone-game-v',
+        difficulty: 'Hard'
+      },
+      recentSubmissions: [
+        {
+          id: '1',
+          title: '3Sum Closest',
+          titleSlug: '3sum-closest',
+          timestamp: (nowSec - 7200).toString()
+        },
+        {
+          id: '2',
+          title: 'Two Sum',
+          titleSlug: 'two-sum',
+          timestamp: (nowSec - 86400).toString()
+        },
+        {
+          id: '3',
+          title: 'Minimum Distance to the Target Element',
+          titleSlug: 'minimum-distance-to-the-target-element',
+          timestamp: (nowSec - 172800).toString()
+        }
+      ]
+    },
     found: true,
     lastFetched: new Date().toISOString()
   };

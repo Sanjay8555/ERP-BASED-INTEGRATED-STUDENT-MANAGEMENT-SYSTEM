@@ -43,7 +43,9 @@ import {
   fetchStudentLeetCodeStats,
   extractLeetCodeUsername,
   formatLeetCodeProfileUrl,
-  updateStudentLeetCodeUrl
+  updateStudentLeetCodeUrl,
+  formatSubmissionRelativeTime,
+  getWeeklyActivity
 } from '../../services/leetcodeService';
 
 interface LeetCodeTrackerProps {
@@ -65,11 +67,19 @@ export default function LeetCodeTracker({
 }: LeetCodeTrackerProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDept, setSelectedDept] = useState('All');
-  const [sortBy, setSortBy] = useState<'solved' | 'rank' | 'cgpa' | 'name'>('solved');
+  const [sortBy, setSortBy] = useState<'solved' | 'rank' | 'cgpa' | 'name' | 'streak'>('solved');
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
 
-  // Real-time LeetCode state
+  // Stats cache state
   const [statsMap, setStatsMap] = useState<Record<string, LeetCodeStats>>({});
+  const [isLoadingStats, setIsLoadingStats] = useState(true);
+
+  // Student Daily Activity Inspection Modal
+  const [selectedStudentForDetails, setSelectedStudentForDetails] = useState<{
+    student: StudentProfile;
+    user?: User;
+    stats?: LeetCodeStats;
+  } | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState<string>(new Date().toLocaleTimeString());
 
@@ -156,6 +166,8 @@ export default function LeetCodeTracker({
         comp = b.student.cgpa - a.student.cgpa;
       } else if (sortBy === 'name') {
         comp = (a.user?.name || '').localeCompare(b.user?.name || '');
+      } else if (sortBy === 'streak') {
+        comp = (b.stats?.dailyProgress?.currentStreak || 0) - (a.stats?.dailyProgress?.currentStreak || 0);
       }
       return sortOrder === 'desc' ? comp : -comp;
     });
@@ -496,6 +508,7 @@ export default function LeetCodeTracker({
             className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
           >
             <option value="solved">⚡ Total Solved Problems</option>
+            <option value="streak">🔥 Daily Active Streak</option>
             <option value="rank">🌐 Global LeetCode Rank</option>
             <option value="cgpa">🎓 University CGPA</option>
             <option value="name">👤 Student Name</option>
@@ -521,9 +534,10 @@ export default function LeetCodeTracker({
                 <th className="px-5 py-4">Department & Roll No</th>
                 <th className="px-5 py-4">LeetCode Handle</th>
                 <th className="px-5 py-4">Live Solves</th>
-                <th className="px-5 py-4">Difficulty Distribution</th>
-                <th className="px-5 py-4">Global Ranking</th>
-                {canModify && <th className="px-5 py-4 text-right">Admin Action</th>}
+                <th className="px-5 py-4">Daily Streak & Today</th>
+                <th className="px-5 py-4">Difficulty Mix</th>
+                <th className="px-5 py-4">Global Rank</th>
+                <th className="px-5 py-4 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-xs dark:divide-slate-800">
@@ -618,14 +632,33 @@ export default function LeetCodeTracker({
                         )}
                       </td>
 
+                      {/* Daily Streak & Today's Solves */}
+                      <td className="px-5 py-4">
+                        {item.stats?.dailyProgress ? (
+                          <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-1.5">
+                              <span className="inline-flex items-center gap-1 rounded-md bg-rose-500/10 px-2 py-0.5 font-mono text-[11px] font-black text-rose-600 dark:text-rose-400">
+                                <Flame className="h-3 w-3" />
+                                {item.stats.dailyProgress.currentStreak || 1}d streak
+                              </span>
+                            </div>
+                            <span className="font-mono text-[10px] text-orange-600 dark:text-orange-400 font-bold">
+                              ⚡ +{item.stats.dailyProgress.todaySolved || 0} today
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="font-mono text-slate-400 text-[11px]">—</span>
+                        )}
+                      </td>
+
                       {/* Difficulty Distribution Mini-Bars */}
                       <td className="px-5 py-4">
                         {item.stats && item.stats.found ? (
-                          <div className="space-y-1 w-36">
+                          <div className="space-y-1 w-28">
                             <div className="flex justify-between text-[10px] font-mono font-bold">
-                              <span className="text-emerald-600">E:{item.stats.easySolved}</span>
-                              <span className="text-amber-600">M:{item.stats.mediumSolved}</span>
-                              <span className="text-rose-600">H:{item.stats.hardSolved}</span>
+                              <span className="text-emerald-600">{item.stats.easySolved}E</span>
+                              <span className="text-amber-600">{item.stats.mediumSolved}M</span>
+                              <span className="text-rose-600">{item.stats.hardSolved}H</span>
                             </div>
                             <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden flex dark:bg-slate-800">
                               <div
@@ -656,25 +689,36 @@ export default function LeetCodeTracker({
                         )}
                       </td>
 
-                      {/* Admin URL Edit Action */}
-                      {canModify && (
-                        <td className="px-5 py-4 text-right">
+                      {/* Actions */}
+                      <td className="px-5 py-4 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
                           <button
-                            onClick={() => handleOpenEdit(item.student)}
-                            title="Edit Student's LeetCode Profile URL"
-                            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-bold text-slate-700 hover:bg-amber-50 hover:text-amber-700 hover:border-amber-300 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 transition-colors"
+                            onClick={() => setSelectedStudentForDetails(item)}
+                            title="View Daily Progress & Activity"
+                            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-bold text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 transition-colors"
                           >
-                            <Edit className="h-3 w-3" />
-                            <span>Edit URL</span>
+                            <TrendingUp className="h-3 w-3 text-teal-600 dark:text-teal-400" />
+                            <span>Activity</span>
                           </button>
-                        </td>
-                      )}
+
+                          {canModify && (
+                            <button
+                              onClick={() => handleOpenEdit(item.student)}
+                              title="Edit Student's LeetCode Profile URL"
+                              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-bold text-slate-700 hover:bg-amber-50 hover:text-amber-700 hover:border-amber-300 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 transition-colors"
+                            >
+                              <Edit className="h-3 w-3" />
+                              <span>Edit</span>
+                            </button>
+                          )}
+                        </div>
+                      </td>
                     </tr>
                   );
                 })
               ) : (
                 <tr>
-                  <td colSpan={8} className="px-6 py-12 text-center text-slate-400">
+                  <td colSpan={9} className="px-6 py-12 text-center text-slate-400">
                     No student records found matching the query.
                   </td>
                 </tr>
@@ -800,6 +844,170 @@ export default function LeetCodeTracker({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Student Daily Progress & Activity Inspection Modal */}
+      {selectedStudentForDetails && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-xs overflow-y-auto">
+          <div className="w-full max-w-xl rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-900 max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200 space-y-5">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4 dark:border-slate-800">
+              <div className="flex items-center gap-3">
+                <img
+                  src={selectedStudentForDetails.user?.photo || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=120'}
+                  alt={selectedStudentForDetails.user?.name}
+                  referrerPolicy="no-referrer"
+                  className="h-12 w-12 rounded-full object-cover ring-2 ring-amber-500/20 shadow-sm"
+                />
+                <div>
+                  <h3 className="font-sans text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                    {selectedStudentForDetails.user?.name}
+                    <span className="rounded-md bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800 dark:bg-amber-950 dark:text-amber-300 font-mono">
+                      {selectedStudentForDetails.student.rollNo}
+                    </span>
+                  </h3>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-xs text-slate-400 font-mono">
+                      @{extractLeetCodeUsername(selectedStudentForDetails.student.leetcodeUrl || selectedStudentForDetails.student.leetcodeUsername || '') || 'unlinked'}
+                    </span>
+                    <a
+                      href={formatLeetCodeProfileUrl(selectedStudentForDetails.student.leetcodeUrl || selectedStudentForDetails.student.leetcodeUsername)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-0.5 text-[11px] font-bold text-amber-600 hover:underline dark:text-amber-400"
+                    >
+                      <span>Profile</span>
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setSelectedStudentForDetails(null)}
+                className="rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 p-1"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Daily Streak & Key Highlights */}
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div className="rounded-xl border border-amber-200/80 bg-amber-50/40 p-3 dark:border-amber-900/40 dark:bg-amber-950/20">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Solved</span>
+                <p className="text-xl font-black font-mono text-amber-600 dark:text-amber-400 mt-0.5">
+                  {selectedStudentForDetails.stats?.totalSolved || 0}
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-orange-200/80 bg-orange-50/40 p-3 dark:border-orange-900/40 dark:bg-orange-950/20">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-orange-600 dark:text-orange-400">Today's Solves</span>
+                <p className="text-xl font-black font-mono text-orange-600 dark:text-orange-400 mt-0.5">
+                  ⚡ {selectedStudentForDetails.stats?.dailyProgress?.todaySolved || 0}
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-rose-200/80 bg-rose-50/40 p-3 dark:border-rose-900/40 dark:bg-rose-950/20">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400">Active Streak</span>
+                <p className="text-xl font-black font-mono text-rose-600 dark:text-rose-400 mt-0.5">
+                  🔥 {selectedStudentForDetails.stats?.dailyProgress?.currentStreak || 1}d
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-950">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Global Rank</span>
+                <p className="text-lg font-black font-mono text-slate-800 dark:text-white mt-0.5">
+                  {selectedStudentForDetails.stats?.ranking ? `#${selectedStudentForDetails.stats.ranking.toLocaleString()}` : '—'}
+                </p>
+              </div>
+            </div>
+
+            {/* 7-Day Problem Solving Velocity Bars */}
+            <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 dark:border-slate-800 dark:bg-slate-950/50">
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="font-sans text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200">
+                  7-Day Problem Solving Activity
+                </h4>
+                <span className="font-mono text-[10px] text-slate-400">
+                  {selectedStudentForDetails.stats?.dailyProgress?.activeDaysCount || 28} Total Active Days
+                </span>
+              </div>
+
+              <div className="grid grid-cols-7 gap-2 pt-2">
+                {getWeeklyActivity(selectedStudentForDetails.stats?.dailyProgress?.calendar).map((day, idx) => (
+                  <div key={idx} className="flex flex-col items-center gap-1.5">
+                    <div className="h-16 w-full rounded-xl bg-white dark:bg-slate-800 flex items-end justify-center p-1 relative group border border-slate-100 dark:border-slate-700">
+                      <div
+                        style={{ height: `${Math.min(100, Math.max(15, day.count * 25))}%` }}
+                        className={`w-full rounded-lg transition-all duration-500 ${
+                          day.count > 0
+                            ? 'bg-linear-to-t from-amber-500 to-orange-400'
+                            : 'bg-slate-200 dark:bg-slate-700'
+                        }`}
+                      />
+                      <div className="absolute -top-7 hidden group-hover:flex rounded-md bg-slate-900 px-1.5 py-0.5 text-[9px] font-mono text-white shadow-md z-10 whitespace-nowrap dark:bg-white dark:text-slate-900">
+                        {day.count} solved
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 font-mono">
+                      {day.day}
+                    </span>
+                    <span className={`text-[9px] font-mono font-extrabold ${day.count > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-slate-400'}`}>
+                      {day.count > 0 ? `+${day.count}` : '0'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Recent Accepted Submissions */}
+            <div>
+              <h4 className="font-sans text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-2.5">
+                Recent Accepted Solutions
+              </h4>
+              <div className="space-y-2 max-h-40 overflow-y-auto">
+                {selectedStudentForDetails.stats?.dailyProgress?.recentSubmissions &&
+                selectedStudentForDetails.stats.dailyProgress.recentSubmissions.length > 0 ? (
+                  selectedStudentForDetails.stats.dailyProgress.recentSubmissions.map((sub, idx) => (
+                    <div
+                      key={sub.id || idx}
+                      className="flex items-center justify-between rounded-xl bg-slate-50 p-2.5 text-xs border border-slate-100 dark:bg-slate-950/70 dark:border-slate-800"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-[10px] font-bold text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
+                          ✓
+                        </span>
+                        <a
+                          href={`https://leetcode.com/problems/${sub.titleSlug}/`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="font-bold text-slate-800 hover:text-amber-600 dark:text-slate-200 dark:hover:text-amber-400 hover:underline"
+                        >
+                          {sub.title}
+                        </a>
+                      </div>
+                      <span className="font-mono text-[10px] text-slate-400">
+                        {formatSubmissionRelativeTime(sub.timestamp)}
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-xs text-slate-400 italic">No recent submission logs available for this handle.</p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-2 border-t border-slate-100 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => setSelectedStudentForDetails(null)}
+                className="rounded-xl bg-slate-100 px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 transition-colors"
+              >
+                Close View
+              </button>
+            </div>
           </div>
         </div>
       )}

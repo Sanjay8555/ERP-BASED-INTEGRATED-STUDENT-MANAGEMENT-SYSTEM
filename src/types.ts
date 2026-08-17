@@ -35,6 +35,33 @@ export interface StudentProfile {
   leetcodeUsername?: string;
 }
 
+export interface LeetCodeRecentSubmission {
+  id: string;
+  title: string;
+  titleSlug: string;
+  timestamp: string;
+}
+
+export interface LeetCodeDailyChallenge {
+  date: string;
+  userStatus: string;
+  link: string;
+  questionFrontendId: string;
+  title: string;
+  titleSlug: string;
+  difficulty: string;
+}
+
+export interface LeetCodeDailyProgress {
+  todaySolved: number;
+  currentStreak: number;
+  maxStreak: number;
+  activeDaysCount: number;
+  calendar: Record<string, number>;
+  dailyChallenge?: LeetCodeDailyChallenge;
+  recentSubmissions?: LeetCodeRecentSubmission[];
+}
+
 export interface LeetCodeStats {
   username: string;
   totalSolved: number;
@@ -53,6 +80,7 @@ export interface LeetCodeStats {
   found: boolean;
   lastFetched?: string;
   error?: string;
+  dailyProgress?: LeetCodeDailyProgress;
 }
 
 export interface FacultyProfile {

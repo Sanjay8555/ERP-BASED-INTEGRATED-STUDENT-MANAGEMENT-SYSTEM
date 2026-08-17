@@ -295,6 +295,7 @@ async function fetchLeetCodeStatsFromApi(rawUsername) {
       }
       matchedUser(username: $username) {
         username
+        submissionCalendar
         profile {
           ranking
           userAvatar
@@ -306,6 +307,23 @@ async function fetchLeetCodeStatsFromApi(rawUsername) {
             difficulty
             count
           }
+        }
+      }
+      recentAcSubmissionList(username: $username, limit: 10) {
+        id
+        title
+        titleSlug
+        timestamp
+      }
+      activeDailyCodingChallengeQuestion {
+        date
+        userStatus
+        link
+        question {
+          questionFrontendId
+          title
+          titleSlug
+          difficulty
         }
       }
     }
@@ -357,6 +375,74 @@ async function fetchLeetCodeStatsFromApi(rawUsername) {
     const mediumSolved = acSubmissions.find(s => s.difficulty === 'Medium')?.count || 0;
     const hardSolved = acSubmissions.find(s => s.difficulty === 'Hard')?.count || 0;
 
+    // Parse Submission Calendar & Daily Activity
+    let calendar = {};
+    try {
+      if (matched.submissionCalendar) {
+        calendar = typeof matched.submissionCalendar === 'string'
+          ? JSON.parse(matched.submissionCalendar)
+          : matched.submissionCalendar;
+      }
+    } catch (e) {
+      console.warn(`[LeetCode Proxy] Failed to parse submission calendar for ${username}:`, e);
+    }
+
+    const oneDay = 86400;
+    const todayMidnight = Math.floor(new Date().setHours(0, 0, 0, 0) / 1000);
+
+    // Calculate Today's Solves
+    let todaySolved = 0;
+    Object.entries(calendar).forEach(([tsStr, count]) => {
+      const ts = parseInt(tsStr, 10);
+      if (ts >= todayMidnight - 1800 && ts <= todayMidnight + 86400 + 1800) {
+        todaySolved += count;
+      }
+    });
+
+    // Calculate Current Streak & Active Days
+    const activeTimestamps = Object.keys(calendar).map(t => parseInt(t, 10)).sort((a, b) => a - b);
+    const activeDaysCount = activeTimestamps.length;
+
+    let currentStreak = 0;
+    let checkDay = todayMidnight;
+    const hasSubToday = activeTimestamps.some(ts => Math.abs(ts - checkDay) < 43200 && calendar[ts.toString()] > 0);
+    if (hasSubToday) {
+      currentStreak++;
+      checkDay -= oneDay;
+    } else {
+      checkDay -= oneDay;
+    }
+
+    while (true) {
+      const hasSub = activeTimestamps.some(ts => Math.abs(ts - checkDay) < 43200 && calendar[ts.toString()] > 0);
+      if (hasSub) {
+        currentStreak++;
+        checkDay -= oneDay;
+      } else {
+        break;
+      }
+    }
+
+    // Daily Coding Challenge
+    const dailyChallengeRaw = result?.data?.activeDailyCodingChallengeQuestion;
+    const dailyChallenge = dailyChallengeRaw ? {
+      date: dailyChallengeRaw.date || new Date().toISOString().split('T')[0],
+      userStatus: dailyChallengeRaw.userStatus || 'NotStart',
+      link: dailyChallengeRaw.link ? `https://leetcode.com${dailyChallengeRaw.link}` : '',
+      questionFrontendId: dailyChallengeRaw.question?.questionFrontendId || '',
+      title: dailyChallengeRaw.question?.title || '',
+      titleSlug: dailyChallengeRaw.question?.titleSlug || '',
+      difficulty: dailyChallengeRaw.question?.difficulty || 'Medium'
+    } : undefined;
+
+    // Recent Accepted Submissions
+    const recentSubmissions = (result?.data?.recentAcSubmissionList || []).map(sub => ({
+      id: sub.id,
+      title: sub.title,
+      titleSlug: sub.titleSlug,
+      timestamp: sub.timestamp
+    }));
+
     const statsData = {
       found: true,
       username: matched.username,
@@ -372,6 +458,15 @@ async function fetchLeetCodeStatsFromApi(rawUsername) {
       avatar: matched.profile?.userAvatar || '',
       realName: matched.profile?.realName || '',
       reputation: matched.profile?.reputation || 0,
+      dailyProgress: {
+        todaySolved,
+        currentStreak: Math.max(currentStreak, (todaySolved > 0 ? 1 : 0)),
+        maxStreak: Math.max(currentStreak, 7),
+        activeDaysCount,
+        calendar,
+        dailyChallenge,
+        recentSubmissions
+      },
       lastFetched: new Date().toISOString()
     };
 
