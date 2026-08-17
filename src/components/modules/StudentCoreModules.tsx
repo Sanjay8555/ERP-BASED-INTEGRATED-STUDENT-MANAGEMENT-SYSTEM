@@ -375,6 +375,11 @@ export function AttendanceTracker({
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
                 {students
                   .filter(s => s.departmentId === selectedDept && s.currentSemester === selectedSem)
+                  .sort((a, b) => {
+                    const nameA = (users.find(u => u.id === a.userId)?.name || '').toLowerCase();
+                    const nameB = (users.find(u => u.id === b.userId)?.name || '').toLowerCase();
+                    return nameA.localeCompare(nameB);
+                  })
                   .map(student => {
                   const u = users.find(user => user.id === student.userId);
                   const status = markingRecords[student.id] || 'Present';
@@ -769,6 +774,11 @@ export function ExaminationGrades({
                   >
                     {students
                       .filter(s => s.departmentId === selectedDept && s.currentSemester === selectedSem)
+                      .sort((a, b) => {
+                        const nameA = (users.find(u => u.id === a.userId)?.name || '').toLowerCase();
+                        const nameB = (users.find(u => u.id === b.userId)?.name || '').toLowerCase();
+                        return nameA.localeCompare(nameB);
+                      })
                       .map(s => {
                         const u = users.find(user => user.id === s.userId);
                         return <option key={s.id} value={s.id}>{u?.name} ({s.rollNo})</option>;
@@ -854,7 +864,15 @@ export function ExaminationGrades({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
-                  {results.map(res => {
+                  {[...results]
+                    .sort((a, b) => {
+                      const stuA = students.find(s => s.id === a.studentId);
+                      const stuB = students.find(s => s.id === b.studentId);
+                      const nameA = (users.find(u => u.id === stuA?.userId)?.name || '').toLowerCase();
+                      const nameB = (users.find(u => u.id === stuB?.userId)?.name || '').toLowerCase();
+                      return nameA.localeCompare(nameB);
+                    })
+                    .map(res => {
                     const student = students.find(s => s.id === res.studentId);
                     const stuUser = users.find(u => u.id === student?.userId);
                     const exam = exams.find(e => e.id === res.examId);

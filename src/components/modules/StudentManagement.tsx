@@ -28,7 +28,8 @@ import {
   Sparkles,
   Award,
   Download,
-  FolderGit2
+  FolderGit2,
+  ArrowUpDown
 } from 'lucide-react';
 import { StudentProfile, User as UserType, Department, LeetCodeStats, GitHubStats } from '../../types';
 import ProfilePhotoModal from '../shared/ProfilePhotoModal';
@@ -108,6 +109,11 @@ export default function StudentManagement({
   const [leetcodeStatsMap, setLeetcodeStatsMap] = useState<Record<string, LeetCodeStats>>({});
   const [githubStatsMap, setGithubStatsMap] = useState<Record<string, GitHubStats>>({});
   const [isRefreshingLeetCode, setIsRefreshingLeetCode] = useState(false);
+
+  // Sorting & Indexing State
+  const [sortBy, setSortBy] = useState<'name' | 'rollNo' | 'cgpa' | 'semester' | 'leetcode' | 'github'>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [selectedLetter, setSelectedLetter] = useState<string>('All');
 
   // Quick Edit LeetCode Modal for Admin
   const [quickEditStudent, setQuickEditStudent] = useState<StudentProfile | null>(null);
@@ -380,105 +386,205 @@ export default function StudentManagement({
     );
   };
 
-  // Filter students
-  const filteredStudents = students.filter(student => {
-    const user = users.find(u => u.id === student.userId);
-    const matchesSearch =
-      user?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.rollNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user?.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (student.leetcodeUsername && student.leetcodeUsername.toLowerCase().includes(searchTerm.toLowerCase()));
+  const handleToggleSort = (field: 'name' | 'rollNo' | 'cgpa' | 'semester' | 'leetcode') => {
+    if (sortBy === field) {
+      setSortOrder(prev => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortBy(field);
+      setSortOrder(field === 'name' || field === 'rollNo' ? 'asc' : 'desc');
+    }
+  };
 
-    const matchesDept = selectedDept === 'All' || student.departmentId === selectedDept;
+  // Filter & Sort students
+  const filteredStudents = React.useMemo(() => {
+    const list = students.filter(student => {
+      const user = users.find(u => u.id === student.userId);
+      const matchesSearch =
+        (user?.name.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
+        student.rollNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (user?.email.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
+        (student.leetcodeUsername && student.leetcodeUsername.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (student.githubUsername && student.githubUsername.toLowerCase().includes(searchTerm.toLowerCase()));
 
-    return matchesSearch && matchesDept;
-  });
+      const matchesDept = selectedDept === 'All' || student.departmentId === selectedDept;
+
+      const studentName = (user?.name || '').trim().toUpperCase();
+      const matchesLetter = selectedLetter === 'All' || studentName.startsWith(selectedLetter);
+
+      return matchesSearch && matchesDept && matchesLetter;
+    });
+
+    list.sort((a, b) => {
+      const userA = users.find(u => u.id === a.userId);
+      const userB = users.find(u => u.id === b.userId);
+
+      let comp = 0;
+      if (sortBy === 'name') {
+        const nameA = (userA?.name || '').trim().toLowerCase();
+        const nameB = (userB?.name || '').trim().toLowerCase();
+        comp = nameA.localeCompare(nameB);
+      } else if (sortBy === 'rollNo') {
+        comp = a.rollNo.localeCompare(b.rollNo);
+      } else if (sortBy === 'cgpa') {
+        comp = b.cgpa - a.cgpa;
+      } else if (sortBy === 'semester') {
+        comp = b.currentSemester - a.currentSemester;
+      } else if (sortBy === 'leetcode') {
+        const statsA = getStudentStats(a)?.totalSolved || 0;
+        const statsB = getStudentStats(b)?.totalSolved || 0;
+        comp = statsB - statsA;
+      } else if (sortBy === 'github') {
+        const handleA = extractGitHubUsername(a.githubUsername || a.githubUrl || '');
+        const handleB = extractGitHubUsername(b.githubUsername || b.githubUrl || '');
+        const statsA = githubStatsMap[handleA]?.publicRepos || 0;
+        const statsB = githubStatsMap[handleB]?.publicRepos || 0;
+        comp = statsB - statsA;
+      }
+
+      return sortOrder === 'asc' ? comp : -comp;
+    });
+
+    return list;
+  }, [students, users, searchTerm, selectedDept, selectedLetter, sortBy, sortOrder, leetcodeStatsMap, githubStatsMap]);
 
   return (
     <div className="space-y-6">
       {/* Search and Action Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-1 flex-col gap-3 sm:flex-row">
-          <div className="relative max-w-md flex-1">
-            <Search className="absolute top-3 left-3 h-4 w-4 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Search Student (Name, Roll No, LeetCode Handle)..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pr-4 pl-10 text-xs font-semibold text-slate-800 focus:border-teal-500 focus:outline-hidden dark:border-slate-800 dark:bg-slate-900 dark:text-white"
-            />
+      <div className="space-y-3">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-1 flex-wrap items-center gap-3">
+            <div className="relative min-w-[240px] flex-1">
+              <Search className="absolute top-3 left-3 h-4 w-4 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search Student (Name, Roll No, LeetCode Handle)..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pr-4 pl-10 text-xs font-semibold text-slate-800 focus:border-teal-500 focus:outline-hidden dark:border-slate-800 dark:bg-slate-900 dark:text-white"
+              />
+            </div>
+
+            {/* Department Filter */}
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4 text-slate-400" />
+              <select
+                value={selectedDept}
+                onChange={(e) => setSelectedDept(e.target.value)}
+                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 focus:border-teal-500 focus:outline-hidden dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300"
+              >
+                <option value="All">All Departments</option>
+                {departments.map(d => (
+                  <option key={d.id} value={d.id}>{d.code}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Sort Dropdown & Toggle */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] font-bold uppercase text-slate-400">Sort by:</span>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as any)}
+                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 focus:outline-hidden"
+              >
+                <option value="name">🔤 Student Name</option>
+                <option value="rollNo">🔢 Roll Number</option>
+                <option value="cgpa">🎓 Academic CGPA</option>
+                <option value="semester">📅 Semester</option>
+                <option value="leetcode">⭐ LeetCode Solves</option>
+                <option value="github">📁 GitHub Repos</option>
+              </select>
+
+              <button
+                type="button"
+                onClick={() => setSortOrder(prev => (prev === 'asc' ? 'desc' : 'asc'))}
+                className="flex h-8 items-center gap-1 px-2 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 transition-colors shadow-2xs"
+                title={sortOrder === 'asc' ? 'Ascending (A-Z / Low-High) - Click for Descending' : 'Descending (Z-A / High-Low) - Click for Ascending'}
+              >
+                <ArrowUpDown className="h-3.5 w-3.5" />
+                <span className="text-[10px] font-mono uppercase">{sortOrder === 'asc' ? 'A→Z' : 'Z→A'}</span>
+              </button>
+            </div>
           </div>
 
-          {/* Department Filter */}
-          <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-slate-400" />
-            <select
-              value={selectedDept}
-              onChange={(e) => setSelectedDept(e.target.value)}
-              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 focus:border-teal-500 focus:outline-hidden dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300"
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Refresh Real-Time LeetCode Button */}
+            <button
+              onClick={() => loadRealtimeStats(true)}
+              disabled={isRefreshingLeetCode}
+              title="Refresh real-time problem counts for all students"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50/80 px-3 py-2 text-xs font-bold text-amber-700 hover:bg-amber-100 transition-colors disabled:opacity-50 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-300"
             >
-              <option value="All">All Departments</option>
-              {departments.map(d => (
-                <option key={d.id} value={d.id}>{d.code}</option>
-              ))}
-            </select>
+              <RefreshCw className={`h-3.5 w-3.5 ${isRefreshingLeetCode ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline">{isRefreshingLeetCode ? 'Syncing...' : 'Sync'}</span>
+            </button>
+
+            {/* Download LeetCode Details CSV Button */}
+            <button
+              onClick={() => {
+                const selectedDeptObj = departments.find(d => d.id === selectedDept);
+                const deptCode = selectedDept === 'All' ? 'All' : (selectedDeptObj?.code || selectedDept);
+                const records = buildLeetCodeExportRecords(students, users, departments, leetcodeStatsMap);
+                const filtered = records.filter(r => selectedDept === 'All' || r.departmentCode === deptCode);
+                exportDetailedLeetCodeCSV(filtered, deptCode, 'AllYears');
+              }}
+              title="Download student LeetCode links and total solved data as CSV"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-100 transition-colors dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300"
+            >
+              <Download className="h-3.5 w-3.5" />
+              <span>LeetCode CSV</span>
+            </button>
+
+            {/* Download GitHub Details CSV Button */}
+            <button
+              onClick={() => {
+                const selectedDeptObj = departments.find(d => d.id === selectedDept);
+                const deptCode = selectedDept === 'All' ? 'All' : (selectedDeptObj?.code || selectedDept);
+                const records = buildGitHubExportRecords(students, users, departments, githubStatsMap);
+                const filtered = records.filter(r => selectedDept === 'All' || r.departmentCode === deptCode);
+                exportDetailedGitHubCSV(filtered, deptCode, 'AllYears');
+              }}
+              title="Download student GitHub profile links and repository data as CSV"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-slate-100 px-3 py-2 text-xs font-bold text-slate-800 hover:bg-slate-200 transition-colors dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+            >
+              <FolderGit2 className="h-3.5 w-3.5 text-teal-600" />
+              <span>GitHub CSV</span>
+            </button>
+
+            {canModify && (
+              <button
+                id="register-student-btn"
+                onClick={handleOpenAdd}
+                className="flex items-center gap-2 rounded-xl bg-teal-600 px-4 py-2 text-xs font-bold text-white shadow-md hover:bg-teal-700 transition-colors"
+              >
+                <UserPlus className="h-4 w-4" />
+                <span>Add Student</span>
+              </button>
+            )}
           </div>
-
-          {/* Refresh Real-Time LeetCode Button */}
-          <button
-            onClick={() => loadRealtimeStats(true)}
-            disabled={isRefreshingLeetCode}
-            title="Refresh real-time LeetCode problem counts for all students"
-            className="inline-flex items-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50/80 px-3.5 py-2 text-xs font-bold text-amber-700 hover:bg-amber-100 transition-colors disabled:opacity-50 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-300"
-          >
-            <RefreshCw className={`h-3.5 w-3.5 ${isRefreshingLeetCode ? 'animate-spin' : ''}`} />
-            <span>{isRefreshingLeetCode ? 'Syncing...' : 'Sync LeetCode'}</span>
-          </button>
-
-          {/* Download LeetCode Details CSV Button */}
-          <button
-            onClick={() => {
-              const selectedDeptObj = departments.find(d => d.id === selectedDept);
-              const deptCode = selectedDept === 'All' ? 'All' : (selectedDeptObj?.code || selectedDept);
-              const records = buildLeetCodeExportRecords(students, users, departments, leetcodeStatsMap);
-              const filtered = records.filter(r => selectedDept === 'All' || r.departmentCode === deptCode);
-              exportDetailedLeetCodeCSV(filtered, deptCode, 'AllYears');
-            }}
-            title="Download student LeetCode links and total solved data as CSV"
-            className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-300 bg-emerald-50 px-3.5 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-100 transition-colors dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300"
-          >
-            <Download className="h-3.5 w-3.5" />
-            <span>Download LeetCode CSV</span>
-          </button>
-
-          {/* Download GitHub Details CSV Button */}
-          <button
-            onClick={() => {
-              const selectedDeptObj = departments.find(d => d.id === selectedDept);
-              const deptCode = selectedDept === 'All' ? 'All' : (selectedDeptObj?.code || selectedDept);
-              const records = buildGitHubExportRecords(students, users, departments, githubStatsMap);
-              const filtered = records.filter(r => selectedDept === 'All' || r.departmentCode === deptCode);
-              exportDetailedGitHubCSV(filtered, deptCode, 'AllYears');
-            }}
-            title="Download student GitHub profile links and repository data as CSV"
-            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-slate-100 px-3.5 py-2 text-xs font-bold text-slate-800 hover:bg-slate-200 transition-colors dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
-          >
-            <FolderGit2 className="h-3.5 w-3.5 text-teal-600" />
-            <span>Download GitHub CSV</span>
-          </button>
         </div>
 
-        {canModify && (
-          <button
-            id="register-student-btn"
-            onClick={handleOpenAdd}
-            className="flex items-center gap-2 rounded-xl bg-teal-600 px-4 py-2.5 text-xs font-bold text-white shadow-md hover:bg-teal-700 transition-colors"
-          >
-            <UserPlus className="h-4 w-4" />
-            Add Student Profile
-          </button>
-        )}
+        {/* Alphabetical Quick-Filter Ribbon */}
+        <div className="flex flex-wrap items-center gap-1 border-t border-slate-100 dark:border-slate-800/80 pt-2.5 text-xs">
+          <span className="text-[10px] font-bold uppercase text-slate-400 mr-1.5">Alphabetical Index:</span>
+          {['All', ...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('')].map(letter => {
+            const isSelected = selectedLetter === letter;
+            return (
+              <button
+                key={letter}
+                type="button"
+                onClick={() => setSelectedLetter(letter)}
+                className={`h-6 min-w-6 px-1.5 rounded-lg text-[10px] font-bold transition-all ${
+                  isSelected
+                    ? 'bg-teal-600 text-white shadow-xs'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
+                }`}
+              >
+                {letter}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Students Data Table */}
@@ -487,13 +593,63 @@ export default function StudentManagement({
           <table className="w-full border-collapse text-left">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50/50 text-xs font-bold uppercase text-slate-400 dark:border-slate-800 dark:bg-slate-950/50">
-                <th className="px-5 py-4">Student</th>
-                <th className="px-5 py-4">Roll No & Dept</th>
-                <th className="px-5 py-4">Academic Score</th>
-                <th className="px-5 py-4">
+                <th
+                  onClick={() => handleToggleSort('name')}
+                  className="px-5 py-4 cursor-pointer select-none hover:bg-slate-100/60 dark:hover:bg-slate-800/50 transition-colors group"
+                  title="Click to sort by Student Name (A-Z / Z-A)"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span className="group-hover:text-teal-600 dark:group-hover:text-teal-400">Student Name</span>
+                    {sortBy === 'name' ? (
+                      <span className="inline-flex items-center rounded-md bg-teal-50 px-1.5 py-0.5 text-[10px] font-bold text-teal-700 dark:bg-teal-950 dark:text-teal-300 border border-teal-200 dark:border-teal-900">
+                        {sortOrder === 'asc' ? 'A → Z ↑' : 'Z → A ↓'}
+                      </span>
+                    ) : (
+                      <ArrowUpDown className="h-3.5 w-3.5 opacity-30 group-hover:opacity-100 text-teal-600 transition-opacity" />
+                    )}
+                  </div>
+                </th>
+                <th
+                  onClick={() => handleToggleSort('rollNo')}
+                  className="px-5 py-4 cursor-pointer select-none hover:bg-slate-100/60 dark:hover:bg-slate-800/50 transition-colors group"
+                  title="Click to sort by Roll Number"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span className="group-hover:text-teal-600 dark:group-hover:text-teal-400">Roll No & Dept</span>
+                    {sortBy === 'rollNo' && (
+                      <span className="inline-flex items-center rounded-md bg-teal-50 px-1.5 py-0.5 text-[10px] font-bold text-teal-700 dark:bg-teal-950 dark:text-teal-300 border border-teal-200 dark:border-teal-900">
+                        {sortOrder === 'asc' ? '↑' : '↓'}
+                      </span>
+                    )}
+                  </div>
+                </th>
+                <th
+                  onClick={() => handleToggleSort('cgpa')}
+                  className="px-5 py-4 cursor-pointer select-none hover:bg-slate-100/60 dark:hover:bg-slate-800/50 transition-colors group"
+                  title="Click to sort by CGPA Score"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span className="group-hover:text-teal-600 dark:group-hover:text-teal-400">Academic Score</span>
+                    {sortBy === 'cgpa' && (
+                      <span className="inline-flex items-center rounded-md bg-teal-50 px-1.5 py-0.5 text-[10px] font-bold text-teal-700 dark:bg-teal-950 dark:text-teal-300 border border-teal-200 dark:border-teal-900">
+                        {sortOrder === 'asc' ? 'Low→High' : 'High→Low'}
+                      </span>
+                    )}
+                  </div>
+                </th>
+                <th
+                  onClick={() => handleToggleSort('leetcode')}
+                  className="px-5 py-4 cursor-pointer select-none hover:bg-slate-100/60 dark:hover:bg-slate-800/50 transition-colors group"
+                  title="Click to sort by LeetCode Solves"
+                >
                   <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
                     <Code2 className="h-4 w-4" />
                     <span>Realtime LeetCode Stats</span>
+                    {sortBy === 'leetcode' && (
+                      <span className="inline-flex items-center rounded-md bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-700 dark:bg-amber-950 dark:text-amber-300 border border-amber-200 dark:border-amber-900">
+                        {sortOrder === 'asc' ? '↑' : '↓'}
+                      </span>
+                    )}
                   </div>
                 </th>
                 <th className="px-5 py-4">Parent Details</th>
