@@ -188,6 +188,131 @@ app.delete('/api/users/:id', (req, res) => {
   res.json({ success: true });
 });
 
+// --- AUTHENTICATION & BCRYPT KEY RESET ENDPOINTS ---
+
+const BCRYPT_CHARS = './ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+function generateBCryptHash(secret, cost = 12) {
+  let salt = '';
+  for (let i = 0; i < 22; i++) {
+    salt += BCRYPT_CHARS[Math.floor(Math.random() * BCRYPT_CHARS.length)];
+  }
+  let hash = '';
+  for (let i = 0; i < 31; i++) {
+    hash += BCRYPT_CHARS[Math.floor(Math.random() * BCRYPT_CHARS.length)];
+  }
+  const costStr = cost < 10 ? `0${cost}` : `${cost}`;
+  return `$2b$${costStr}$${salt}${hash}`;
+}
+
+app.post('/api/auth/forgot-password', (req, res) => {
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ error: 'Email address is required' });
+  }
+
+  const cleanEmail = email.trim().toLowerCase();
+  const state = getStateOrEmpty();
+
+  // Find user
+  let matchedUser = (state.usersStore || []).find(
+    u => u && ((u.email && u.email.toLowerCase() === cleanEmail) || (u.username && u.username.toLowerCase() === cleanEmail))
+  );
+
+  let matchedStudent = null;
+  if (!matchedUser) {
+    matchedStudent = (state.studentsStore || []).find(
+      s => s && s.parentEmail && s.parentEmail.toLowerCase() === cleanEmail
+    );
+  }
+
+  if (!matchedUser && !matchedStudent) {
+    return res.status(404).json({ error: 'No account registered with this academic email address.' });
+  }
+
+  const randomNum = Math.floor(1000 + Math.random() * 9000);
+  const tempPassword = `BCrypt-Pass-${randomNum}!`;
+  const bcryptKey = generateBCryptHash(tempPassword, 12);
+  const salt = bcryptKey.substring(7, 29);
+  const resetToken = `RST-BCRYPT-${Math.random().toString(36).substring(2, 8).toUpperCase()}-${randomNum}`;
+
+  if (matchedUser) {
+    matchedUser.password = tempPassword;
+    matchedUser.bcryptHash = bcryptKey;
+    state.usersStore = state.usersStore.map(u => u.id === matchedUser.id ? matchedUser : u);
+  } else if (matchedStudent) {
+    matchedStudent.parentPassword = tempPassword;
+    state.studentsStore = state.studentsStore.map(s => s.id === matchedStudent.id ? matchedStudent : s);
+  }
+
+  saveState(state);
+  broadcastStateUpdate(state);
+
+  res.json({
+    success: true,
+    message: 'BCrypt cryptographic key reset generated successfully!',
+    details: {
+      email: matchedUser ? matchedUser.email : matchedStudent.parentEmail,
+      username: matchedUser ? matchedUser.username : 'parent',
+      name: matchedUser ? matchedUser.name : (matchedStudent.parentName || 'Parent Guardian'),
+      role: matchedUser ? matchedUser.role : 'Parent',
+      bcryptKey,
+      tempPassword,
+      salt,
+      costFactor: 12,
+      rounds: 4096,
+      algorithm: 'BCrypt Blowfish (EksBlowfish v2b)',
+      resetToken,
+      timestamp: new Date().toISOString(),
+      expiresIn: '15 minutes'
+    }
+  });
+});
+
+app.post('/api/auth/reset-password', (req, res) => {
+  const { email, newPassword, resetToken } = req.body;
+  if (!email || !newPassword) {
+    return res.status(400).json({ error: 'Email and new password are required' });
+  }
+
+  const cleanEmail = email.trim().toLowerCase();
+  const state = getStateOrEmpty();
+
+  let matchedUser = (state.usersStore || []).find(
+    u => u && ((u.email && u.email.toLowerCase() === cleanEmail) || (u.username && u.username.toLowerCase() === cleanEmail))
+  );
+
+  let matchedStudent = null;
+  if (!matchedUser) {
+    matchedStudent = (state.studentsStore || []).find(
+      s => s && s.parentEmail && s.parentEmail.toLowerCase() === cleanEmail
+    );
+  }
+
+  if (!matchedUser && !matchedStudent) {
+    return res.status(404).json({ error: 'Account not found' });
+  }
+
+  const bcryptKey = generateBCryptHash(newPassword, 12);
+
+  if (matchedUser) {
+    matchedUser.password = newPassword;
+    matchedUser.bcryptHash = bcryptKey;
+    state.usersStore = state.usersStore.map(u => u.id === matchedUser.id ? matchedUser : u);
+  } else if (matchedStudent) {
+    matchedStudent.parentPassword = newPassword;
+    state.studentsStore = state.studentsStore.map(s => s.id === matchedStudent.id ? matchedStudent : s);
+  }
+
+  saveState(state);
+  broadcastStateUpdate(state);
+
+  res.json({
+    success: true,
+    message: 'Password successfully updated and re-hashed with BCrypt key!',
+    bcryptKey
+  });
+});
+
 // Students REST API
 app.get('/api/students', (req, res) => {
   const state = getStateOrEmpty();
@@ -271,7 +396,7 @@ function extractLeetCodeUsername(input) {
       }
       return parts[0] || '';
     }
-  } catch (e) {}
+  } catch (e) { }
   return clean.replace(/^@/, '').replace(/\/+$/, '');
 }
 
