@@ -22,7 +22,18 @@ import {
   Target,
   Flame,
   ArrowUpDown,
-  X
+  X,
+  Download,
+  FileSpreadsheet,
+  FileText,
+  Printer,
+  Copy,
+  Check,
+  Calendar,
+  Layers,
+  Table,
+  SlidersHorizontal,
+  GraduationCap
 } from 'lucide-react';
 import {
   BarChart,
@@ -34,8 +45,7 @@ import {
   ResponsiveContainer,
   PieChart,
   Pie,
-  Cell,
-  Legend
+  Cell
 } from 'recharts';
 import { StudentProfile, User, Department, LeetCodeStats } from '../../types';
 import {
@@ -47,6 +57,19 @@ import {
   formatSubmissionRelativeTime,
   getWeeklyActivity
 } from '../../services/leetcodeService';
+import {
+  buildLeetCodeExportRecords,
+  buildDeptYearSummaryRecords,
+  exportDetailedLeetCodeCSV,
+  exportSummaryLeetCodeCSV,
+  exportLeetCodeExcelFormatted,
+  exportLeetCodeJSON,
+  printLeetCodeReport,
+  calculateAcademicYear,
+  getAcademicYearLabel,
+  LeetCodeExportRow,
+  DeptYearSummaryRow
+} from '../../services/leetcodeExportService';
 
 interface LeetCodeTrackerProps {
   students: StudentProfile[];
@@ -67,6 +90,7 @@ export default function LeetCodeTracker({
 }: LeetCodeTrackerProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDept, setSelectedDept] = useState('All');
+  const [selectedYear, setSelectedYear] = useState<'All' | '1' | '2' | '3' | '4'>('All');
   const [sortBy, setSortBy] = useState<'solved' | 'rank' | 'cgpa' | 'name' | 'streak'>('solved');
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
 
@@ -91,21 +115,47 @@ export default function LeetCodeTracker({
   const [testStats, setTestStats] = useState<LeetCodeStats | null>(null);
   const [isTesting, setIsTesting] = useState(false);
 
+  // Export Hub & Download Modal State
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [exportDept, setExportDept] = useState('All');
+  const [exportYear, setExportYear] = useState<'All' | '1' | '2' | '3' | '4'>('All');
+  const [exportReportMode, setExportReportMode] = useState<'detailed' | 'summary'>('detailed');
+  const [copiedNotification, setCopiedNotification] = useState(false);
+  const [quickDownloadSuccess, setQuickDownloadSuccess] = useState<string | null>(null);
+
+  // Column toggles for export customizer
+  const [selectedColumns, setSelectedColumns] = useState({
+    rollNo: true,
+    name: true,
+    department: true,
+    year: true,
+    batch: true,
+    handle: true,
+    profileUrl: true,
+    totalSolved: true,
+    easyMedHard: true,
+    streak: true,
+    ranking: true,
+    cgpa: true,
+    email: true
+  });
+
   const canModify = role === 'Admin';
 
   // Load stats
   const syncAllStats = async (force = false) => {
     setIsSyncing(true);
     const handles = students
-      .map(s => s.leetcodeUrl || s.leetcodeUsername || '')
+      .map((s) => s.leetcodeUrl || s.leetcodeUsername || '')
       .filter(Boolean);
 
     if (handles.length > 0) {
       const results = await fetchBatchLeetCodeStats(handles, force);
-      setStatsMap(prev => ({ ...prev, ...results }));
+      setStatsMap((prev) => ({ ...prev, ...results }));
       setLastSyncTime(new Date().toLocaleTimeString());
     }
     setIsSyncing(false);
+    setIsLoadingStats(false);
   };
 
   useEffect(() => {
@@ -126,12 +176,14 @@ export default function LeetCodeTracker({
   // Build ranked student list
   const rankedStudents = useMemo(() => {
     const list = students.map((student) => {
-      const user = users.find(u => u.id === student.userId);
-      const dept = departments.find(d => d.id === student.departmentId);
+      const user = users.find((u) => u.id === student.userId);
+      const dept = departments.find((d) => d.id === student.departmentId);
       const handle = extractLeetCodeUsername(student.leetcodeUsername || student.leetcodeUrl || '');
       const stats = getStats(student);
       const solved = stats ? stats.totalSolved : 0;
       const rankNum = stats?.ranking || 9999999;
+      const yearNum = calculateAcademicYear(student.currentSemester, student.batch);
+      const yearLabel = getAcademicYearLabel(yearNum);
 
       return {
         student,
@@ -140,19 +192,23 @@ export default function LeetCodeTracker({
         handle,
         stats,
         solved,
-        rankNum
+        rankNum,
+        yearNum,
+        yearLabel
       };
     });
 
     // Filter
-    const filtered = list.filter(item => {
+    const filtered = list.filter((item) => {
       const matchesSearch =
         (item.user?.name.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
         item.student.rollNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.handle.toLowerCase().includes(searchTerm.toLowerCase());
 
       const matchesDept = selectedDept === 'All' || item.student.departmentId === selectedDept;
-      return matchesSearch && matchesDept;
+      const matchesYear = selectedYear === 'All' || item.yearNum.toString() === selectedYear;
+
+      return matchesSearch && matchesDept && matchesYear;
     });
 
     // Sort
@@ -173,36 +229,48 @@ export default function LeetCodeTracker({
     });
 
     return filtered;
-  }, [students, users, departments, statsMap, searchTerm, selectedDept, sortBy, sortOrder]);
+  }, [students, users, departments, statsMap, searchTerm, selectedDept, selectedYear, sortBy, sortOrder]);
 
   // Aggregate Metrics
   const totalSolvedAll = useMemo(() => {
-    return (Object.values(statsMap) as LeetCodeStats[]).reduce((acc: number, curr: LeetCodeStats) => acc + (curr?.totalSolved || 0), 0);
+    return (Object.values(statsMap) as LeetCodeStats[]).reduce(
+      (acc: number, curr: LeetCodeStats) => acc + (curr?.totalSolved || 0),
+      0
+    );
   }, [statsMap]);
 
   const topPerformer = rankedStudents[0];
 
   const totalEasyAll = useMemo(() => {
-    return (Object.values(statsMap) as LeetCodeStats[]).reduce((acc: number, curr: LeetCodeStats) => acc + (curr?.easySolved || 0), 0);
+    return (Object.values(statsMap) as LeetCodeStats[]).reduce(
+      (acc: number, curr: LeetCodeStats) => acc + (curr?.easySolved || 0),
+      0
+    );
   }, [statsMap]);
 
   const totalMedAll = useMemo(() => {
-    return (Object.values(statsMap) as LeetCodeStats[]).reduce((acc: number, curr: LeetCodeStats) => acc + (curr?.mediumSolved || 0), 0);
+    return (Object.values(statsMap) as LeetCodeStats[]).reduce(
+      (acc: number, curr: LeetCodeStats) => acc + (curr?.mediumSolved || 0),
+      0
+    );
   }, [statsMap]);
 
   const totalHardAll = useMemo(() => {
-    return (Object.values(statsMap) as LeetCodeStats[]).reduce((acc: number, curr: LeetCodeStats) => acc + (curr?.hardSolved || 0), 0);
+    return (Object.values(statsMap) as LeetCodeStats[]).reduce(
+      (acc: number, curr: LeetCodeStats) => acc + (curr?.hardSolved || 0),
+      0
+    );
   }, [statsMap]);
 
-  // Chart data: Department-wise solved problems
+  // Department Comparison Bar Chart data
   const deptChartData = useMemo(() => {
     const map: Record<string, number> = {};
-    departments.forEach(d => {
+    departments.forEach((d) => {
       map[d.code] = 0;
     });
 
-    students.forEach(s => {
-      const dept = departments.find(d => d.id === s.departmentId);
+    students.forEach((s) => {
+      const dept = departments.find((d) => d.id === s.departmentId);
       const stats = getStats(s);
       if (dept && stats) {
         map[dept.code] = (map[dept.code] || 0) + stats.totalSolved;
@@ -222,10 +290,141 @@ export default function LeetCodeTracker({
     { name: 'Hard', value: totalHardAll || 1, color: '#ef4444' }
   ];
 
+  // All structured export records
+  const allExportRecords = useMemo(() => {
+    return buildLeetCodeExportRecords(students, users, departments, statsMap);
+  }, [students, users, departments, statsMap]);
+
+  // Filtered export records based on Export Modal selections
+  const modalFilteredRecords = useMemo(() => {
+    return allExportRecords.filter((r) => {
+      const selectedDeptObj = departments.find((d) => d.id === exportDept);
+      const matchesDept =
+        exportDept === 'All' ||
+        r.departmentCode === exportDept ||
+        (selectedDeptObj && r.departmentCode === selectedDeptObj.code);
+      const matchesYear = exportYear === 'All' || r.yearNumber.toString() === exportYear;
+      return matchesDept && matchesYear;
+    });
+  }, [allExportRecords, exportDept, exportYear, departments]);
+
+  // Department & Year Summary Matrix
+  const deptYearSummaries = useMemo(() => {
+    const records = exportDept === 'All' ? allExportRecords : modalFilteredRecords;
+    const deptsToProcess =
+      exportDept === 'All'
+        ? departments
+        : departments.filter((d) => d.id === exportDept || d.code === exportDept);
+    return buildDeptYearSummaryRecords(records, deptsToProcess);
+  }, [allExportRecords, modalFilteredRecords, exportDept, departments]);
+
+  // Quick 1-Click CSV Download from main view
+  const handleQuickDownloadCSV = () => {
+    const selectedDeptObj = departments.find((d) => d.id === selectedDept);
+    const deptCode = selectedDept === 'All' ? 'All' : selectedDeptObj?.code || selectedDept;
+    const yearLabel = selectedYear === 'All' ? 'All' : getAcademicYearLabel(parseInt(selectedYear, 10));
+
+    const recordsToExport = allExportRecords.filter((r) => {
+      const matchesDept = selectedDept === 'All' || r.departmentCode === deptCode;
+      const matchesYear = selectedYear === 'All' || r.yearNumber.toString() === selectedYear;
+      return matchesDept && matchesYear;
+    });
+
+    exportDetailedLeetCodeCSV(recordsToExport, deptCode, yearLabel);
+    setQuickDownloadSuccess(`Downloaded ${recordsToExport.length} student records (${deptCode} • ${yearLabel})`);
+    setTimeout(() => setQuickDownloadSuccess(null), 3500);
+  };
+
+  // Open Export Modal with current filters pre-populated
+  const handleOpenExportModal = () => {
+    setExportDept(selectedDept);
+    setExportYear(selectedYear);
+    setIsExportModalOpen(true);
+  };
+
+  // Handle Modal CSV Download
+  const handleModalDownloadCSV = () => {
+    const selectedDeptObj = departments.find((d) => d.id === exportDept);
+    const deptCode = exportDept === 'All' ? 'All' : selectedDeptObj?.code || exportDept;
+    const yearLabel = exportYear === 'All' ? 'All' : getAcademicYearLabel(parseInt(exportYear, 10));
+
+    if (exportReportMode === 'detailed') {
+      exportDetailedLeetCodeCSV(modalFilteredRecords, deptCode, yearLabel);
+    } else {
+      exportSummaryLeetCodeCSV(deptYearSummaries, deptCode);
+    }
+  };
+
+  // Handle Modal Excel Download
+  const handleModalDownloadExcel = () => {
+    const selectedDeptObj = departments.find((d) => d.id === exportDept);
+    const deptName = exportDept === 'All' ? 'All Departments' : selectedDeptObj?.name || exportDept;
+    const yearLabel = exportYear === 'All' ? 'All Academic Years' : getAcademicYearLabel(parseInt(exportYear, 10));
+    exportLeetCodeExcelFormatted(
+      modalFilteredRecords,
+      `University Student LeetCode Performance Report — ${deptName} (${yearLabel})`
+    );
+  };
+
+  // Handle Modal JSON Download
+  const handleModalDownloadJSON = () => {
+    const deptCode = exportDept === 'All' ? 'All' : exportDept;
+    const yearStr = exportYear === 'All' ? 'All' : `Year${exportYear}`;
+    exportLeetCodeJSON(modalFilteredRecords, `LeetCode_Details_${deptCode}_${yearStr}.json`);
+  };
+
+  // Handle Modal Print / PDF
+  const handleModalPrint = () => {
+    const selectedDeptObj = departments.find((d) => d.id === exportDept);
+    const deptName = exportDept === 'All' ? 'All Departments' : selectedDeptObj?.name || exportDept;
+    const yearLabel = exportYear === 'All' ? 'All Years' : getAcademicYearLabel(parseInt(exportYear, 10));
+    printLeetCodeReport(modalFilteredRecords, deptName, yearLabel);
+  };
+
+  // Copy CSV to clipboard
+  const handleCopyToClipboard = () => {
+    const headers = [
+      'Roll Number',
+      'Name',
+      'Dept',
+      'Year',
+      'LeetCode Handle',
+      'LeetCode URL',
+      'Total Solved',
+      'Easy',
+      'Medium',
+      'Hard',
+      'Streak',
+      'Rank',
+      'CGPA'
+    ];
+    const rows = modalFilteredRecords.map((r) => [
+      r.rollNo,
+      r.name,
+      r.departmentCode,
+      r.yearLabel,
+      r.leetcodeUsername,
+      r.leetcodeUrl,
+      r.totalSolved,
+      r.easySolved,
+      r.mediumSolved,
+      r.hardSolved,
+      r.currentStreak,
+      r.ranking,
+      r.cgpa.toFixed(2)
+    ]);
+    const csvContent = [headers.join('\t'), ...rows.map((row) => row.join('\t'))].join('\n');
+    navigator.clipboard.writeText(csvContent);
+    setCopiedNotification(true);
+    setTimeout(() => setCopiedNotification(false), 2500);
+  };
+
   // Open Edit Modal for Admin
   const handleOpenEdit = (student: StudentProfile) => {
     setEditingStudent(student);
-    setModalUrl(student.leetcodeUrl || (student.leetcodeUsername ? `https://leetcode.com/u/${student.leetcodeUsername}/` : ''));
+    setModalUrl(
+      student.leetcodeUrl || (student.leetcodeUsername ? `https://leetcode.com/u/${student.leetcodeUsername}/` : '')
+    );
     setSaveMessage(null);
     setTestStats(null);
   };
@@ -248,7 +447,9 @@ export default function LeetCodeTracker({
 
     const cleanHandle = extractLeetCodeUsername(modalUrl);
     const normalizedUrl = cleanHandle
-      ? (modalUrl.startsWith('http') ? modalUrl : `https://leetcode.com/u/${cleanHandle}/`)
+      ? modalUrl.startsWith('http')
+        ? modalUrl
+        : `https://leetcode.com/u/${cleanHandle}/`
       : '';
 
     const updatedStudent: StudentProfile = {
@@ -257,7 +458,7 @@ export default function LeetCodeTracker({
       leetcodeUsername: cleanHandle
     };
 
-    const user = users.find(u => u.id === editingStudent.userId);
+    const user = users.find((u) => u.id === editingStudent.userId);
     if (user) {
       onUpdateStudent(updatedStudent, user);
     }
@@ -266,7 +467,7 @@ export default function LeetCodeTracker({
 
     if (cleanHandle) {
       const stats = await fetchStudentLeetCodeStats(cleanHandle, true);
-      setStatsMap(prev => ({ ...prev, [cleanHandle]: stats, [normalizedUrl]: stats }));
+      setStatsMap((prev) => ({ ...prev, [cleanHandle]: stats, [normalizedUrl]: stats }));
     }
 
     setSaveMessage({ text: 'Student LeetCode URL saved and synchronized in real time!', type: 'success' });
@@ -295,29 +496,53 @@ export default function LeetCodeTracker({
                   </span>
                 </h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Real-time problem count tracking, global ranking, and department coding analytics for all university students.
+                  Real-time problem counts, profile links, ranking, department & year-wise analytics and instant report downloads.
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Sync Trigger & Meta */}
-          <div className="flex items-center gap-3">
-            <div className="text-right hidden sm:block">
-              <p className="text-[10px] uppercase font-bold text-slate-400">Last Live Ping</p>
-              <p className="font-mono text-xs font-semibold text-slate-700 dark:text-slate-300">{lastSyncTime}</p>
-            </div>
+          {/* Action Buttons: Sync, Quick CSV Download & Download Hub */}
+          <div className="flex flex-wrap items-center gap-2.5">
+            {/* Quick 1-Click CSV Download */}
+            <button
+              onClick={handleQuickDownloadCSV}
+              title="Download currently filtered Department & Year student records as CSV"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-300 bg-emerald-50 px-3.5 py-2.5 text-xs font-bold text-emerald-700 shadow-xs hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:bg-emerald-950 transition-colors"
+            >
+              <Download className="h-4 w-4" />
+              <span>Quick Download CSV</span>
+            </button>
 
+            {/* Advanced Download & Export Center */}
+            <button
+              onClick={handleOpenExportModal}
+              title="Open Department & Year-Wise Export Center (CSV, Excel, JSON, PDF)"
+              className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-xs font-bold text-white shadow-md hover:bg-slate-800 dark:bg-amber-500 dark:text-slate-950 dark:hover:bg-amber-400 transition-colors"
+            >
+              <FileSpreadsheet className="h-4 w-4" />
+              <span>Download & Export Hub</span>
+            </button>
+
+            {/* Sync Trigger */}
             <button
               onClick={() => syncAllStats(true)}
               disabled={isSyncing}
               className="inline-flex items-center gap-2 rounded-xl bg-amber-600 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-amber-600/20 hover:bg-amber-700 transition-colors disabled:opacity-60"
             >
               <RefreshCw className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
-              <span>{isSyncing ? 'Syncing Live Solves...' : 'Sync All LeetCode Counts'}</span>
+              <span className="hidden sm:inline">{isSyncing ? 'Syncing...' : 'Sync Live'}</span>
             </button>
           </div>
         </div>
+
+        {/* Quick Download Toast Notification */}
+        {quickDownloadSuccess && (
+          <div className="mt-4 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-100/90 px-4 py-2 text-xs font-bold text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-200 animate-in fade-in duration-200">
+            <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+            <span>{quickDownloadSuccess}</span>
+          </div>
+        )}
 
         {/* 4 Quick Stat Cards */}
         <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -368,9 +593,7 @@ export default function LeetCodeTracker({
                 <Target className="h-5 w-5" />
               </div>
             </div>
-            <p className="mt-2 text-[10px] text-slate-400 font-semibold">
-              Benchmark Target: 150+ Solves
-            </p>
+            <p className="mt-2 text-[10px] text-slate-400 font-semibold">Benchmark Target: 150+ Solves</p>
           </div>
 
           <div className="rounded-2xl border border-slate-200/80 bg-white/80 p-4.5 backdrop-blur-xs shadow-xs dark:border-slate-800 dark:bg-slate-900/80">
@@ -390,7 +613,9 @@ export default function LeetCodeTracker({
               </div>
             </div>
             <p className="mt-2 text-[10px] text-slate-400 font-semibold">
-              {(totalEasyAll + totalMedAll + totalHardAll) > 0 ? `${Math.round((totalMedAll / (totalEasyAll + totalMedAll + totalHardAll)) * 100)}% Medium Weight` : 'Active'}
+              {totalEasyAll + totalMedAll + totalHardAll > 0
+                ? `${Math.round((totalMedAll / (totalEasyAll + totalMedAll + totalHardAll)) * 100)}% Medium Weight`
+                : 'Active'}
             </p>
           </div>
         </div>
@@ -470,55 +695,86 @@ export default function LeetCodeTracker({
         </div>
       </div>
 
-      {/* Filter & Search Bar */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-1 flex-col gap-3 sm:flex-row">
-          <div className="relative max-w-md flex-1">
+      {/* Filter & Search Bar with Department AND Academic Year Selectors */}
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-1 flex-wrap items-center gap-3">
+          {/* Search Input */}
+          <div className="relative min-w-[240px] flex-1">
             <Search className="absolute top-3 left-3 h-4 w-4 text-slate-400" />
             <input
               type="text"
-              placeholder="Search by student name, roll number, or @handle..."
+              placeholder="Search by name, roll no, or @handle..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pr-4 pl-10 text-xs font-semibold text-slate-800 focus:border-amber-500 focus:outline-hidden dark:border-slate-800 dark:bg-slate-900 dark:text-white"
             />
           </div>
 
-          <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-slate-400" />
+          {/* Department Filter */}
+          <div className="flex items-center gap-1.5">
+            <Building className="h-4 w-4 text-slate-400" />
             <select
               value={selectedDept}
               onChange={(e) => setSelectedDept(e.target.value)}
               className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 focus:border-amber-500 focus:outline-hidden dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300"
             >
               <option value="All">All Departments</option>
-              {departments.map(d => (
-                <option key={d.id} value={d.id}>{d.name} ({d.code})</option>
+              {departments.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.name} ({d.code})
+                </option>
               ))}
+            </select>
+          </div>
+
+          {/* Academic Year Filter */}
+          <div className="flex items-center gap-1.5">
+            <GraduationCap className="h-4 w-4 text-slate-400" />
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(e.target.value as any)}
+              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 focus:border-amber-500 focus:outline-hidden dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300"
+            >
+              <option value="All">All Academic Years</option>
+              <option value="1">1st Year (Sem 1-2)</option>
+              <option value="2">2nd Year (Sem 3-4)</option>
+              <option value="3">3rd Year (Sem 5-6)</option>
+              <option value="4">4th Year (Sem 7-8)</option>
             </select>
           </div>
         </div>
 
-        {/* Sort Controls */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-bold uppercase text-slate-400">Sort By:</span>
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as any)}
-            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
-          >
-            <option value="solved">⚡ Total Solved Problems</option>
-            <option value="streak">🔥 Daily Active Streak</option>
-            <option value="rank">🌐 Global LeetCode Rank</option>
-            <option value="cgpa">🎓 University CGPA</option>
-            <option value="name">👤 Student Name</option>
-          </select>
+        {/* Sort Controls & Export Trigger */}
+        <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] font-bold uppercase text-slate-400">Sort:</span>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as any)}
+              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
+            >
+              <option value="solved">⚡ Total Solved Problems</option>
+              <option value="streak">🔥 Daily Active Streak</option>
+              <option value="rank">🌐 Global LeetCode Rank</option>
+              <option value="cgpa">🎓 University CGPA</option>
+              <option value="name">👤 Student Name</option>
+            </select>
+            <button
+              onClick={() => setSortOrder((prev) => (prev === 'desc' ? 'asc' : 'desc'))}
+              className="flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300"
+              title="Toggle sort order"
+            >
+              <ArrowUpDown className="h-4 w-4" />
+            </button>
+          </div>
+
           <button
-            onClick={() => setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')}
-            className="flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300"
-            title="Toggle sort order"
+            onClick={handleOpenExportModal}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800 hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300 transition-colors"
+            title="Download Custom LeetCode Reports"
           >
-            <ArrowUpDown className="h-4 w-4" />
+            <Download className="h-3.5 w-3.5" />
+            <span>Export View</span>
           </button>
         </div>
       </div>
@@ -531,9 +787,9 @@ export default function LeetCodeTracker({
               <tr className="border-b border-slate-200 bg-slate-50/50 text-xs font-bold uppercase text-slate-400 dark:border-slate-800 dark:bg-slate-950/50">
                 <th className="px-5 py-4 w-16 text-center">Rank</th>
                 <th className="px-5 py-4">Student</th>
-                <th className="px-5 py-4">Department & Roll No</th>
-                <th className="px-5 py-4">LeetCode Handle</th>
-                <th className="px-5 py-4">Live Solves</th>
+                <th className="px-5 py-4">Dept, Year & Roll No</th>
+                <th className="px-5 py-4">LeetCode Profile Link</th>
+                <th className="px-5 py-4">Total Solved</th>
                 <th className="px-5 py-4">Daily Streak & Today</th>
                 <th className="px-5 py-4">Difficulty Mix</th>
                 <th className="px-5 py-4">Global Rank</th>
@@ -570,9 +826,7 @@ export default function LeetCodeTracker({
                             3
                           </span>
                         ) : (
-                          <span className="font-mono font-bold text-slate-400">
-                            #{index + 1}
-                          </span>
+                          <span className="font-mono font-bold text-slate-400">#{index + 1}</span>
                         )}
                       </td>
 
@@ -580,7 +834,10 @@ export default function LeetCodeTracker({
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
                           <img
-                            src={item.user?.photo || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=120'}
+                            src={
+                              item.user?.photo ||
+                              'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=120'
+                            }
                             alt={item.user?.name}
                             referrerPolicy="no-referrer"
                             className="h-10 w-10 rounded-full object-cover ring-2 ring-slate-100 dark:ring-slate-800"
@@ -595,26 +852,39 @@ export default function LeetCodeTracker({
                         </div>
                       </td>
 
-                      {/* Dept & Roll No */}
+                      {/* Dept, Academic Year & Roll No */}
                       <td className="px-5 py-4">
                         <p className="font-mono font-bold text-slate-800 dark:text-slate-300">{item.student.rollNo}</p>
-                        <span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300 mt-1">
-                          {item.dept?.code || 'CSE'}
-                        </span>
+                        <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                          <span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                            {item.dept?.code || 'CSE'}
+                          </span>
+                          <span className="inline-flex items-center rounded-md bg-amber-100/80 px-2 py-0.5 text-[10px] font-bold text-amber-800 dark:bg-amber-950/60 dark:text-amber-300">
+                            {item.yearLabel}
+                          </span>
+                          <span className="text-[10px] text-slate-400 font-mono">
+                            Sem {item.student.currentSemester || item.yearNum * 2}
+                          </span>
+                        </div>
                       </td>
 
                       {/* LeetCode Handle & Profile Link */}
                       <td className="px-5 py-4">
                         {item.handle ? (
-                          <a
-                            href={profileUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center gap-1 font-mono font-bold text-amber-600 hover:text-amber-700 dark:text-amber-400 hover:underline"
-                          >
-                            <span>@{item.handle}</span>
-                            <ExternalLink className="h-3 w-3" />
-                          </a>
+                          <div className="flex flex-col gap-0.5">
+                            <a
+                              href={profileUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 font-mono font-bold text-amber-600 hover:text-amber-700 dark:text-amber-400 hover:underline"
+                            >
+                              <span>@{item.handle}</span>
+                              <ExternalLink className="h-3 w-3" />
+                            </a>
+                            <span className="font-mono text-[10px] text-slate-400 truncate max-w-[180px]" title={profileUrl}>
+                              {profileUrl}
+                            </span>
+                          </div>
                         ) : (
                           <span className="text-slate-400 italic text-[11px]">Unlinked handle</span>
                         )}
@@ -728,6 +998,283 @@ export default function LeetCodeTracker({
         </div>
       </div>
 
+      {/* ======================================================== */}
+      {/* ADVANCED DOWNLOAD & EXPORT HUB MODAL                     */}
+      {/* ======================================================== */}
+      {isExportModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-xs overflow-y-auto">
+          <div className="w-full max-w-4xl rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-900 max-h-[92vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200 space-y-6">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4 dark:border-slate-800">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-600 dark:bg-amber-950 dark:text-amber-400">
+                  <FileSpreadsheet className="h-6 w-6" />
+                </div>
+                <div>
+                  <h3 className="font-sans text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                    Download & Export LeetCode Performance Data
+                    <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-[10px] font-bold text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                      Dept & Year Wise
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Download complete LeetCode links, total solved counts, difficulty distributions, and streaks in CSV, Excel, or PDF.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsExportModalOpen(false)}
+                className="rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 p-1.5 transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Filter Selection Panel */}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 rounded-2xl border border-slate-100 bg-slate-50/70 p-4 dark:border-slate-800 dark:bg-slate-950/50">
+              {/* Department Dropdown */}
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5 flex items-center gap-1">
+                  <Building className="h-3.5 w-3.5 text-amber-500" />
+                  <span>Select Department</span>
+                </label>
+                <select
+                  value={exportDept}
+                  onChange={(e) => setExportDept(e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-800 focus:border-amber-500 focus:outline-hidden dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                >
+                  <option value="All">All Departments ({departments.length})</option>
+                  {departments.map((d) => (
+                    <option key={d.id} value={d.code}>
+                      {d.name} ({d.code})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Academic Year Dropdown */}
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5 flex items-center gap-1">
+                  <GraduationCap className="h-3.5 w-3.5 text-amber-500" />
+                  <span>Select Academic Year</span>
+                </label>
+                <select
+                  value={exportYear}
+                  onChange={(e) => setExportYear(e.target.value as any)}
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-800 focus:border-amber-500 focus:outline-hidden dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                >
+                  <option value="All">All Academic Years (1st - 4th)</option>
+                  <option value="1">1st Year (Semesters 1 & 2)</option>
+                  <option value="2">2nd Year (Semesters 3 & 4)</option>
+                  <option value="3">3rd Year (Semesters 5 & 6)</option>
+                  <option value="4">4th Year (Semesters 7 & 8)</option>
+                </select>
+              </div>
+
+              {/* Report Mode Tabs */}
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5 flex items-center gap-1">
+                  <Layers className="h-3.5 w-3.5 text-amber-500" />
+                  <span>Report Type</span>
+                </label>
+                <div className="grid grid-cols-2 gap-1 rounded-xl bg-slate-200/80 p-1 dark:bg-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setExportReportMode('detailed')}
+                    className={`rounded-lg py-1.5 text-xs font-bold transition-colors ${
+                      exportReportMode === 'detailed'
+                        ? 'bg-white text-slate-900 shadow-xs dark:bg-slate-900 dark:text-white'
+                        : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+                    }`}
+                  >
+                    Student Roster
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setExportReportMode('summary')}
+                    className={`rounded-lg py-1.5 text-xs font-bold transition-colors ${
+                      exportReportMode === 'summary'
+                        ? 'bg-white text-slate-900 shadow-xs dark:bg-slate-900 dark:text-white'
+                        : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+                    }`}
+                  >
+                    Summary Matrix
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Live Data Summary Pills */}
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-amber-500/10 px-4 py-3 border border-amber-500/20 dark:bg-amber-950/30 dark:border-amber-900/40">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                  {exportReportMode === 'detailed'
+                    ? `Ready to export ${modalFilteredRecords.length} student records`
+                    : `Ready to export ${deptYearSummaries.length} department-year summary records`}
+                </span>
+              </div>
+              <div className="flex items-center gap-3 text-xs font-mono font-bold">
+                <span className="text-amber-700 dark:text-amber-300">
+                  Total Solved: {modalFilteredRecords.reduce((a, b) => a + b.totalSolved, 0).toLocaleString()}
+                </span>
+                <span className="text-slate-400">•</span>
+                <span className="text-emerald-700 dark:text-emerald-300">
+                  Linked Profiles: {modalFilteredRecords.filter((r) => r.hasProfile).length}/{modalFilteredRecords.length}
+                </span>
+              </div>
+            </div>
+
+            {/* Live Data Preview Table */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                  <Table className="h-3.5 w-3.5" />
+                  <span>Preview Data (Top 5 rows shown below)</span>
+                </h4>
+                <span className="text-[11px] text-slate-400 font-mono">
+                  Full download contains all {exportReportMode === 'detailed' ? modalFilteredRecords.length : deptYearSummaries.length} rows
+                </span>
+              </div>
+
+              <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950">
+                {exportReportMode === 'detailed' ? (
+                  <table className="w-full text-left text-[11px]">
+                    <thead className="bg-slate-50 text-slate-500 dark:bg-slate-900 dark:text-slate-400 font-bold border-b border-slate-200 dark:border-slate-800">
+                      <tr>
+                        <th className="px-3 py-2">Roll No</th>
+                        <th className="px-3 py-2">Student Name</th>
+                        <th className="px-3 py-2">Dept</th>
+                        <th className="px-3 py-2">Year</th>
+                        <th className="px-3 py-2">LeetCode Link</th>
+                        <th className="px-3 py-2 text-right">Total Solved</th>
+                        <th className="px-3 py-2 text-right">E / M / H</th>
+                        <th className="px-3 py-2 text-right">Streak</th>
+                        <th className="px-3 py-2 text-right">Rank</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-mono">
+                      {modalFilteredRecords.slice(0, 5).map((r) => (
+                        <tr key={r.rollNo} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/50">
+                          <td className="px-3 py-2 font-bold text-slate-800 dark:text-slate-200">{r.rollNo}</td>
+                          <td className="px-3 py-2 font-sans font-semibold text-slate-900 dark:text-white">{r.name}</td>
+                          <td className="px-3 py-2">{r.departmentCode}</td>
+                          <td className="px-3 py-2 font-sans">{r.yearLabel}</td>
+                          <td className="px-3 py-2 max-w-[200px] truncate text-amber-600 dark:text-amber-400">
+                            {r.leetcodeUrl}
+                          </td>
+                          <td className="px-3 py-2 text-right font-bold text-amber-600">{r.totalSolved}</td>
+                          <td className="px-3 py-2 text-right text-[10px]">
+                            <span className="text-emerald-600">{r.easySolved}</span>/
+                            <span className="text-amber-600">{r.mediumSolved}</span>/
+                            <span className="text-rose-600">{r.hardSolved}</span>
+                          </td>
+                          <td className="px-3 py-2 text-right">{r.currentStreak > 0 ? `${r.currentStreak}d` : '—'}</td>
+                          <td className="px-3 py-2 text-right">
+                            {typeof r.ranking === 'number' ? `#${r.ranking.toLocaleString()}` : r.ranking}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <table className="w-full text-left text-[11px]">
+                    <thead className="bg-slate-50 text-slate-500 dark:bg-slate-900 dark:text-slate-400 font-bold border-b border-slate-200 dark:border-slate-800">
+                      <tr>
+                        <th className="px-3 py-2">Department</th>
+                        <th className="px-3 py-2">Year</th>
+                        <th className="px-3 py-2 text-right">Students</th>
+                        <th className="px-3 py-2 text-right">With LeetCode</th>
+                        <th className="px-3 py-2 text-right">Total Solved</th>
+                        <th className="px-3 py-2 text-right">Avg / Student</th>
+                        <th className="px-3 py-2">Top Problem Solver</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-mono">
+                      {deptYearSummaries.slice(0, 5).map((s, idx) => (
+                        <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/50">
+                          <td className="px-3 py-2 font-bold text-slate-800 dark:text-slate-200">
+                            {s.departmentCode} — {s.departmentName}
+                          </td>
+                          <td className="px-3 py-2 font-sans font-semibold">{s.yearLabel}</td>
+                          <td className="px-3 py-2 text-right">{s.totalStudents}</td>
+                          <td className="px-3 py-2 text-right">
+                            {s.studentsWithLeetCode} ({s.linkingPercentage}%)
+                          </td>
+                          <td className="px-3 py-2 text-right font-bold text-amber-600">
+                            {s.totalProblemsSolved.toLocaleString()}
+                          </td>
+                          <td className="px-3 py-2 text-right">{s.avgSolvedPerStudent}</td>
+                          <td className="px-3 py-2 font-sans">
+                            {s.topSolverName} ({s.topSolverCount} solved)
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </div>
+
+            {/* Export Format Actions */}
+            <div className="border-t border-slate-100 pt-4 dark:border-slate-800 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleCopyToClipboard}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 transition-colors"
+                  >
+                    {copiedNotification ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
+                    <span>{copiedNotification ? 'Copied to Clipboard!' : 'Copy to Clipboard'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleModalPrint}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 transition-colors"
+                  >
+                    <Printer className="h-3.5 w-3.5 text-slate-500" />
+                    <span>Print / Save PDF</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleModalDownloadJSON}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 transition-colors"
+                  >
+                    <FileText className="h-3.5 w-3.5 text-slate-500" />
+                    <span>Download JSON</span>
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {/* Excel Button */}
+                  <button
+                    type="button"
+                    onClick={handleModalDownloadExcel}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-500 bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-md shadow-emerald-600/20 hover:bg-emerald-700 transition-colors"
+                  >
+                    <FileSpreadsheet className="h-4 w-4" />
+                    <span>Download Excel (.xls)</span>
+                  </button>
+
+                  {/* Primary CSV Download Button */}
+                  <button
+                    type="button"
+                    onClick={handleModalDownloadCSV}
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-amber-600 px-4.5 py-2 text-xs font-bold text-white shadow-md shadow-amber-600/25 hover:bg-amber-700 transition-colors"
+                  >
+                    <Download className="h-4 w-4" />
+                    <span>Download CSV (.csv)</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Admin Quick Edit LeetCode Modal */}
       {editingStudent && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-xs">
@@ -742,7 +1289,7 @@ export default function LeetCodeTracker({
                     Update Student LeetCode Profile
                   </h3>
                   <p className="text-[11px] text-slate-400 font-mono">
-                    {editingStudent.rollNo} • {users.find(u => u.id === editingStudent.userId)?.name}
+                    {editingStudent.rollNo} • {users.find((u) => u.id === editingStudent.userId)?.name}
                   </p>
                 </div>
               </div>
@@ -784,7 +1331,10 @@ export default function LeetCodeTracker({
                 />
                 <div className="flex items-center justify-between mt-1.5">
                   <p className="text-[10px] text-slate-400 font-mono">
-                    Parsed Handle: <strong className="text-amber-600 dark:text-amber-400">@{extractLeetCodeUsername(modalUrl) || '—'}</strong>
+                    Parsed Handle:{' '}
+                    <strong className="text-amber-600 dark:text-amber-400">
+                      @{extractLeetCodeUsername(modalUrl) || '—'}
+                    </strong>
                   </p>
                   {extractLeetCodeUsername(modalUrl) && (
                     <button
@@ -856,7 +1406,10 @@ export default function LeetCodeTracker({
             <div className="flex items-center justify-between border-b border-slate-100 pb-4 dark:border-slate-800">
               <div className="flex items-center gap-3">
                 <img
-                  src={selectedStudentForDetails.user?.photo || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=120'}
+                  src={
+                    selectedStudentForDetails.user?.photo ||
+                    'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=120'
+                  }
                   alt={selectedStudentForDetails.user?.name}
                   referrerPolicy="no-referrer"
                   className="h-12 w-12 rounded-full object-cover ring-2 ring-amber-500/20 shadow-sm"
@@ -870,10 +1423,18 @@ export default function LeetCodeTracker({
                   </h3>
                   <div className="flex items-center gap-2 mt-0.5">
                     <span className="text-xs text-slate-400 font-mono">
-                      @{extractLeetCodeUsername(selectedStudentForDetails.student.leetcodeUrl || selectedStudentForDetails.student.leetcodeUsername || '') || 'unlinked'}
+                      @
+                      {extractLeetCodeUsername(
+                        selectedStudentForDetails.student.leetcodeUrl ||
+                          selectedStudentForDetails.student.leetcodeUsername ||
+                          ''
+                      ) || 'unlinked'}
                     </span>
                     <a
-                      href={formatLeetCodeProfileUrl(selectedStudentForDetails.student.leetcodeUrl || selectedStudentForDetails.student.leetcodeUsername)}
+                      href={formatLeetCodeProfileUrl(
+                        selectedStudentForDetails.student.leetcodeUrl ||
+                          selectedStudentForDetails.student.leetcodeUsername
+                      )}
                       target="_blank"
                       rel="noreferrer"
                       className="inline-flex items-center gap-0.5 text-[11px] font-bold text-amber-600 hover:underline dark:text-amber-400"
@@ -903,14 +1464,18 @@ export default function LeetCodeTracker({
               </div>
 
               <div className="rounded-xl border border-orange-200/80 bg-orange-50/40 p-3 dark:border-orange-900/40 dark:bg-orange-950/20">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-orange-600 dark:text-orange-400">Today's Solves</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-orange-600 dark:text-orange-400">
+                  Today's Solves
+                </span>
                 <p className="text-xl font-black font-mono text-orange-600 dark:text-orange-400 mt-0.5">
                   ⚡ {selectedStudentForDetails.stats?.dailyProgress?.todaySolved || 0}
                 </p>
               </div>
 
               <div className="rounded-xl border border-rose-200/80 bg-rose-50/40 p-3 dark:border-rose-900/40 dark:bg-rose-950/20">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400">Active Streak</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400">
+                  Active Streak
+                </span>
                 <p className="text-xl font-black font-mono text-rose-600 dark:text-rose-400 mt-0.5">
                   🔥 {selectedStudentForDetails.stats?.dailyProgress?.currentStreak || 1}d
                 </p>
@@ -919,7 +1484,9 @@ export default function LeetCodeTracker({
               <div className="rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-950">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Global Rank</span>
                 <p className="text-lg font-black font-mono text-slate-800 dark:text-white mt-0.5">
-                  {selectedStudentForDetails.stats?.ranking ? `#${selectedStudentForDetails.stats.ranking.toLocaleString()}` : '—'}
+                  {selectedStudentForDetails.stats?.ranking
+                    ? `#${selectedStudentForDetails.stats.ranking.toLocaleString()}`
+                    : '—'}
                 </p>
               </div>
             </div>
@@ -954,7 +1521,11 @@ export default function LeetCodeTracker({
                     <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 font-mono">
                       {day.day}
                     </span>
-                    <span className={`text-[9px] font-mono font-extrabold ${day.count > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-slate-400'}`}>
+                    <span
+                      className={`text-[9px] font-mono font-extrabold ${
+                        day.count > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-slate-400'
+                      }`}
+                    >
                       {day.count > 0 ? `+${day.count}` : '0'}
                     </span>
                   </div>

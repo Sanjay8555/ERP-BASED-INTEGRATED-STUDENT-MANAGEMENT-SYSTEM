@@ -26,7 +26,8 @@ import {
   CheckCircle2,
   AlertCircle,
   Sparkles,
-  Award
+  Award,
+  Download
 } from 'lucide-react';
 import { StudentProfile, User as UserType, Department, LeetCodeStats } from '../../types';
 import ProfilePhotoModal from '../shared/ProfilePhotoModal';
@@ -37,6 +38,12 @@ import {
   formatLeetCodeProfileUrl,
   updateStudentLeetCodeUrl
 } from '../../services/leetcodeService';
+import {
+  buildLeetCodeExportRecords,
+  exportDetailedLeetCodeCSV,
+  calculateAcademicYear,
+  getAcademicYearLabel
+} from '../../services/leetcodeExportService';
 
 interface StudentManagementProps {
   students: StudentProfile[];
@@ -396,6 +403,22 @@ export default function StudentManagement({
           >
             <RefreshCw className={`h-3.5 w-3.5 ${isRefreshingLeetCode ? 'animate-spin' : ''}`} />
             <span>{isRefreshingLeetCode ? 'Syncing...' : 'Sync LeetCode'}</span>
+          </button>
+
+          {/* Download LeetCode Details CSV Button */}
+          <button
+            onClick={() => {
+              const selectedDeptObj = departments.find(d => d.id === selectedDept);
+              const deptCode = selectedDept === 'All' ? 'All' : (selectedDeptObj?.code || selectedDept);
+              const records = buildLeetCodeExportRecords(students, users, departments, leetcodeStatsMap);
+              const filtered = records.filter(r => selectedDept === 'All' || r.departmentCode === deptCode);
+              exportDetailedLeetCodeCSV(filtered, deptCode, 'AllYears');
+            }}
+            title="Download student LeetCode links and total solved data as CSV"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-300 bg-emerald-50 px-3.5 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-100 transition-colors dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300"
+          >
+            <Download className="h-3.5 w-3.5" />
+            <span>Download LeetCode CSV</span>
           </button>
         </div>
 
