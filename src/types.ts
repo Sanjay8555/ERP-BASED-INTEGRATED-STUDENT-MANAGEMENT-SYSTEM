@@ -95,6 +95,8 @@ export interface FeeStructure {
   description: string;
   semester: number;
   departmentId?: string;
+  category?: 'Tuition' | 'Hostel' | 'Transport' | 'Examination' | 'Laboratory' | 'Library' | 'Sports' | 'Miscellaneous' | string;
+  academicYear?: string;
 }
 
 export interface FeePayment {

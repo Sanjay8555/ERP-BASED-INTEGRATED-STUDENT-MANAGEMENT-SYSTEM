@@ -1474,133 +1474,184 @@ export const initialResults: Result[] = [
 ];
 
 export const initialFeeStructures: FeeStructure[] = [
+  // IT Department (dept-1)
+  { id: 'fee-1', name: 'Tuition Fee - IT Semester 1', amount: 3500.00, description: 'Information Technology Core Tuition Fee - Semester 1', semester: 1, departmentId: 'dept-1', category: 'Tuition' },
+  { id: 'fee-2', name: 'Tuition Fee - IT Semester 2', amount: 3600.00, description: 'Information Technology Core Tuition Fee - Semester 2', semester: 2, departmentId: 'dept-1', category: 'Tuition' },
+  { id: 'fee-3', name: 'Tuition Fee - IT Semester 3', amount: 3700.00, description: 'Information Technology Core Tuition Fee - Semester 3', semester: 3, departmentId: 'dept-1', category: 'Tuition' },
+  { id: 'fee-4', name: 'Tuition Fee - IT Semester 4', amount: 3800.00, description: 'Information Technology Core Tuition Fee - Semester 4', semester: 4, departmentId: 'dept-1', category: 'Tuition' },
+  { id: 'fee-5', name: 'Tuition Fee - IT Semester 5', amount: 3900.00, description: 'Information Technology Core Tuition Fee - Semester 5', semester: 5, departmentId: 'dept-1', category: 'Tuition' },
+  { id: 'fee-6', name: 'Tuition Fee - IT Semester 6', amount: 4000.00, description: 'Information Technology Core Tuition Fee - Semester 6', semester: 6, departmentId: 'dept-1', category: 'Tuition' },
+  { id: 'fee-7', name: 'Tuition Fee - IT Semester 7', amount: 4100.00, description: 'Information Technology Core Tuition Fee - Semester 7', semester: 7, departmentId: 'dept-1', category: 'Tuition' },
+  { id: 'fee-8', name: 'Tuition Fee - IT Semester 8', amount: 4200.00, description: 'Information Technology Core Tuition Fee - Semester 8', semester: 8, departmentId: 'dept-1', category: 'Tuition' },
+
+  // ECE Department (dept-2)
+  { id: 'fee-9', name: 'Tuition Fee - ECE Semester 1', amount: 3500.00, description: 'Electronics & Communication Tuition Fee - Semester 1', semester: 1, departmentId: 'dept-2', category: 'Tuition' },
+  { id: 'fee-10', name: 'Tuition Fee - ECE Semester 2', amount: 3600.00, description: 'Electronics & Communication Tuition Fee - Semester 2', semester: 2, departmentId: 'dept-2', category: 'Tuition' },
+  { id: 'fee-11', name: 'Tuition Fee - ECE Semester 3', amount: 3700.00, description: 'Electronics & Communication Tuition Fee - Semester 3', semester: 3, departmentId: 'dept-2', category: 'Tuition' },
+  { id: 'fee-12', name: 'Tuition Fee - ECE Semester 4', amount: 3800.00, description: 'Electronics & Communication Tuition Fee - Semester 4', semester: 4, departmentId: 'dept-2', category: 'Tuition' },
+  { id: 'fee-13', name: 'Tuition Fee - ECE Semester 5', amount: 3900.00, description: 'Electronics & Communication Tuition Fee - Semester 5', semester: 5, departmentId: 'dept-2', category: 'Tuition' },
+  { id: 'fee-14', name: 'Tuition Fee - ECE Semester 6', amount: 4000.00, description: 'Electronics & Communication Tuition Fee - Semester 6', semester: 6, departmentId: 'dept-2', category: 'Tuition' },
+  { id: 'fee-15', name: 'Tuition Fee - ECE Semester 7', amount: 4100.00, description: 'Electronics & Communication Tuition Fee - Semester 7', semester: 7, departmentId: 'dept-2', category: 'Tuition' },
+  { id: 'fee-16', name: 'Tuition Fee - ECE Semester 8', amount: 4200.00, description: 'Electronics & Communication Tuition Fee - Semester 8', semester: 8, departmentId: 'dept-2', category: 'Tuition' },
+
+  // MECH Department (dept-3)
+  { id: 'fee-17', name: 'Tuition Fee - MECH Semester 1', amount: 3400.00, description: 'Mechanical Engineering Tuition Fee - Semester 1', semester: 1, departmentId: 'dept-3', category: 'Tuition' },
+  { id: 'fee-18', name: 'Tuition Fee - MECH Semester 2', amount: 3500.00, description: 'Mechanical Engineering Tuition Fee - Semester 2', semester: 2, departmentId: 'dept-3', category: 'Tuition' },
+  { id: 'fee-19', name: 'Tuition Fee - MECH Semester 3', amount: 3600.00, description: 'Mechanical Engineering Tuition Fee - Semester 3', semester: 3, departmentId: 'dept-3', category: 'Tuition' },
+  { id: 'fee-20', name: 'Tuition Fee - MECH Semester 4', amount: 3700.00, description: 'Mechanical Engineering Tuition Fee - Semester 4', semester: 4, departmentId: 'dept-3', category: 'Tuition' },
+  { id: 'fee-21', name: 'Tuition Fee - MECH Semester 5', amount: 3800.00, description: 'Mechanical Engineering Tuition Fee - Semester 5', semester: 5, departmentId: 'dept-3', category: 'Tuition' },
+  { id: 'fee-22', name: 'Tuition Fee - MECH Semester 6', amount: 3900.00, description: 'Mechanical Engineering Tuition Fee - Semester 6', semester: 6, departmentId: 'dept-3', category: 'Tuition' },
+  { id: 'fee-23', name: 'Tuition Fee - MECH Semester 7', amount: 4000.00, description: 'Mechanical Engineering Tuition Fee - Semester 7', semester: 7, departmentId: 'dept-3', category: 'Tuition' },
+  { id: 'fee-24', name: 'Tuition Fee - MECH Semester 8', amount: 4100.00, description: 'Mechanical Engineering Tuition Fee - Semester 8', semester: 8, departmentId: 'dept-3', category: 'Tuition' },
+
+  // CIVIL Department (dept-4)
+  { id: 'fee-25', name: 'Tuition Fee - CIVIL Semester 1', amount: 3300.00, description: 'Civil Engineering Tuition Fee - Semester 1', semester: 1, departmentId: 'dept-4', category: 'Tuition' },
+  { id: 'fee-26', name: 'Tuition Fee - CIVIL Semester 2', amount: 3400.00, description: 'Civil Engineering Tuition Fee - Semester 2', semester: 2, departmentId: 'dept-4', category: 'Tuition' },
+  { id: 'fee-27', name: 'Tuition Fee - CIVIL Semester 3', amount: 3500.00, description: 'Civil Engineering Tuition Fee - Semester 3', semester: 3, departmentId: 'dept-4', category: 'Tuition' },
+  { id: 'fee-28', name: 'Tuition Fee - CIVIL Semester 4', amount: 3600.00, description: 'Civil Engineering Tuition Fee - Semester 4', semester: 4, departmentId: 'dept-4', category: 'Tuition' },
+  { id: 'fee-29', name: 'Tuition Fee - CIVIL Semester 5', amount: 3700.00, description: 'Civil Engineering Tuition Fee - Semester 5', semester: 5, departmentId: 'dept-4', category: 'Tuition' },
+  { id: 'fee-30', name: 'Tuition Fee - CIVIL Semester 6', amount: 3800.00, description: 'Civil Engineering Tuition Fee - Semester 6', semester: 6, departmentId: 'dept-4', category: 'Tuition' },
+  { id: 'fee-31', name: 'Tuition Fee - CIVIL Semester 7', amount: 3900.00, description: 'Civil Engineering Tuition Fee - Semester 7', semester: 7, departmentId: 'dept-4', category: 'Tuition' },
+  { id: 'fee-32', name: 'Tuition Fee - CIVIL Semester 8', amount: 4000.00, description: 'Civil Engineering Tuition Fee - Semester 8', semester: 8, departmentId: 'dept-4', category: 'Tuition' },
+
   // CSE Department (dept-5)
-  { id: 'fee-33', name: 'Tuition Fee - CSE Semester 1', amount: 3600.00, description: 'Academic Core Tuition Fee - Semester 1', semester: 1, departmentId: 'dept-5' },
-  { id: 'fee-34', name: 'Tuition Fee - CSE Semester 2', amount: 3700.00, description: 'Academic Core Tuition Fee - Semester 2', semester: 2, departmentId: 'dept-5' },
-  { id: 'fee-35', name: 'Tuition Fee - CSE Semester 3', amount: 3800.00, description: 'Academic Core Tuition Fee - Semester 3', semester: 3, departmentId: 'dept-5' },
-  { id: 'fee-36', name: 'Tuition Fee - CSE Semester 4', amount: 3900.00, description: 'Academic Core Tuition Fee - Semester 4', semester: 4, departmentId: 'dept-5' },
-  { id: 'fee-37', name: 'Tuition Fee - CSE Semester 5', amount: 4000.00, description: 'Academic Core Tuition Fee - Semester 5', semester: 5, departmentId: 'dept-5' },
-  { id: 'fee-38', name: 'Tuition Fee - CSE Semester 6', amount: 4100.00, description: 'Academic Core Tuition Fee - Semester 6', semester: 6, departmentId: 'dept-5' },
-  { id: 'fee-39', name: 'Tuition Fee - CSE Semester 7', amount: 4200.00, description: 'Academic Core Tuition Fee - Semester 7', semester: 7, departmentId: 'dept-5' },
-  { id: 'fee-40', name: 'Tuition Fee - CSE Semester 8', amount: 4300.00, description: 'Academic Core Tuition Fee - Semester 8', semester: 8, departmentId: 'dept-5' },
+  { id: 'fee-33', name: 'Tuition Fee - CSE Semester 1', amount: 3600.00, description: 'Academic Core Tuition Fee - Semester 1', semester: 1, departmentId: 'dept-5', category: 'Tuition' },
+  { id: 'fee-34', name: 'Tuition Fee - CSE Semester 2', amount: 3700.00, description: 'Academic Core Tuition Fee - Semester 2', semester: 2, departmentId: 'dept-5', category: 'Tuition' },
+  { id: 'fee-35', name: 'Tuition Fee - CSE Semester 3', amount: 3800.00, description: 'Academic Core Tuition Fee - Semester 3', semester: 3, departmentId: 'dept-5', category: 'Tuition' },
+  { id: 'fee-36', name: 'Tuition Fee - CSE Semester 4', amount: 3900.00, description: 'Academic Core Tuition Fee - Semester 4', semester: 4, departmentId: 'dept-5', category: 'Tuition' },
+  { id: 'fee-37', name: 'Tuition Fee - CSE Semester 5', amount: 4000.00, description: 'Academic Core Tuition Fee - Semester 5', semester: 5, departmentId: 'dept-5', category: 'Tuition' },
+  { id: 'fee-38', name: 'Tuition Fee - CSE Semester 6', amount: 4100.00, description: 'Academic Core Tuition Fee - Semester 6', semester: 6, departmentId: 'dept-5', category: 'Tuition' },
+  { id: 'fee-39', name: 'Tuition Fee - CSE Semester 7', amount: 4200.00, description: 'Academic Core Tuition Fee - Semester 7', semester: 7, departmentId: 'dept-5', category: 'Tuition' },
+  { id: 'fee-40', name: 'Tuition Fee - CSE Semester 8', amount: 4300.00, description: 'Academic Core Tuition Fee - Semester 8', semester: 8, departmentId: 'dept-5', category: 'Tuition' },
+
   // EEE Department (dept-6)
-  { id: 'fee-41', name: 'Tuition Fee - EEE Semester 1', amount: 3500.00, description: 'EEE Tuition Fee - Semester 1', semester: 1, departmentId: 'dept-6' },
-  { id: 'fee-42', name: 'Tuition Fee - EEE Semester 2', amount: 3600.00, description: 'EEE Tuition Fee - Semester 2', semester: 2, departmentId: 'dept-6' },
-  { id: 'fee-43', name: 'Tuition Fee - EEE Semester 3', amount: 3700.00, description: 'EEE Tuition Fee - Semester 3', semester: 3, departmentId: 'dept-6' },
-  { id: 'fee-44', name: 'Tuition Fee - EEE Semester 4', amount: 3800.00, description: 'EEE Tuition Fee - Semester 4', semester: 4, departmentId: 'dept-6' },
-  { id: 'fee-45', name: 'Tuition Fee - EEE Semester 5', amount: 3900.00, description: 'EEE Tuition Fee - Semester 5', semester: 5, departmentId: 'dept-6' },
-  { id: 'fee-46', name: 'Tuition Fee - EEE Semester 6', amount: 4000.00, description: 'EEE Tuition Fee - Semester 6', semester: 6, departmentId: 'dept-6' },
-  { id: 'fee-47', name: 'Tuition Fee - EEE Semester 7', amount: 4100.00, description: 'EEE Tuition Fee - Semester 7', semester: 7, departmentId: 'dept-6' },
-  { id: 'fee-48', name: 'Tuition Fee - EEE Semester 8', amount: 4200.00, description: 'EEE Tuition Fee - Semester 8', semester: 8, departmentId: 'dept-6' },
+  { id: 'fee-41', name: 'Tuition Fee - EEE Semester 1', amount: 3500.00, description: 'EEE Tuition Fee - Semester 1', semester: 1, departmentId: 'dept-6', category: 'Tuition' },
+  { id: 'fee-42', name: 'Tuition Fee - EEE Semester 2', amount: 3600.00, description: 'EEE Tuition Fee - Semester 2', semester: 2, departmentId: 'dept-6', category: 'Tuition' },
+  { id: 'fee-43', name: 'Tuition Fee - EEE Semester 3', amount: 3700.00, description: 'EEE Tuition Fee - Semester 3', semester: 3, departmentId: 'dept-6', category: 'Tuition' },
+  { id: 'fee-44', name: 'Tuition Fee - EEE Semester 4', amount: 3800.00, description: 'EEE Tuition Fee - Semester 4', semester: 4, departmentId: 'dept-6', category: 'Tuition' },
+  { id: 'fee-45', name: 'Tuition Fee - EEE Semester 5', amount: 3900.00, description: 'EEE Tuition Fee - Semester 5', semester: 5, departmentId: 'dept-6', category: 'Tuition' },
+  { id: 'fee-46', name: 'Tuition Fee - EEE Semester 6', amount: 4000.00, description: 'EEE Tuition Fee - Semester 6', semester: 6, departmentId: 'dept-6', category: 'Tuition' },
+  { id: 'fee-47', name: 'Tuition Fee - EEE Semester 7', amount: 4100.00, description: 'EEE Tuition Fee - Semester 7', semester: 7, departmentId: 'dept-6', category: 'Tuition' },
+  { id: 'fee-48', name: 'Tuition Fee - EEE Semester 8', amount: 4200.00, description: 'EEE Tuition Fee - Semester 8', semester: 8, departmentId: 'dept-6', category: 'Tuition' },
+
   // AIDS Department (dept-7)
-  { id: 'fee-49', name: 'Tuition Fee - AIDS Semester 1', amount: 3800.00, description: 'AI & Data Science Tuition Fee - Semester 1', semester: 1, departmentId: 'dept-7' },
-  { id: 'fee-50', name: 'Tuition Fee - AIDS Semester 2', amount: 3900.00, description: 'AI & Data Science Tuition Fee - Semester 2', semester: 2, departmentId: 'dept-7' },
-  { id: 'fee-51', name: 'Tuition Fee - AIDS Semester 3', amount: 4000.00, description: 'AI & Data Science Tuition Fee - Semester 3', semester: 3, departmentId: 'dept-7' },
-  { id: 'fee-52', name: 'Tuition Fee - AIDS Semester 4', amount: 4100.00, description: 'AI & Data Science Tuition Fee - Semester 4', semester: 4, departmentId: 'dept-7' },
-  { id: 'fee-53', name: 'Tuition Fee - AIDS Semester 5', amount: 4200.00, description: 'AI & Data Science Tuition Fee - Semester 5', semester: 5, departmentId: 'dept-7' },
-  { id: 'fee-54', name: 'Tuition Fee - AIDS Semester 6', amount: 4300.00, description: 'AI & Data Science Tuition Fee - Semester 6', semester: 6, departmentId: 'dept-7' },
-  { id: 'fee-55', name: 'Tuition Fee - AIDS Semester 7', amount: 4400.00, description: 'AI & Data Science Tuition Fee - Semester 7', semester: 7, departmentId: 'dept-7' },
-  { id: 'fee-56', name: 'Tuition Fee - AIDS Semester 8', amount: 4500.00, description: 'AI & Data Science Tuition Fee - Semester 8', semester: 8, departmentId: 'dept-7' },
+  { id: 'fee-49', name: 'Tuition Fee - AIDS Semester 1', amount: 3800.00, description: 'AI & Data Science Tuition Fee - Semester 1', semester: 1, departmentId: 'dept-7', category: 'Tuition' },
+  { id: 'fee-50', name: 'Tuition Fee - AIDS Semester 2', amount: 3900.00, description: 'AI & Data Science Tuition Fee - Semester 2', semester: 2, departmentId: 'dept-7', category: 'Tuition' },
+  { id: 'fee-51', name: 'Tuition Fee - AIDS Semester 3', amount: 4000.00, description: 'AI & Data Science Tuition Fee - Semester 3', semester: 3, departmentId: 'dept-7', category: 'Tuition' },
+  { id: 'fee-52', name: 'Tuition Fee - AIDS Semester 4', amount: 4100.00, description: 'AI & Data Science Tuition Fee - Semester 4', semester: 4, departmentId: 'dept-7', category: 'Tuition' },
+  { id: 'fee-53', name: 'Tuition Fee - AIDS Semester 5', amount: 4200.00, description: 'AI & Data Science Tuition Fee - Semester 5', semester: 5, departmentId: 'dept-7', category: 'Tuition' },
+  { id: 'fee-54', name: 'Tuition Fee - AIDS Semester 6', amount: 4300.00, description: 'AI & Data Science Tuition Fee - Semester 6', semester: 6, departmentId: 'dept-7', category: 'Tuition' },
+  { id: 'fee-55', name: 'Tuition Fee - AIDS Semester 7', amount: 4400.00, description: 'AI & Data Science Tuition Fee - Semester 7', semester: 7, departmentId: 'dept-7', category: 'Tuition' },
+  { id: 'fee-56', name: 'Tuition Fee - AIDS Semester 8', amount: 4500.00, description: 'AI & Data Science Tuition Fee - Semester 8', semester: 8, departmentId: 'dept-7', category: 'Tuition' },
+
   // Chemical Engineering Department (dept-8)
-  { id: 'fee-57', name: 'Tuition Fee - CHEM Semester 1', amount: 3400.00, description: 'Chemical Engineering Tuition Fee - Semester 1', semester: 1, departmentId: 'dept-8' },
-  { id: 'fee-58', name: 'Tuition Fee - CHEM Semester 2', amount: 3500.00, description: 'Chemical Engineering Tuition Fee - Semester 2', semester: 2, departmentId: 'dept-8' },
-  { id: 'fee-59', name: 'Tuition Fee - CHEM Semester 3', amount: 3600.00, description: 'Chemical Engineering Tuition Fee - Semester 3', semester: 3, departmentId: 'dept-8' },
-  { id: 'fee-60', name: 'Tuition Fee - CHEM Semester 4', amount: 3700.00, description: 'Chemical Engineering Tuition Fee - Semester 4', semester: 4, departmentId: 'dept-8' },
-  { id: 'fee-61', name: 'Tuition Fee - CHEM Semester 5', amount: 3800.00, description: 'Chemical Engineering Tuition Fee - Semester 5', semester: 5, departmentId: 'dept-8' },
-  { id: 'fee-62', name: 'Tuition Fee - CHEM Semester 6', amount: 3900.00, description: 'Chemical Engineering Tuition Fee - Semester 6', semester: 6, departmentId: 'dept-8' },
-  { id: 'fee-63', name: 'Tuition Fee - CHEM Semester 7', amount: 4000.00, description: 'Chemical Engineering Tuition Fee - Semester 7', semester: 7, departmentId: 'dept-8' },
-  { id: 'fee-64', name: 'Tuition Fee - CHEM Semester 8', amount: 4100.00, description: 'Chemical Engineering Tuition Fee - Semester 8', semester: 8, departmentId: 'dept-8' },
+  { id: 'fee-57', name: 'Tuition Fee - CHEM Semester 1', amount: 3400.00, description: 'Chemical Engineering Tuition Fee - Semester 1', semester: 1, departmentId: 'dept-8', category: 'Tuition' },
+  { id: 'fee-58', name: 'Tuition Fee - CHEM Semester 2', amount: 3500.00, description: 'Chemical Engineering Tuition Fee - Semester 2', semester: 2, departmentId: 'dept-8', category: 'Tuition' },
+  { id: 'fee-59', name: 'Tuition Fee - CHEM Semester 3', amount: 3600.00, description: 'Chemical Engineering Tuition Fee - Semester 3', semester: 3, departmentId: 'dept-8', category: 'Tuition' },
+  { id: 'fee-60', name: 'Tuition Fee - CHEM Semester 4', amount: 3700.00, description: 'Chemical Engineering Tuition Fee - Semester 4', semester: 4, departmentId: 'dept-8', category: 'Tuition' },
+  { id: 'fee-61', name: 'Tuition Fee - CHEM Semester 5', amount: 3800.00, description: 'Chemical Engineering Tuition Fee - Semester 5', semester: 5, departmentId: 'dept-8', category: 'Tuition' },
+  { id: 'fee-62', name: 'Tuition Fee - CHEM Semester 6', amount: 3900.00, description: 'Chemical Engineering Tuition Fee - Semester 6', semester: 6, departmentId: 'dept-8', category: 'Tuition' },
+  { id: 'fee-63', name: 'Tuition Fee - CHEM Semester 7', amount: 4000.00, description: 'Chemical Engineering Tuition Fee - Semester 7', semester: 7, departmentId: 'dept-8', category: 'Tuition' },
+  { id: 'fee-64', name: 'Tuition Fee - CHEM Semester 8', amount: 4100.00, description: 'Chemical Engineering Tuition Fee - Semester 8', semester: 8, departmentId: 'dept-8', category: 'Tuition' },
+
   // Biomedical Engineering Department (dept-9)
-  { id: 'fee-65', name: 'Tuition Fee - BME Semester 1', amount: 3700.00, description: 'Biomedical Engineering Tuition Fee - Semester 1', semester: 1, departmentId: 'dept-9' },
-  { id: 'fee-66', name: 'Tuition Fee - BME Semester 2', amount: 3800.00, description: 'Biomedical Engineering Tuition Fee - Semester 2', semester: 2, departmentId: 'dept-9' },
-  { id: 'fee-67', name: 'Tuition Fee - BME Semester 3', amount: 3900.00, description: 'Biomedical Engineering Tuition Fee - Semester 3', semester: 3, departmentId: 'dept-9' },
-  { id: 'fee-68', name: 'Tuition Fee - BME Semester 4', amount: 4000.00, description: 'Biomedical Engineering Tuition Fee - Semester 4', semester: 4, departmentId: 'dept-9' },
-  { id: 'fee-69', name: 'Tuition Fee - BME Semester 5', amount: 4100.00, description: 'Biomedical Engineering Tuition Fee - Semester 5', semester: 5, departmentId: 'dept-9' },
-  { id: 'fee-70', name: 'Tuition Fee - BME Semester 6', amount: 4200.00, description: 'Biomedical Engineering Tuition Fee - Semester 6', semester: 6, departmentId: 'dept-9' },
-  { id: 'fee-71', name: 'Tuition Fee - BME Semester 7', amount: 4300.00, description: 'Biomedical Engineering Tuition Fee - Semester 7', semester: 7, departmentId: 'dept-9' },
-  { id: 'fee-72', name: 'Tuition Fee - BME Semester 8', amount: 4400.00, description: 'Biomedical Engineering Tuition Fee - Semester 8', semester: 8, departmentId: 'dept-9' },
+  { id: 'fee-65', name: 'Tuition Fee - BME Semester 1', amount: 3700.00, description: 'Biomedical Engineering Tuition Fee - Semester 1', semester: 1, departmentId: 'dept-9', category: 'Tuition' },
+  { id: 'fee-66', name: 'Tuition Fee - BME Semester 2', amount: 3800.00, description: 'Biomedical Engineering Tuition Fee - Semester 2', semester: 2, departmentId: 'dept-9', category: 'Tuition' },
+  { id: 'fee-67', name: 'Tuition Fee - BME Semester 3', amount: 3900.00, description: 'Biomedical Engineering Tuition Fee - Semester 3', semester: 3, departmentId: 'dept-9', category: 'Tuition' },
+  { id: 'fee-68', name: 'Tuition Fee - BME Semester 4', amount: 4000.00, description: 'Biomedical Engineering Tuition Fee - Semester 4', semester: 4, departmentId: 'dept-9', category: 'Tuition' },
+  { id: 'fee-69', name: 'Tuition Fee - BME Semester 5', amount: 4100.00, description: 'Biomedical Engineering Tuition Fee - Semester 5', semester: 5, departmentId: 'dept-9', category: 'Tuition' },
+  { id: 'fee-70', name: 'Tuition Fee - BME Semester 6', amount: 4200.00, description: 'Biomedical Engineering Tuition Fee - Semester 6', semester: 6, departmentId: 'dept-9', category: 'Tuition' },
+  { id: 'fee-71', name: 'Tuition Fee - BME Semester 7', amount: 4300.00, description: 'Biomedical Engineering Tuition Fee - Semester 7', semester: 7, departmentId: 'dept-9', category: 'Tuition' },
+  { id: 'fee-72', name: 'Tuition Fee - BME Semester 8', amount: 4400.00, description: 'Biomedical Engineering Tuition Fee - Semester 8', semester: 8, departmentId: 'dept-9', category: 'Tuition' },
+
   // MBA Department (dept-10)
-  { id: 'fee-73', name: 'Tuition Fee - MBA Semester 1', amount: 5000.00, description: 'MBA Tuition Fee - Semester 1', semester: 1, departmentId: 'dept-10' },
-  { id: 'fee-74', name: 'Tuition Fee - MBA Semester 2', amount: 5200.00, description: 'MBA Tuition Fee - Semester 2', semester: 2, departmentId: 'dept-10' },
-  { id: 'fee-75', name: 'Tuition Fee - MBA Semester 3', amount: 5400.00, description: 'MBA Tuition Fee - Semester 3', semester: 3, departmentId: 'dept-10' },
-  { id: 'fee-76', name: 'Tuition Fee - MBA Semester 4', amount: 5600.00, description: 'MBA Tuition Fee - Semester 4', semester: 4, departmentId: 'dept-10' },
+  { id: 'fee-73', name: 'Tuition Fee - MBA Semester 1', amount: 5000.00, description: 'MBA Tuition Fee - Semester 1', semester: 1, departmentId: 'dept-10', category: 'Tuition' },
+  { id: 'fee-74', name: 'Tuition Fee - MBA Semester 2', amount: 5200.00, description: 'MBA Tuition Fee - Semester 2', semester: 2, departmentId: 'dept-10', category: 'Tuition' },
+  { id: 'fee-75', name: 'Tuition Fee - MBA Semester 3', amount: 5400.00, description: 'MBA Tuition Fee - Semester 3', semester: 3, departmentId: 'dept-10', category: 'Tuition' },
+  { id: 'fee-76', name: 'Tuition Fee - MBA Semester 4', amount: 5600.00, description: 'MBA Tuition Fee - Semester 4', semester: 4, departmentId: 'dept-10', category: 'Tuition' },
+
   // AIML Department (dept-11)
-  { id: 'fee-77', name: 'Tuition Fee - AIML Semester 1', amount: 4000.00, description: 'AIML Tuition Fee - Semester 1', semester: 1, departmentId: 'dept-11' },
-  { id: 'fee-78', name: 'Tuition Fee - AIML Semester 2', amount: 4100.00, description: 'AIML Tuition Fee - Semester 2', semester: 2, departmentId: 'dept-11' },
-  { id: 'fee-79', name: 'Tuition Fee - AIML Semester 3', amount: 4200.00, description: 'AIML Tuition Fee - Semester 3', semester: 3, departmentId: 'dept-11' },
-  { id: 'fee-80', name: 'Tuition Fee - AIML Semester 4', amount: 4300.00, description: 'AIML Tuition Fee - Semester 4', semester: 4, departmentId: 'dept-11' },
-  { id: 'fee-81', name: 'Tuition Fee - AIML Semester 5', amount: 4400.00, description: 'AIML Tuition Fee - Semester 5', semester: 5, departmentId: 'dept-11' },
-  { id: 'fee-82', name: 'Tuition Fee - AIML Semester 6', amount: 4500.00, description: 'AIML Tuition Fee - Semester 6', semester: 6, departmentId: 'dept-11' },
-  { id: 'fee-83', name: 'Tuition Fee - AIML Semester 7', amount: 4600.00, description: 'AIML Tuition Fee - Semester 7', semester: 7, departmentId: 'dept-11' },
-  { id: 'fee-84', name: 'Tuition Fee - AIML Semester 8', amount: 4700.00, description: 'AIML Tuition Fee - Semester 8', semester: 8, departmentId: 'dept-11' },
+  { id: 'fee-77', name: 'Tuition Fee - AIML Semester 1', amount: 4000.00, description: 'AIML Tuition Fee - Semester 1', semester: 1, departmentId: 'dept-11', category: 'Tuition' },
+  { id: 'fee-78', name: 'Tuition Fee - AIML Semester 2', amount: 4100.00, description: 'AIML Tuition Fee - Semester 2', semester: 2, departmentId: 'dept-11', category: 'Tuition' },
+  { id: 'fee-79', name: 'Tuition Fee - AIML Semester 3', amount: 4200.00, description: 'AIML Tuition Fee - Semester 3', semester: 3, departmentId: 'dept-11', category: 'Tuition' },
+  { id: 'fee-80', name: 'Tuition Fee - AIML Semester 4', amount: 4300.00, description: 'AIML Tuition Fee - Semester 4', semester: 4, departmentId: 'dept-11', category: 'Tuition' },
+  { id: 'fee-81', name: 'Tuition Fee - AIML Semester 5', amount: 4400.00, description: 'AIML Tuition Fee - Semester 5', semester: 5, departmentId: 'dept-11', category: 'Tuition' },
+  { id: 'fee-82', name: 'Tuition Fee - AIML Semester 6', amount: 4500.00, description: 'AIML Tuition Fee - Semester 6', semester: 6, departmentId: 'dept-11', category: 'Tuition' },
+  { id: 'fee-83', name: 'Tuition Fee - AIML Semester 7', amount: 4600.00, description: 'AIML Tuition Fee - Semester 7', semester: 7, departmentId: 'dept-11', category: 'Tuition' },
+  { id: 'fee-84', name: 'Tuition Fee - AIML Semester 8', amount: 4700.00, description: 'AIML Tuition Fee - Semester 8', semester: 8, departmentId: 'dept-11', category: 'Tuition' },
+
+  // Aerospace Engineering (dept-12)
+  { id: 'fee-85', name: 'Tuition Fee - AERO Semester 1', amount: 4200.00, description: 'Aerospace Engineering Tuition Fee - Semester 1', semester: 1, departmentId: 'dept-12', category: 'Tuition' },
+  { id: 'fee-86', name: 'Tuition Fee - AERO Semester 2', amount: 4300.00, description: 'Aerospace Engineering Tuition Fee - Semester 2', semester: 2, departmentId: 'dept-12', category: 'Tuition' },
+  { id: 'fee-87', name: 'Tuition Fee - AERO Semester 3', amount: 4400.00, description: 'Aerospace Engineering Tuition Fee - Semester 3', semester: 3, departmentId: 'dept-12', category: 'Tuition' },
+  { id: 'fee-88', name: 'Tuition Fee - AERO Semester 4', amount: 4500.00, description: 'Aerospace Engineering Tuition Fee - Semester 4', semester: 4, departmentId: 'dept-12', category: 'Tuition' },
+
+  // Biotechnology (dept-13)
+  { id: 'fee-89', name: 'Tuition Fee - BIO Semester 1', amount: 3700.00, description: 'Biotechnology Tuition Fee - Semester 1', semester: 1, departmentId: 'dept-13', category: 'Tuition' },
+  { id: 'fee-90', name: 'Tuition Fee - BIO Semester 2', amount: 3800.00, description: 'Biotechnology Tuition Fee - Semester 2', semester: 2, departmentId: 'dept-13', category: 'Tuition' },
+  { id: 'fee-91', name: 'Tuition Fee - BIO Semester 3', amount: 3900.00, description: 'Biotechnology Tuition Fee - Semester 3', semester: 3, departmentId: 'dept-13', category: 'Tuition' },
+  { id: 'fee-92', name: 'Tuition Fee - BIO Semester 4', amount: 4000.00, description: 'Biotechnology Tuition Fee - Semester 4', semester: 4, departmentId: 'dept-13', category: 'Tuition' },
+
+  // Cyber Security (dept-14)
+  { id: 'fee-93', name: 'Tuition Fee - CYS Semester 1', amount: 4100.00, description: 'Cyber Security Tuition Fee - Semester 1', semester: 1, departmentId: 'dept-14', category: 'Tuition' },
+  { id: 'fee-94', name: 'Tuition Fee - CYS Semester 2', amount: 4200.00, description: 'Cyber Security Tuition Fee - Semester 2', semester: 2, departmentId: 'dept-14', category: 'Tuition' },
+  { id: 'fee-95', name: 'Tuition Fee - CYS Semester 3', amount: 4300.00, description: 'Cyber Security Tuition Fee - Semester 3', semester: 3, departmentId: 'dept-14', category: 'Tuition' },
+  { id: 'fee-96', name: 'Tuition Fee - CYS Semester 4', amount: 4400.00, description: 'Cyber Security Tuition Fee - Semester 4', semester: 4, departmentId: 'dept-14', category: 'Tuition' },
+
+  // Agriculture Engineering (dept-15)
+  { id: 'fee-97', name: 'Tuition Fee - AGR Semester 1', amount: 3400.00, description: 'Agriculture Engineering Tuition Fee - Semester 1', semester: 1, departmentId: 'dept-15', category: 'Tuition' },
+  { id: 'fee-98', name: 'Tuition Fee - AGR Semester 2', amount: 3500.00, description: 'Agriculture Engineering Tuition Fee - Semester 2', semester: 2, departmentId: 'dept-15', category: 'Tuition' },
+
+  // Food Technology (dept-16)
+  { id: 'fee-99', name: 'Tuition Fee - FOOD Semester 1', amount: 3500.00, description: 'Food Technology Tuition Fee - Semester 1', semester: 1, departmentId: 'dept-16', category: 'Tuition' },
+  { id: 'fee-100', name: 'Tuition Fee - FOOD Semester 2', amount: 3600.00, description: 'Food Technology Tuition Fee - Semester 2', semester: 2, departmentId: 'dept-16', category: 'Tuition' },
+
+  // Robotics & Automation (dept-17)
+  { id: 'fee-101', name: 'Tuition Fee - ROB Semester 1', amount: 4200.00, description: 'Robotics & Automation Tuition Fee - Semester 1', semester: 1, departmentId: 'dept-17', category: 'Tuition' },
+  { id: 'fee-102', name: 'Tuition Fee - ROB Semester 2', amount: 4300.00, description: 'Robotics & Automation Tuition Fee - Semester 2', semester: 2, departmentId: 'dept-17', category: 'Tuition' },
+
   // Marine Engineering (dept-18)
-  { id: 'fee-85', name: 'Tuition Fee - MARINE Semester 1', amount: 4200.00, description: 'Marine Engineering Tuition Fee - Semester 1', semester: 1, departmentId: 'dept-18' },
-  { id: 'fee-86', name: 'Tuition Fee - MARINE Semester 2', amount: 4300.00, description: 'Marine Engineering Tuition Fee - Semester 2', semester: 2, departmentId: 'dept-18' },
-  { id: 'fee-87', name: 'Tuition Fee - MARINE Semester 3', amount: 4400.00, description: 'Marine Engineering Tuition Fee - Semester 3', semester: 3, departmentId: 'dept-18' },
-  { id: 'fee-88', name: 'Tuition Fee - MARINE Semester 4', amount: 4500.00, description: 'Marine Engineering Tuition Fee - Semester 4', semester: 4, departmentId: 'dept-18' },
-  { id: 'fee-89', name: 'Tuition Fee - MARINE Semester 5', amount: 4600.00, description: 'Marine Engineering Tuition Fee - Semester 5', semester: 5, departmentId: 'dept-18' },
-  { id: 'fee-90', name: 'Tuition Fee - MARINE Semester 6', amount: 4700.00, description: 'Marine Engineering Tuition Fee - Semester 6', semester: 6, departmentId: 'dept-18' },
-  { id: 'fee-91', name: 'Tuition Fee - MARINE Semester 7', amount: 4800.00, description: 'Marine Engineering Tuition Fee - Semester 7', semester: 7, departmentId: 'dept-18' },
-  { id: 'fee-92', name: 'Tuition Fee - MARINE Semester 8', amount: 4900.00, description: 'Marine Engineering Tuition Fee - Semester 8', semester: 8, departmentId: 'dept-18' },
+  { id: 'fee-103', name: 'Tuition Fee - MARINE Semester 1', amount: 4200.00, description: 'Marine Engineering Tuition Fee - Semester 1', semester: 1, departmentId: 'dept-18', category: 'Tuition' },
+  { id: 'fee-104', name: 'Tuition Fee - MARINE Semester 2', amount: 4300.00, description: 'Marine Engineering Tuition Fee - Semester 2', semester: 2, departmentId: 'dept-18', category: 'Tuition' },
+
   // Textile Technology (dept-19)
-  { id: 'fee-93', name: 'Tuition Fee - TEXT Semester 1', amount: 3200.00, description: 'Textile Technology Tuition Fee - Semester 1', semester: 1, departmentId: 'dept-19' },
-  { id: 'fee-94', name: 'Tuition Fee - TEXT Semester 2', amount: 3300.00, description: 'Textile Technology Tuition Fee - Semester 2', semester: 2, departmentId: 'dept-19' },
-  { id: 'fee-95', name: 'Tuition Fee - TEXT Semester 3', amount: 3400.00, description: 'Textile Technology Tuition Fee - Semester 3', semester: 3, departmentId: 'dept-19' },
-  { id: 'fee-96', name: 'Tuition Fee - TEXT Semester 4', amount: 3500.00, description: 'Textile Technology Tuition Fee - Semester 4', semester: 4, departmentId: 'dept-19' },
-  { id: 'fee-97', name: 'Tuition Fee - TEXT Semester 5', amount: 3600.00, description: 'Textile Technology Tuition Fee - Semester 5', semester: 5, departmentId: 'dept-19' },
-  { id: 'fee-98', name: 'Tuition Fee - TEXT Semester 6', amount: 3700.00, description: 'Textile Technology Tuition Fee - Semester 6', semester: 6, departmentId: 'dept-19' },
-  { id: 'fee-99', name: 'Tuition Fee - TEXT Semester 7', amount: 3800.00, description: 'Textile Technology Tuition Fee - Semester 7', semester: 7, departmentId: 'dept-19' },
-  { id: 'fee-100', name: 'Tuition Fee - TEXT Semester 8', amount: 3900.00, description: 'Textile Technology Tuition Fee - Semester 8', semester: 8, departmentId: 'dept-19' },
+  { id: 'fee-105', name: 'Tuition Fee - TEXT Semester 1', amount: 3200.00, description: 'Textile Technology Tuition Fee - Semester 1', semester: 1, departmentId: 'dept-19', category: 'Tuition' },
+  { id: 'fee-106', name: 'Tuition Fee - TEXT Semester 2', amount: 3300.00, description: 'Textile Technology Tuition Fee - Semester 2', semester: 2, departmentId: 'dept-19', category: 'Tuition' },
+
   // Mining Engineering (dept-20)
-  { id: 'fee-101', name: 'Tuition Fee - MINE Semester 1', amount: 3500.00, description: 'Mining Engineering Tuition Fee - Semester 1', semester: 1, departmentId: 'dept-20' },
-  { id: 'fee-102', name: 'Tuition Fee - MINE Semester 2', amount: 3600.00, description: 'Mining Engineering Tuition Fee - Semester 2', semester: 2, departmentId: 'dept-20' },
-  { id: 'fee-103', name: 'Tuition Fee - MINE Semester 3', amount: 3700.00, description: 'Mining Engineering Tuition Fee - Semester 3', semester: 3, departmentId: 'dept-20' },
-  { id: 'fee-104', name: 'Tuition Fee - MINE Semester 4', amount: 3800.00, description: 'Mining Engineering Tuition Fee - Semester 4', semester: 4, departmentId: 'dept-20' },
-  { id: 'fee-105', name: 'Tuition Fee - MINE Semester 5', amount: 3900.00, description: 'Mining Engineering Tuition Fee - Semester 5', semester: 5, departmentId: 'dept-20' },
-  { id: 'fee-106', name: 'Tuition Fee - MINE Semester 6', amount: 4000.00, description: 'Mining Engineering Tuition Fee - Semester 6', semester: 6, departmentId: 'dept-20' },
-  { id: 'fee-107', name: 'Tuition Fee - MINE Semester 7', amount: 4100.00, description: 'Mining Engineering Tuition Fee - Semester 7', semester: 7, departmentId: 'dept-20' },
-  { id: 'fee-108', name: 'Tuition Fee - MINE Semester 8', amount: 4200.00, description: 'Mining Engineering Tuition Fee - Semester 8', semester: 8, departmentId: 'dept-20' },
+  { id: 'fee-107', name: 'Tuition Fee - MINE Semester 1', amount: 3500.00, description: 'Mining Engineering Tuition Fee - Semester 1', semester: 1, departmentId: 'dept-20', category: 'Tuition' },
+  { id: 'fee-108', name: 'Tuition Fee - MINE Semester 2', amount: 3600.00, description: 'Mining Engineering Tuition Fee - Semester 2', semester: 2, departmentId: 'dept-20', category: 'Tuition' },
+
   // Architecture (dept-21)
-  { id: 'fee-109', name: 'Tuition Fee - ARCH Semester 1', amount: 4500.00, description: 'Architecture Tuition Fee - Semester 1', semester: 1, departmentId: 'dept-21' },
-  { id: 'fee-110', name: 'Tuition Fee - ARCH Semester 2', amount: 4600.00, description: 'Architecture Tuition Fee - Semester 2', semester: 2, departmentId: 'dept-21' },
-  { id: 'fee-111', name: 'Tuition Fee - ARCH Semester 3', amount: 4700.00, description: 'Architecture Tuition Fee - Semester 3', semester: 3, departmentId: 'dept-21' },
-  { id: 'fee-112', name: 'Tuition Fee - ARCH Semester 4', amount: 4800.00, description: 'Architecture Tuition Fee - Semester 4', semester: 4, departmentId: 'dept-21' },
-  { id: 'fee-113', name: 'Tuition Fee - ARCH Semester 5', amount: 4900.00, description: 'Architecture Tuition Fee - Semester 5', semester: 5, departmentId: 'dept-21' },
-  { id: 'fee-114', name: 'Tuition Fee - ARCH Semester 6', amount: 5000.00, description: 'Architecture Tuition Fee - Semester 6', semester: 6, departmentId: 'dept-21' },
-  { id: 'fee-115', name: 'Tuition Fee - ARCH Semester 7', amount: 5100.00, description: 'Architecture Tuition Fee - Semester 7', semester: 7, departmentId: 'dept-21' },
-  { id: 'fee-116', name: 'Tuition Fee - ARCH Semester 8', amount: 5200.00, description: 'Architecture Tuition Fee - Semester 8', semester: 8, departmentId: 'dept-21' },
+  { id: 'fee-109', name: 'Tuition Fee - ARCH Semester 1', amount: 4500.00, description: 'Architecture Tuition Fee - Semester 1', semester: 1, departmentId: 'dept-21', category: 'Tuition' },
+  { id: 'fee-110', name: 'Tuition Fee - ARCH Semester 2', amount: 4600.00, description: 'Architecture Tuition Fee - Semester 2', semester: 2, departmentId: 'dept-21', category: 'Tuition' },
+
   // Physics (dept-22)
-  { id: 'fee-117', name: 'Tuition Fee - PHY Semester 1', amount: 2800.00, description: 'Physics Tuition Fee - Semester 1', semester: 1, departmentId: 'dept-22' },
-  { id: 'fee-118', name: 'Tuition Fee - PHY Semester 2', amount: 2900.00, description: 'Physics Tuition Fee - Semester 2', semester: 2, departmentId: 'dept-22' },
-  { id: 'fee-119', name: 'Tuition Fee - PHY Semester 3', amount: 3000.00, description: 'Physics Tuition Fee - Semester 3', semester: 3, departmentId: 'dept-22' },
-  { id: 'fee-120', name: 'Tuition Fee - PHY Semester 4', amount: 3100.00, description: 'Physics Tuition Fee - Semester 4', semester: 4, departmentId: 'dept-22' },
-  { id: 'fee-121', name: 'Tuition Fee - PHY Semester 5', amount: 3200.00, description: 'Physics Tuition Fee - Semester 5', semester: 5, departmentId: 'dept-22' },
-  { id: 'fee-122', name: 'Tuition Fee - PHY Semester 6', amount: 3300.00, description: 'Physics Tuition Fee - Semester 6', semester: 6, departmentId: 'dept-22' },
-  { id: 'fee-123', name: 'Tuition Fee - PHY Semester 7', amount: 3400.00, description: 'Physics Tuition Fee - Semester 7', semester: 7, departmentId: 'dept-22' },
-  { id: 'fee-124', name: 'Tuition Fee - PHY Semester 8', amount: 3500.00, description: 'Physics Tuition Fee - Semester 8', semester: 8, departmentId: 'dept-22' },
+  { id: 'fee-111', name: 'Tuition Fee - PHY Semester 1', amount: 2800.00, description: 'Physics Tuition Fee - Semester 1', semester: 1, departmentId: 'dept-22', category: 'Tuition' },
+  { id: 'fee-112', name: 'Tuition Fee - PHY Semester 2', amount: 2900.00, description: 'Physics Tuition Fee - Semester 2', semester: 2, departmentId: 'dept-22', category: 'Tuition' },
+
   // Mathematics (dept-23)
-  { id: 'fee-125', name: 'Tuition Fee - MATH Semester 1', amount: 2600.00, description: 'Mathematics Tuition Fee - Semester 1', semester: 1, departmentId: 'dept-23' },
-  { id: 'fee-126', name: 'Tuition Fee - MATH Semester 2', amount: 2700.00, description: 'Mathematics Tuition Fee - Semester 2', semester: 2, departmentId: 'dept-23' },
-  { id: 'fee-127', name: 'Tuition Fee - MATH Semester 3', amount: 2800.00, description: 'Mathematics Tuition Fee - Semester 3', semester: 3, departmentId: 'dept-23' },
-  { id: 'fee-128', name: 'Tuition Fee - MATH Semester 4', amount: 2900.00, description: 'Mathematics Tuition Fee - Semester 4', semester: 4, departmentId: 'dept-23' },
-  { id: 'fee-129', name: 'Tuition Fee - MATH Semester 5', amount: 3000.00, description: 'Mathematics Tuition Fee - Semester 5', semester: 5, departmentId: 'dept-23' },
-  { id: 'fee-130', name: 'Tuition Fee - MATH Semester 6', amount: 3100.00, description: 'Mathematics Tuition Fee - Semester 6', semester: 6, departmentId: 'dept-23' },
-  { id: 'fee-131', name: 'Tuition Fee - MATH Semester 7', amount: 3200.00, description: 'Mathematics Tuition Fee - Semester 7', semester: 7, departmentId: 'dept-23' },
-  { id: 'fee-132', name: 'Tuition Fee - MATH Semester 8', amount: 3300.00, description: 'Mathematics Tuition Fee - Semester 8', semester: 8, departmentId: 'dept-23' },
+  { id: 'fee-113', name: 'Tuition Fee - MATH Semester 1', amount: 2600.00, description: 'Mathematics Tuition Fee - Semester 1', semester: 1, departmentId: 'dept-23', category: 'Tuition' },
+  { id: 'fee-114', name: 'Tuition Fee - MATH Semester 2', amount: 2700.00, description: 'Mathematics Tuition Fee - Semester 2', semester: 2, departmentId: 'dept-23', category: 'Tuition' },
+
   // MCA (dept-24)
-  { id: 'fee-133', name: 'Tuition Fee - MCA Semester 1', amount: 4800.00, description: 'MCA Tuition Fee - Semester 1', semester: 1, departmentId: 'dept-24' },
-  { id: 'fee-134', name: 'Tuition Fee - MCA Semester 2', amount: 5000.00, description: 'MCA Tuition Fee - Semester 2', semester: 2, departmentId: 'dept-24' },
-  { id: 'fee-135', name: 'Tuition Fee - MCA Semester 3', amount: 5200.00, description: 'MCA Tuition Fee - Semester 3', semester: 3, departmentId: 'dept-24' },
-  { id: 'fee-136', name: 'Tuition Fee - MCA Semester 4', amount: 5400.00, description: 'MCA Tuition Fee - Semester 4', semester: 4, departmentId: 'dept-24' },
+  { id: 'fee-115', name: 'Tuition Fee - MCA Semester 1', amount: 4800.00, description: 'MCA Tuition Fee - Semester 1', semester: 1, departmentId: 'dept-24', category: 'Tuition' },
+  { id: 'fee-116', name: 'Tuition Fee - MCA Semester 2', amount: 5000.00, description: 'MCA Tuition Fee - Semester 2', semester: 2, departmentId: 'dept-24', category: 'Tuition' },
+
   // CSBS (dept-25)
-  { id: 'fee-137', name: 'Tuition Fee - CSBS Semester 1', amount: 3800.00, description: 'CSBS Tuition Fee - Semester 1', semester: 1, departmentId: 'dept-25' },
-  { id: 'fee-138', name: 'Tuition Fee - CSBS Semester 2', amount: 3900.00, description: 'CSBS Tuition Fee - Semester 2', semester: 2, departmentId: 'dept-25' },
-  { id: 'fee-139', name: 'Tuition Fee - CSBS Semester 3', amount: 4000.00, description: 'CSBS Tuition Fee - Semester 3', semester: 3, departmentId: 'dept-25' },
-  { id: 'fee-140', name: 'Tuition Fee - CSBS Semester 4', amount: 4100.00, description: 'CSBS Tuition Fee - Semester 4', semester: 4, departmentId: 'dept-25' },
-  { id: 'fee-141', name: 'Tuition Fee - CSBS Semester 5', amount: 4200.00, description: 'CSBS Tuition Fee - Semester 5', semester: 5, departmentId: 'dept-25' },
-  { id: 'fee-142', name: 'Tuition Fee - CSBS Semester 6', amount: 4300.00, description: 'CSBS Tuition Fee - Semester 6', semester: 6, departmentId: 'dept-25' },
-  { id: 'fee-143', name: 'Tuition Fee - CSBS Semester 7', amount: 4400.00, description: 'CSBS Tuition Fee - Semester 7', semester: 7, departmentId: 'dept-25' },
-  { id: 'fee-144', name: 'Tuition Fee - CSBS Semester 8', amount: 4500.00, description: 'CSBS Tuition Fee - Semester 8', semester: 8, departmentId: 'dept-25' }
+  { id: 'fee-117', name: 'Tuition Fee - CSBS Semester 1', amount: 3800.00, description: 'CSBS Tuition Fee - Semester 1', semester: 1, departmentId: 'dept-25', category: 'Tuition' },
+  { id: 'fee-118', name: 'Tuition Fee - CSBS Semester 2', amount: 3900.00, description: 'CSBS Tuition Fee - Semester 2', semester: 2, departmentId: 'dept-25', category: 'Tuition' },
+  { id: 'fee-119', name: 'Tuition Fee - CSBS Semester 3', amount: 4000.00, description: 'CSBS Tuition Fee - Semester 3', semester: 3, departmentId: 'dept-25', category: 'Tuition' },
+  { id: 'fee-120', name: 'Tuition Fee - CSBS Semester 4', amount: 4100.00, description: 'CSBS Tuition Fee - Semester 4', semester: 4, departmentId: 'dept-25', category: 'Tuition' },
+
+  // General Campus Fee Categories
+  { id: 'fee-gen-1', name: 'Campus Residential Hostel Fee', amount: 18000.00, description: 'Annual AC/Non-AC Student Residential Hostel, Wi-Fi & Maintenance', semester: 0, category: 'Hostel' },
+  { id: 'fee-gen-2', name: 'University Transport & Bus Pass', amount: 8500.00, description: 'Annual Multi-Route Campus Transit & Air-Conditioned Bus Facility', semester: 0, category: 'Transport' },
+  { id: 'fee-gen-3', name: 'End-Semester Examination Fee', amount: 1500.00, description: 'University Examination Registration, Hall Ticket & Answer Script Evaluation', semester: 0, category: 'Examination' },
+  { id: 'fee-gen-4', name: 'Advanced Computing & AI Laboratory Fee', amount: 2500.00, description: 'Specialized Hardware Labs, Cloud Compute Credits & Project Workstation Access', semester: 0, category: 'Laboratory' },
+  { id: 'fee-gen-5', name: 'Central Library & Digital Journal Resource Access', amount: 1200.00, description: 'Digital Library Databases, IEEE Xplore, ScienceDirect & Book Issuance Access', semester: 0, category: 'Library' },
+  { id: 'fee-gen-6', name: 'University Sports & Gymnasium Facility', amount: 800.00, description: 'Indoor Stadium, Swimming Pool, Fitness Center & Inter-University Athletic Tournaments', semester: 0, category: 'Sports' },
+  { id: 'fee-gen-7', name: 'Student Welfare & Cultural Association', amount: 600.00, description: 'Annual Technical Symposiums, Hackathons, Cultural Fest & Student Clubs', semester: 0, category: 'Miscellaneous' }
 ];
 
 export const initialFeePayments: FeePayment[] = [

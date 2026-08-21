@@ -880,6 +880,18 @@ export default function App() {
     setFeeStructuresStore(updated);
   };
 
+  const handleAddFeeStructure = (newStructure: FeeStructure) => {
+    setFeeStructuresStore(prev => [newStructure, ...prev]);
+  };
+
+  const handleUpdateFeeStructure = (updatedStructure: FeeStructure) => {
+    setFeeStructuresStore(prev => prev.map(f => f.id === updatedStructure.id ? updatedStructure : f));
+  };
+
+  const handleDeleteFeeStructure = (structureId: string) => {
+    setFeeStructuresStore(prev => prev.filter(f => f.id !== structureId));
+  };
+
   // Modifying: Library Book additions
   const handleAddBook = (newBook: Book) => {
     setBooksStore(prev => [newBook, ...prev]);
@@ -1082,6 +1094,9 @@ export default function App() {
             role={activeRole}
             onAddPayment={handleAddPayment}
             onUpdateFeeStructures={handleUpdateFeeStructures}
+            onAddFeeStructure={handleAddFeeStructure}
+            onUpdateFeeStructure={handleUpdateFeeStructure}
+            onDeleteFeeStructure={handleDeleteFeeStructure}
             departments={departmentsStore}
             onPrintReceipt={(payment) => {
               setSelectedReceiptForPrint(payment);

@@ -458,6 +458,45 @@ app.post('/api/fees', (req, res) => {
   }
   saveState(state);
   broadcastStateUpdate(state);
+  res.json({ success: true, payment });
+});
+
+// Fee Structures REST API
+app.get('/api/fee-structures', (req, res) => {
+  const state = getStateOrEmpty();
+  res.json(state.feeStructuresStore || []);
+});
+
+app.post('/api/fee-structures', (req, res) => {
+  const structure = req.body;
+  const state = getStateOrEmpty();
+  const index = (state.feeStructuresStore || []).findIndex(s => s.id === structure.id);
+  if (index >= 0) {
+    state.feeStructuresStore[index] = structure;
+  } else {
+    state.feeStructuresStore = [structure, ...(state.feeStructuresStore || [])];
+  }
+  saveState(state);
+  broadcastStateUpdate(state);
+  res.json({ success: true, structure });
+});
+
+app.put('/api/fee-structures/:id', (req, res) => {
+  const { id } = req.params;
+  const updatedStructure = req.body;
+  const state = getStateOrEmpty();
+  state.feeStructuresStore = (state.feeStructuresStore || []).map(s => s.id === id ? { ...s, ...updatedStructure } : s);
+  saveState(state);
+  broadcastStateUpdate(state);
+  res.json({ success: true });
+});
+
+app.delete('/api/fee-structures/:id', (req, res) => {
+  const { id } = req.params;
+  const state = getStateOrEmpty();
+  state.feeStructuresStore = (state.feeStructuresStore || []).filter(s => s.id !== id);
+  saveState(state);
+  broadcastStateUpdate(state);
   res.json({ success: true });
 });
 
