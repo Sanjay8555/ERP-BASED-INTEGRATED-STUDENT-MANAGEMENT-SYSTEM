@@ -75,8 +75,6 @@ import Navbar from './components/shared/Navbar';
 
 // Functional Feature Modules
 import Dashboards from './components/dashboards/Dashboards';
-import LeetCodeTracker from './components/modules/LeetCodeTracker';
-import GitHubTracker from './components/modules/GitHubTracker';
 import StudentManagement from './components/modules/StudentManagement';
 import {
   FacultyManagement,
@@ -1008,28 +1006,6 @@ export default function App() {
             currentUser={currentUser}
           />
         );
-      case 'leetcode':
-        return (
-          <LeetCodeTracker
-            students={studentsStore}
-            users={usersStore}
-            departments={departmentsStore}
-            role={activeRole}
-            onUpdateStudent={handleUpdateStudent}
-            currentUser={currentUser}
-          />
-        );
-      case 'github':
-        return (
-          <GitHubTracker
-            students={studentsStore}
-            users={usersStore}
-            departments={departmentsStore}
-            role={activeRole}
-            onUpdateStudent={handleUpdateStudent}
-            currentUser={currentUser}
-          />
-        );
       case 'students':
         return (
           <StudentManagement
@@ -1211,7 +1187,6 @@ export default function App() {
   const getTabTitle = () => {
     const tabObj = [
       { id: 'dashboard', val: `${activeRole} Dashboard Panel` },
-      { id: 'leetcode', val: 'University LeetCode Problem Solving Hub' },
       { id: 'students', val: 'Student Accounts Directory' },
       { id: 'courses', val: 'Department Subjects & Semester Curriculum' },
       { id: 'faculty', val: 'Faculty Roster Administration' },

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Users,
   Briefcase,
@@ -20,15 +20,7 @@ import {
   FileText,
   BookmarkCheck,
   CheckCircle2,
-  ListFilter,
-  Code2,
-  Sparkles,
-  ExternalLink,
-  RefreshCw,
-  Flame,
-  Trophy,
-  Target,
-  Award
+  ListFilter
 } from 'lucide-react';
 import {
   BarChart,
@@ -58,17 +50,8 @@ import {
   FeePayment,
   Book,
   BookIssue,
-  Notice,
-  LeetCodeStats
+  Notice
 } from '../../types';
-import {
-  fetchStudentLeetCodeStats,
-  fetchBatchLeetCodeStats,
-  extractLeetCodeUsername,
-  formatLeetCodeProfileUrl,
-  getWeeklyActivity,
-  formatSubmissionRelativeTime
-} from '../../services/leetcodeService';
 
 interface DashboardsProps {
   role: string;
@@ -110,43 +93,10 @@ export default function Dashboards({
   // Chart Colors
   const COLORS = ['#6366f1', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#ec4899'];
 
-  // Real-Time LeetCode Dashboard State
-  const [studentLCStats, setStudentLCStats] = useState<LeetCodeStats | null>(null);
-  const [isFetchingStudentLC, setIsFetchingStudentLC] = useState<boolean>(false);
-  const [adminBatchStats, setAdminBatchStats] = useState<Record<string, LeetCodeStats>>({});
-
   // Resolve current active student profile
   const currentStudentProfile = students.find(
     s => s && (s.userId === currentUser?.id || (currentUser?.role === 'Student' && s.userId === currentUser.id))
   ) || students[0];
-
-  // Fetch real-time LeetCode stats for active student
-  const refreshActiveStudentLC = async (force = false) => {
-    if (!currentStudentProfile) return;
-    const handle = extractLeetCodeUsername(currentStudentProfile.leetcodeUsername || currentStudentProfile.leetcodeUrl || '');
-    if (!handle) {
-      setStudentLCStats(null);
-      return;
-    }
-    setIsFetchingStudentLC(true);
-    const stats = await fetchStudentLeetCodeStats(handle, force);
-    setStudentLCStats(stats);
-    setIsFetchingStudentLC(false);
-  };
-
-  useEffect(() => {
-    refreshActiveStudentLC();
-
-    // If Admin or Faculty, batch fetch top coders stats
-    if (role === 'Admin' || role === 'Faculty') {
-      const handles = students.map(s => s.leetcodeUrl || s.leetcodeUsername || '').filter(Boolean);
-      if (handles.length > 0) {
-        fetchBatchLeetCodeStats(handles).then(res => {
-          setAdminBatchStats(res);
-        });
-      }
-    }
-  }, [currentStudentProfile, role, students]);
 
   // Helper: calculate average attendance specifically for prescribed courses in student's department & semester
   const getStudentPrescribedAttendance = (student?: StudentProfile) => {
@@ -172,27 +122,11 @@ export default function Dashboards({
     const totalDepts = departments.length;
     const totalCourses = courses.length;
 
-    // Calculate total LeetCode solves across university
-    const totalLeetCodeSolves = (Object.values(adminBatchStats) as LeetCodeStats[]).reduce((acc: number, curr: LeetCodeStats) => acc + (curr?.totalSolved || 0), 0);
-
     // Chart: Students by Department
     const deptChartData = departments.map(d => {
       const count = students.filter(s => s.departmentId === d.id).length || 1;
       return { name: d.code, Students: count + (d.code === 'IT' ? 12 : 6) };
     });
-
-    // Top 3 Coders
-    const sortedCoders = [...students].map(s => {
-      const handle = extractLeetCodeUsername(s.leetcodeUsername || s.leetcodeUrl || '');
-      const user = users.find(u => u.id === s.userId);
-      const stats = adminBatchStats[handle] || adminBatchStats[s.leetcodeUrl || ''];
-      return {
-        student: s,
-        user,
-        handle,
-        solved: stats?.totalSolved || (handle === 'sanjay' ? 343 : handle === 'neal_wu' ? 253 : 180)
-      };
-    }).sort((a, b) => b.solved - a.solved).slice(0, 3);
 
     return (
       <div className="space-y-6">
@@ -233,23 +167,15 @@ export default function Dashboards({
           <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Live LeetCode Solves</p>
-                <h3 className="text-2xl font-bold font-mono text-amber-600 dark:text-amber-400 mt-1">
-                  {totalLeetCodeSolves > 0 ? totalLeetCodeSolves.toLocaleString() : '1,420+'}
-                </h3>
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Departments</p>
+                <h3 className="text-2xl font-bold text-slate-900 dark:text-white mt-1">{totalDepts}</h3>
               </div>
-              <div className="rounded-xl bg-amber-500/10 p-3 text-amber-600 dark:text-amber-400">
-                <Flame className="h-6 w-6" />
+              <div className="rounded-xl bg-indigo-50 p-3 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-400">
+                <Building className="h-6 w-6" />
               </div>
             </div>
-            <div className="mt-4 flex items-center justify-between font-mono text-xs text-amber-600">
-              <span>Realtime Cross-Department</span>
-              <button
-                onClick={() => setActiveTab('leetcode')}
-                className="hover:underline font-bold text-[11px]"
-              >
-                Leaderboard →
-              </button>
+            <div className="mt-4 flex items-center gap-1.5 font-mono text-xs text-indigo-600">
+              <span>All Programs Accredited</span>
             </div>
           </div>
 
@@ -287,72 +213,49 @@ export default function Dashboards({
             </div>
           </div>
 
-          {/* Quick Actions & Top Coders Snippet */}
+          {/* Quick Actions Panel */}
           <div className="flex flex-col gap-6">
-            {/* Top LeetCode Coders Widget */}
-            <div className="rounded-2xl border border-amber-200/80 bg-linear-to-b from-amber-500/5 to-transparent p-5 shadow-xs dark:border-amber-900/30 dark:bg-slate-900">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <Trophy className="h-4 w-4 text-amber-500" />
-                  <h4 className="font-sans text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
-                    Top Problem Solvers
-                  </h4>
-                </div>
-                <button
-                  onClick={() => setActiveTab('leetcode')}
-                  className="text-[11px] font-bold text-amber-600 hover:underline dark:text-amber-400"
-                >
-                  View All
-                </button>
-              </div>
-
-              <div className="space-y-2.5">
-                {sortedCoders.map((coder, idx) => (
-                  <div
-                    key={coder.student.id}
-                    className="flex items-center justify-between rounded-xl bg-white p-2.5 border border-slate-100 dark:bg-slate-950 dark:border-slate-800/80 shadow-2xs"
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900 flex-1 flex flex-col justify-between">
+              <div>
+                <h4 className="font-sans text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Quick Actions</h4>
+                <div className="grid grid-cols-1 gap-2.5">
+                  <button
+                    onClick={() => setActiveTab('students')}
+                    className="flex items-center gap-2.5 rounded-xl border border-slate-100 p-3 text-left hover:bg-slate-50 transition-colors dark:border-slate-800 dark:hover:bg-slate-800/50"
                   >
-                    <div className="flex items-center gap-2.5">
-                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-100 text-[10px] font-black text-amber-800 dark:bg-amber-950/60 dark:text-amber-300">
-                        #{idx + 1}
-                      </span>
-                      <div>
-                        <p className="text-xs font-bold text-slate-800 dark:text-white line-clamp-1">{coder.user?.name || coder.student.rollNo}</p>
-                        <p className="text-[10px] font-mono text-slate-400">@{coder.handle || 'unlinked'}</p>
-                      </div>
+                    <PlusCircle className="h-4.5 w-4.5 text-teal-600 dark:text-teal-400" />
+                    <div>
+                      <p className="text-xs font-bold text-slate-800 dark:text-white">Register Student</p>
+                      <p className="text-[10px] text-slate-400">Enroll new student account</p>
                     </div>
-                    <span className="rounded-lg bg-amber-500/10 px-2 py-0.5 font-mono text-xs font-black text-amber-600 dark:text-amber-400">
-                      ⚡ {coder.solved}
-                    </span>
-                  </div>
-                ))}
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('faculty')}
+                    className="flex items-center gap-2.5 rounded-xl border border-slate-100 p-3 text-left hover:bg-slate-50 transition-colors dark:border-slate-800 dark:hover:bg-slate-800/50"
+                  >
+                    <Briefcase className="h-4.5 w-4.5 text-blue-600 dark:text-blue-400" />
+                    <div>
+                      <p className="text-xs font-bold text-slate-800 dark:text-white">Faculty Directory</p>
+                      <p className="text-[10px] text-slate-400">Manage instructors and workloads</p>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('courses')}
+                    className="flex items-center gap-2.5 rounded-xl border border-slate-100 p-3 text-left hover:bg-slate-50 transition-colors dark:border-slate-800 dark:hover:bg-slate-800/50"
+                  >
+                    <BookOpen className="h-4.5 w-4.5 text-purple-600 dark:text-purple-400" />
+                    <div>
+                      <p className="text-xs font-bold text-slate-800 dark:text-white">Course Curriculum</p>
+                      <p className="text-[10px] text-slate-400">Configure subjects and syllabus</p>
+                    </div>
+                  </button>
+                </div>
               </div>
-            </div>
 
-            {/* Quick Admin Actions */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
-              <h4 className="font-sans text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Quick Actions</h4>
-              <div className="grid grid-cols-1 gap-2">
-                <button
-                  onClick={() => setActiveTab('students')}
-                  className="flex items-center gap-2.5 rounded-xl border border-slate-100 p-2.5 text-left hover:bg-slate-50 transition-colors dark:border-slate-800 dark:hover:bg-slate-800/50"
-                >
-                  <PlusCircle className="h-4 w-4 text-teal-600 dark:text-teal-400" />
-                  <div>
-                    <p className="text-xs font-bold text-slate-800 dark:text-white">Register Student</p>
-                    <p className="text-[10px] text-slate-400">Include LeetCode handle</p>
-                  </div>
-                </button>
-                <button
-                  onClick={() => setActiveTab('leetcode')}
-                  className="flex items-center gap-2.5 rounded-xl border border-slate-100 p-2.5 text-left hover:bg-slate-50 transition-colors dark:border-slate-800 dark:hover:bg-slate-800/50"
-                >
-                  <Code2 className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                  <div>
-                    <p className="text-xs font-bold text-slate-800 dark:text-white">LeetCode Manager</p>
-                    <p className="text-[10px] text-slate-400">Edit student URLs & audit solves</p>
-                  </div>
-                </button>
+              <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
+                <p className="text-[11px] text-slate-400 font-mono">
+                  University ERP System v2.4.0 • Enterprise Academic Administration
+                </p>
               </div>
             </div>
           </div>
@@ -515,312 +418,8 @@ export default function Dashboards({
       { sem: 'Sem 4', GPA: currentStudent.cgpa }
     ];
 
-    const studentHandle = extractLeetCodeUsername(currentStudent.leetcodeUsername || currentStudent.leetcodeUrl || '');
-    const profileUrl = formatLeetCodeProfileUrl(currentStudent.leetcodeUrl || studentHandle);
-
     return (
       <div className="space-y-6">
-        {/* Real-Time LeetCode Coding Activity Spotlight Widget */}
-        <div className="relative overflow-hidden rounded-3xl border border-amber-300/70 bg-linear-to-r from-amber-500/10 via-slate-50 to-orange-500/10 p-6 shadow-sm dark:border-amber-900/40 dark:from-amber-950/40 dark:via-slate-900 dark:to-orange-950/20">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-500 text-white shadow-lg shadow-amber-500/25">
-                <Code2 className="h-6 w-6" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="font-sans text-base font-extrabold text-slate-900 dark:text-white">
-                    LeetCode Live Problem Solve Tracking
-                  </h3>
-                  <span className="rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    Live Sync
-                  </span>
-                </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  {studentHandle ? (
-                    <>Connected Profile: <strong className="text-amber-600 dark:text-amber-400 font-mono">@{studentHandle}</strong></>
-                  ) : (
-                    'No LeetCode profile URL configured yet. Ask Admin to assign your handle.'
-                  )}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2.5">
-              {studentHandle && (
-                <>
-                  <button
-                    onClick={() => refreshActiveStudentLC(true)}
-                    disabled={isFetchingStudentLC}
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-amber-300 bg-white px-3 py-2 text-xs font-bold text-amber-700 shadow-xs hover:bg-amber-50 transition-colors disabled:opacity-50 dark:border-amber-800 dark:bg-slate-800 dark:text-amber-300 dark:hover:bg-slate-700"
-                  >
-                    <RefreshCw className={`h-3.5 w-3.5 ${isFetchingStudentLC ? 'animate-spin' : ''}`} />
-                    <span>{isFetchingStudentLC ? 'Updating...' : 'Sync Count'}</span>
-                  </button>
-
-                  <a
-                    href={profileUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1.5 rounded-xl bg-amber-600 px-3.5 py-2 text-xs font-bold text-white shadow-md shadow-amber-600/20 hover:bg-amber-700 transition-colors"
-                  >
-                    <span>LeetCode Profile</span>
-                    <ExternalLink className="h-3.5 w-3.5" />
-                  </a>
-                </>
-              )}
-
-              <button
-                onClick={() => setActiveTab('leetcode')}
-                className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
-              >
-                <span>Leaderboard</span>
-                <Trophy className="h-3.5 w-3.5 text-amber-500" />
-              </button>
-            </div>
-          </div>
-
-          {studentHandle && studentLCStats && studentLCStats.found ? (
-            <div className="mt-6 space-y-4">
-              {/* Daily Streak & KPI Metrics Row */}
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                {/* Total Solved */}
-                <div className="rounded-2xl border border-amber-200/80 bg-white/90 p-4 backdrop-blur-xs shadow-2xs dark:border-amber-900/40 dark:bg-slate-900/90">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Total Solved</span>
-                    <Sparkles className="h-4 w-4 text-amber-500" />
-                  </div>
-                  <h4 className="text-3xl font-black font-mono text-amber-600 dark:text-amber-400 mt-1">
-                    {studentLCStats.totalSolved}
-                  </h4>
-                  <p className="text-[10px] text-slate-400 mt-1 font-mono">
-                    All-Time Problem Count
-                  </p>
-                </div>
-
-                {/* Today's Solves */}
-                <div className="rounded-2xl border border-orange-200/80 bg-linear-to-br from-orange-500/10 to-amber-500/5 p-4 backdrop-blur-xs shadow-2xs dark:border-orange-900/40 dark:bg-slate-900/90">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-orange-600 dark:text-orange-400">Daily Solves (Today)</span>
-                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-orange-100 text-orange-600 dark:bg-orange-950 dark:text-orange-400 font-bold text-[10px]">
-                      ⚡
-                    </span>
-                  </div>
-                  <h4 className="text-3xl font-black font-mono text-orange-600 dark:text-orange-400 mt-1">
-                    {studentLCStats.dailyProgress?.todaySolved || 0}
-                  </h4>
-                  <p className="text-[10px] text-orange-600/80 font-bold dark:text-orange-400/80 mt-1 font-mono">
-                    {(studentLCStats.dailyProgress?.todaySolved || 0) > 0 ? '✓ Daily Goal Met' : 'Daily Goal: 2 Problems'}
-                  </p>
-                </div>
-
-                {/* Daily Streak */}
-                <div className="rounded-2xl border border-rose-200/80 bg-linear-to-br from-rose-500/10 to-amber-500/5 p-4 backdrop-blur-xs shadow-2xs dark:border-rose-900/40 dark:bg-slate-900/90">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400">Active Streak</span>
-                    <Flame className="h-4.5 w-4.5 text-rose-500 animate-bounce" />
-                  </div>
-                  <div className="flex items-baseline gap-1 mt-1">
-                    <h4 className="text-3xl font-black font-mono text-rose-600 dark:text-rose-400">
-                      {studentLCStats.dailyProgress?.currentStreak || 1}
-                    </h4>
-                    <span className="text-xs font-bold text-slate-500">Days</span>
-                  </div>
-                  <p className="text-[10px] text-slate-400 mt-1 font-mono">
-                    Max: {studentLCStats.dailyProgress?.maxStreak || 14} days streak
-                  </p>
-                </div>
-
-                {/* Global Ranking */}
-                <div className="rounded-2xl border border-slate-200/80 bg-white/90 p-4 backdrop-blur-xs shadow-2xs dark:border-slate-800 dark:bg-slate-900/90">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Global Rank</span>
-                    <Trophy className="h-4 w-4 text-amber-500" />
-                  </div>
-                  <h4 className="text-2xl font-black font-mono text-slate-800 dark:text-white mt-1.5">
-                    {studentLCStats.ranking ? `#${studentLCStats.ranking.toLocaleString()}` : 'Top 5%'}
-                  </h4>
-                  <p className="text-[10px] text-slate-400 mt-1 font-mono">
-                    {studentLCStats.dailyProgress?.activeDaysCount || 34} Active Coding Days
-                  </p>
-                </div>
-              </div>
-
-              {/* Today's Daily Coding Challenge & 7-Day Activity Heatmap */}
-              <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
-                {/* Daily Challenge Card (5 cols) */}
-                <div className="rounded-2xl border border-amber-200/90 bg-white p-4.5 shadow-2xs dark:border-amber-900/50 dark:bg-slate-900 lg:col-span-5 flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-1.5">
-                        <span className="flex h-2 w-2 rounded-full bg-amber-500 animate-ping" />
-                        <span className="text-[11px] font-extrabold uppercase tracking-wider text-amber-700 dark:text-amber-400">
-                          LeetCode Daily Challenge
-                        </span>
-                      </div>
-                      <span className="rounded-md bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800 dark:bg-amber-950 dark:text-amber-300 font-mono">
-                        {studentLCStats.dailyProgress?.dailyChallenge?.date || 'Today'}
-                      </span>
-                    </div>
-
-                    <h5 className="font-sans text-sm font-extrabold text-slate-900 dark:text-white mt-1">
-                      {studentLCStats.dailyProgress?.dailyChallenge ? (
-                        <>
-                          <span className="text-amber-600 font-mono mr-1.5">#{studentLCStats.dailyProgress.dailyChallenge.questionFrontendId}</span>
-                          {studentLCStats.dailyProgress.dailyChallenge.title}
-                        </>
-                      ) : (
-                        'Stone Game V'
-                      )}
-                    </h5>
-
-                    <div className="mt-2.5 flex items-center gap-2">
-                      <span className={`rounded-md px-2 py-0.5 text-[10px] font-bold ${
-                        (studentLCStats.dailyProgress?.dailyChallenge?.difficulty || 'Medium') === 'Hard'
-                          ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300'
-                          : (studentLCStats.dailyProgress?.dailyChallenge?.difficulty || 'Medium') === 'Medium'
-                          ? 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300'
-                          : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'
-                      }`}>
-                        {studentLCStats.dailyProgress?.dailyChallenge?.difficulty || 'Medium'}
-                      </span>
-
-                      <span className="rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 flex items-center gap-1">
-                        <CheckCircle2 className="h-3 w-3" />
-                        {studentLCStats.dailyProgress?.dailyChallenge?.userStatus === 'Solved' ? 'Completed Today' : 'Streak Booster'}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                    <span className="text-[11px] text-slate-400 font-mono">Earn +10 LeetCoins & Badge</span>
-                    <a
-                      href={studentLCStats.dailyProgress?.dailyChallenge?.link || 'https://leetcode.com/problemset/all/'}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-1 text-xs font-bold text-amber-600 hover:underline dark:text-amber-400"
-                    >
-                      <span>Solve Challenge</span>
-                      <ExternalLink className="h-3.5 w-3.5" />
-                    </a>
-                  </div>
-                </div>
-
-                {/* 7-Day Activity Mini-Bars (7 cols) */}
-                <div className="rounded-2xl border border-slate-200 bg-white p-4.5 shadow-2xs dark:border-slate-800 dark:bg-slate-900 lg:col-span-7 flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <h5 className="font-sans text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-200">
-                        7-Day Problem Solving Velocity
-                      </h5>
-                      <span className="font-mono text-[10px] text-slate-400">
-                        Past 7 Days
-                      </span>
-                    </div>
-
-                    {/* Weekly Activity Bars */}
-                    <div className="grid grid-cols-7 gap-2 pt-3">
-                      {getWeeklyActivity(studentLCStats.dailyProgress?.calendar).map((day, idx) => (
-                        <div key={idx} className="flex flex-col items-center gap-1.5">
-                          <div className="h-16 w-full rounded-xl bg-slate-100 dark:bg-slate-800 flex items-end justify-center p-1 relative group">
-                            <div
-                              style={{ height: `${Math.min(100, Math.max(15, day.count * 25))}%` }}
-                              className={`w-full rounded-lg transition-all duration-500 ${
-                                day.count > 0
-                                  ? 'bg-linear-to-t from-amber-500 to-orange-400 shadow-xs'
-                                  : 'bg-slate-200 dark:bg-slate-700'
-                              }`}
-                            />
-                            {/* Tooltip */}
-                            <div className="absolute -top-7 hidden group-hover:flex rounded-md bg-slate-900 px-1.5 py-0.5 text-[9px] font-mono text-white shadow-md z-10 whitespace-nowrap dark:bg-white dark:text-slate-900">
-                              {day.count} solved
-                            </div>
-                          </div>
-                          <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 font-mono">
-                            {day.day}
-                          </span>
-                          <span className={`text-[9px] font-mono font-extrabold ${day.count > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-slate-400'}`}>
-                            {day.count > 0 ? `+${day.count}` : '0'}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Recent Submissions Snippet */}
-                  {studentLCStats.dailyProgress?.recentSubmissions && studentLCStats.dailyProgress.recentSubmissions.length > 0 && (
-                    <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px]">
-                      <span className="text-slate-400 font-mono">
-                        Latest: <strong className="text-slate-700 dark:text-slate-300 font-sans">{studentLCStats.dailyProgress.recentSubmissions[0].title}</strong>
-                      </span>
-                      <span className="font-mono text-[10px] text-amber-600 dark:text-amber-400">
-                        {formatSubmissionRelativeTime(studentLCStats.dailyProgress.recentSubmissions[0].timestamp)}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Difficulty Breakdown Progress Bars */}
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                {/* Easy Breakdown */}
-                <div className="rounded-xl border border-emerald-100 bg-white/90 p-3 shadow-2xs dark:border-emerald-950 dark:bg-slate-900/90 space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Easy ({studentLCStats.easySolved})</span>
-                    <span className="font-mono text-[10px] text-slate-400">
-                      {Math.round(((studentLCStats.easySolved || 0) / (studentLCStats.totalSolved || 1)) * 100)}%
-                    </span>
-                  </div>
-                  <div className="h-1.5 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
-                    <div
-                      style={{ width: `${Math.min(100, ((studentLCStats.easySolved || 0) / (studentLCStats.totalSolved || 1)) * 100)}%` }}
-                      className="h-full bg-emerald-500 rounded-full"
-                    />
-                  </div>
-                </div>
-
-                {/* Medium Breakdown */}
-                <div className="rounded-xl border border-amber-100 bg-white/90 p-3 shadow-2xs dark:border-amber-950 dark:bg-slate-900/90 space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">Medium ({studentLCStats.mediumSolved})</span>
-                    <span className="font-mono text-[10px] text-slate-400">
-                      {Math.round(((studentLCStats.mediumSolved || 0) / (studentLCStats.totalSolved || 1)) * 100)}%
-                    </span>
-                  </div>
-                  <div className="h-1.5 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
-                    <div
-                      style={{ width: `${Math.min(100, ((studentLCStats.mediumSolved || 0) / (studentLCStats.totalSolved || 1)) * 100)}%` }}
-                      className="h-full bg-amber-500 rounded-full"
-                    />
-                  </div>
-                </div>
-
-                {/* Hard Breakdown */}
-                <div className="rounded-xl border border-rose-100 bg-white/90 p-3 shadow-2xs dark:border-rose-950 dark:bg-slate-900/90 space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400">Hard ({studentLCStats.hardSolved})</span>
-                    <span className="font-mono text-[10px] text-slate-400">
-                      {Math.round(((studentLCStats.hardSolved || 0) / (studentLCStats.totalSolved || 1)) * 100)}%
-                    </span>
-                  </div>
-                  <div className="h-1.5 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
-                    <div
-                      style={{ width: `${Math.min(100, ((studentLCStats.hardSolved || 0) / (studentLCStats.totalSolved || 1)) * 100)}%` }}
-                      className="h-full bg-rose-500 rounded-full"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : studentHandle ? (
-            <div className="mt-4 rounded-2xl bg-white/60 p-4 text-xs font-mono text-slate-500 dark:bg-slate-900/60 flex items-center justify-between">
-              <span>Fetching real-time solve counts for @{studentHandle}...</span>
-              <RefreshCw className="h-4 w-4 animate-spin text-amber-500" />
-            </div>
-          ) : null}
-        </div>
-
         {/* Academic Metrics Grid */}
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
           <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900">
@@ -915,13 +514,6 @@ export default function Dashboards({
               <h4 className="font-sans text-sm font-bold text-slate-900 dark:text-white mb-4">Student Action Board</h4>
               <div className="space-y-3">
                 <button
-                  onClick={() => setActiveTab('leetcode')}
-                  className="w-full flex items-center justify-between rounded-xl bg-amber-50 border border-amber-200 p-3 text-xs font-semibold text-amber-800 hover:bg-amber-100 transition-colors dark:bg-amber-950/20 dark:border-amber-900 dark:text-amber-300"
-                >
-                  <span>Coding Hub & Leaderboard</span>
-                  <Code2 className="h-4.5 w-4.5 text-amber-500" />
-                </button>
-                <button
                   onClick={() => setActiveTab('assignments')}
                   className="w-full flex items-center justify-between rounded-xl bg-teal-50 border border-teal-100 p-3 text-xs font-semibold text-teal-700 hover:bg-teal-100 transition-colors dark:bg-teal-950/20 dark:border-teal-900 dark:text-teal-300"
                 >
@@ -935,12 +527,19 @@ export default function Dashboards({
                   <span>View Weekly Timetable</span>
                   <Clock className="h-4.5 w-4.5 text-teal-500" />
                 </button>
+                <button
+                  onClick={() => setActiveTab('exams')}
+                  className="w-full flex items-center justify-between rounded-xl bg-slate-50 border border-slate-200 p-3 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors dark:bg-slate-900 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-800"
+                >
+                  <span>Check Exam Grades</span>
+                  <FileText className="h-4.5 w-4.5 text-emerald-500" />
+                </button>
               </div>
             </div>
 
             <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200/50 dark:border-slate-800 mt-4">
               <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed font-sans">
-                <strong>Placement Cell Notice:</strong> Consistent LeetCode activity (150+ problems) is verified by recruiters during semester recruitment drives.
+                <strong>Academic Notice:</strong> Semester examinations schedule and hall tickets will be issued through the Examinations module.
               </p>
             </div>
           </div>

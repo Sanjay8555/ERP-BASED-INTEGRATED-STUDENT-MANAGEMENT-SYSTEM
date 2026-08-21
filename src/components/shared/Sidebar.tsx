@@ -19,9 +19,7 @@ import {
   Settings,
   X,
   Building,
-  Code2,
-  BookOpen,
-  FolderGit2
+  BookOpen
 } from 'lucide-react';
 import { UserRole } from '../../types';
 
@@ -37,8 +35,6 @@ export default function Sidebar({ activeTab, setActiveTab, role, isOpen, setIsOp
   // Define menu items and their role permissions
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: GraduationCap, roles: ['Admin', 'Faculty', 'Student', 'Parent', 'Accountant'] },
-    { id: 'leetcode', label: 'LeetCode Hub', icon: Code2, roles: ['Admin', 'Faculty', 'Student'] },
-    { id: 'github', label: 'GitHub Tracker', icon: FolderGit2, roles: ['Admin', 'Faculty', 'Student'] },
     { id: 'students', label: 'Students', icon: Users, roles: ['Admin', 'Faculty', 'Accountant'] },
     { id: 'courses', label: 'Subjects / Curriculum', icon: BookOpen, roles: ['Admin', 'Faculty', 'Student', 'Parent'] },
     { id: 'faculty', label: 'Faculty', icon: Briefcase, roles: ['Admin', 'Faculty'] },

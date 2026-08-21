@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Search,
   UserPlus,
@@ -11,51 +11,13 @@ import {
   Trash2,
   Filter,
   X,
-  GraduationCap,
-  Calendar,
-  Phone,
-  MapPin,
-  Mail,
-  User,
   Camera,
   Eye,
   EyeOff,
-  Code2,
-  ExternalLink,
-  RefreshCw,
-  CheckCircle2,
-  AlertCircle,
-  Sparkles,
-  Award,
-  Download,
-  FolderGit2,
   ArrowUpDown
 } from 'lucide-react';
-import { StudentProfile, User as UserType, Department, LeetCodeStats, GitHubStats } from '../../types';
+import { StudentProfile, User as UserType, Department } from '../../types';
 import ProfilePhotoModal from '../shared/ProfilePhotoModal';
-import {
-  fetchBatchLeetCodeStats,
-  fetchStudentLeetCodeStats,
-  extractLeetCodeUsername,
-  formatLeetCodeProfileUrl,
-  updateStudentLeetCodeUrl
-} from '../../services/leetcodeService';
-import {
-  buildLeetCodeExportRecords,
-  exportDetailedLeetCodeCSV,
-  calculateAcademicYear,
-  getAcademicYearLabel
-} from '../../services/leetcodeExportService';
-import {
-  extractGitHubUsername,
-  formatGitHubProfileUrl,
-  fetchBatchGitHubStats,
-  fetchStudentGitHubStats
-} from '../../services/githubService';
-import {
-  buildGitHubExportRecords,
-  exportDetailedGitHubCSV
-} from '../../services/githubExportService';
 
 interface StudentManagementProps {
   students: StudentProfile[];
@@ -99,56 +61,14 @@ export default function StudentManagement({
   const [departmentId, setDepartmentId] = useState('');
   const [photo, setPhoto] = useState('https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=120');
   const [showPhotoModal, setShowPhotoModal] = useState(false);
-  const [leetcodeUrl, setLeetcodeUrl] = useState('');
-  const [githubUrl, setGithubUrl] = useState('');
-  const [testingHandle, setTestingHandle] = useState(false);
-  const [testStatsResult, setTestStatsResult] = useState<LeetCodeStats | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Real-Time LeetCode & GitHub Stats State
-  const [leetcodeStatsMap, setLeetcodeStatsMap] = useState<Record<string, LeetCodeStats>>({});
-  const [githubStatsMap, setGithubStatsMap] = useState<Record<string, GitHubStats>>({});
-  const [isRefreshingLeetCode, setIsRefreshingLeetCode] = useState(false);
-
   // Sorting & Indexing State
-  const [sortBy, setSortBy] = useState<'name' | 'rollNo' | 'cgpa' | 'semester' | 'leetcode' | 'github'>('name');
+  const [sortBy, setSortBy] = useState<'name' | 'rollNo' | 'cgpa' | 'semester'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [selectedLetter, setSelectedLetter] = useState<string>('All');
 
-  // Quick Edit LeetCode Modal for Admin
-  const [quickEditStudent, setQuickEditStudent] = useState<StudentProfile | null>(null);
-  const [quickLeetcodeUrl, setQuickLeetcodeUrl] = useState('');
-  const [isSavingQuickEdit, setIsSavingQuickEdit] = useState(false);
-  const [quickEditMsg, setQuickEditMsg] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
-  const [quickPreviewStats, setQuickPreviewStats] = useState<LeetCodeStats | null>(null);
-  const [isTestingQuick, setIsTestingQuick] = useState(false);
-
   const canModify = role === 'Admin';
-
-  // Load real-time LeetCode & GitHub statistics on mount & when students change
-  useEffect(() => {
-    loadRealtimeStats();
-  }, [students]);
-
-  const loadRealtimeStats = async (forceRefresh = false) => {
-    setIsRefreshingLeetCode(true);
-    const lcHandles = students
-      .map(s => s.leetcodeUrl || s.leetcodeUsername || '')
-      .filter(Boolean);
-    const ghHandles = students
-      .map(s => s.githubUrl || s.githubUsername || s.leetcodeUsername || '')
-      .filter(Boolean);
-
-    if (lcHandles.length > 0) {
-      const stats = await fetchBatchLeetCodeStats(lcHandles, forceRefresh);
-      setLeetcodeStatsMap(prev => ({ ...prev, ...stats }));
-    }
-    if (ghHandles.length > 0) {
-      const ghStats = await fetchBatchGitHubStats(ghHandles, forceRefresh);
-      setGithubStatsMap(prev => ({ ...prev, ...ghStats }));
-    }
-    setIsRefreshingLeetCode(false);
-  };
 
   const resetForm = () => {
     setName('');
@@ -167,9 +87,6 @@ export default function StudentManagement({
     setAddress('');
     setDepartmentId(departments[0]?.id || '');
     setPhoto('https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=120');
-    setLeetcodeUrl('');
-    setGithubUrl('');
-    setTestStatsResult(null);
     setErrors({});
     setEditingStudent(null);
   };
@@ -198,82 +115,8 @@ export default function StudentManagement({
     setAddress(student.address);
     setDepartmentId(student.departmentId);
     setPhoto(user?.photo || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=120');
-    setLeetcodeUrl(student.leetcodeUrl || (student.leetcodeUsername ? `https://leetcode.com/u/${student.leetcodeUsername}/` : ''));
-    setGithubUrl(student.githubUrl || (student.githubUsername ? `https://github.com/${student.githubUsername}` : ''));
-    setTestStatsResult(null);
     setErrors({});
     setShowModal(true);
-  };
-
-  // Test live LeetCode handle in modal
-  const handleTestLeetCodeHandle = async () => {
-    const handle = extractLeetCodeUsername(leetcodeUrl);
-    if (!handle) {
-      alert('Please enter a valid LeetCode handle or URL (e.g. https://leetcode.com/u/username or username)');
-      return;
-    }
-    setTestingHandle(true);
-    setTestStatsResult(null);
-    const stats = await fetchStudentLeetCodeStats(handle, true);
-    setTestStatsResult(stats);
-    setTestingHandle(false);
-  };
-
-  // Open Quick Edit Modal for Admin
-  const handleOpenQuickEdit = (student: StudentProfile) => {
-    setQuickEditStudent(student);
-    setQuickLeetcodeUrl(student.leetcodeUrl || (student.leetcodeUsername ? `https://leetcode.com/u/${student.leetcodeUsername}/` : ''));
-    setQuickEditMsg(null);
-    setQuickPreviewStats(null);
-  };
-
-  // Test handle inside Quick Edit Modal
-  const handleTestQuickHandle = async () => {
-    const handle = extractLeetCodeUsername(quickLeetcodeUrl);
-    if (!handle) return;
-    setIsTestingQuick(true);
-    const stats = await fetchStudentLeetCodeStats(handle, true);
-    setQuickPreviewStats(stats);
-    setIsTestingQuick(false);
-  };
-
-  // Save Quick LeetCode URL edit
-  const handleSaveQuickEdit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!quickEditStudent) return;
-
-    setIsSavingQuickEdit(true);
-    setQuickEditMsg(null);
-
-    const cleanHandle = extractLeetCodeUsername(quickLeetcodeUrl);
-    const normalizedUrl = cleanHandle ? (quickLeetcodeUrl.startsWith('http') ? quickLeetcodeUrl : `https://leetcode.com/u/${cleanHandle}/`) : '';
-
-    const updatedStudent: StudentProfile = {
-      ...quickEditStudent,
-      leetcodeUrl: normalizedUrl,
-      leetcodeUsername: cleanHandle
-    };
-
-    const user = users.find(u => u.id === quickEditStudent.userId);
-    if (user) {
-      onUpdateStudent(updatedStudent, user);
-    }
-
-    // Also persist via direct API helper
-    await updateStudentLeetCodeUrl(quickEditStudent.id, normalizedUrl);
-
-    // Fetch fresh stats for newly assigned handle
-    if (cleanHandle) {
-      const stats = await fetchStudentLeetCodeStats(cleanHandle, true);
-      setLeetcodeStatsMap(prev => ({ ...prev, [cleanHandle]: stats, [normalizedUrl]: stats }));
-    }
-
-    setQuickEditMsg({ text: 'LeetCode profile URL updated successfully!', type: 'success' });
-    setIsSavingQuickEdit(false);
-
-    setTimeout(() => {
-      setQuickEditStudent(null);
-    }, 1200);
   };
 
   const validate = () => {
@@ -296,15 +139,6 @@ export default function StudentManagement({
     if (!validate()) return;
 
     const finalParentPassword = parentPassword || 'parentPass2026!';
-    const cleanHandle = extractLeetCodeUsername(leetcodeUrl);
-    const normalizedUrl = cleanHandle
-      ? (leetcodeUrl.startsWith('http') ? leetcodeUrl : `https://leetcode.com/u/${cleanHandle}/`)
-      : '';
-
-    const cleanGhHandle = extractGitHubUsername(githubUrl);
-    const normalizedGhUrl = cleanGhHandle
-      ? (githubUrl.startsWith('http') ? githubUrl : `https://github.com/${cleanGhHandle}`)
-      : '';
 
     if (editingStudent) {
       const updatedUser: UserType = {
@@ -330,11 +164,7 @@ export default function StudentManagement({
         parentEmail,
         parentPassword: finalParentPassword,
         address,
-        departmentId,
-        leetcodeUrl: normalizedUrl,
-        leetcodeUsername: cleanHandle,
-        githubUrl: normalizedGhUrl,
-        githubUsername: cleanGhHandle
+        departmentId
       };
       onUpdateStudent(updatedStudent, updatedUser);
     } else {
@@ -364,29 +194,14 @@ export default function StudentManagement({
         parentEmail,
         parentPassword: finalParentPassword,
         address,
-        departmentId,
-        leetcodeUrl: normalizedUrl,
-        leetcodeUsername: cleanHandle,
-        githubUrl: normalizedGhUrl,
-        githubUsername: cleanGhHandle
+        departmentId
       };
       onAddStudent(newStudent, newUser);
     }
     setShowModal(false);
   };
 
-  // Helper to look up stats for a student
-  const getStudentStats = (student: StudentProfile): LeetCodeStats | undefined => {
-    const handle = extractLeetCodeUsername(student.leetcodeUsername || student.leetcodeUrl || '');
-    if (!handle) return undefined;
-    return (
-      leetcodeStatsMap[handle.toLowerCase()] ||
-      leetcodeStatsMap[handle] ||
-      (student.leetcodeUrl ? leetcodeStatsMap[student.leetcodeUrl] : undefined)
-    );
-  };
-
-  const handleToggleSort = (field: 'name' | 'rollNo' | 'cgpa' | 'semester' | 'leetcode') => {
+  const handleToggleSort = (field: 'name' | 'rollNo' | 'cgpa' | 'semester') => {
     if (sortBy === field) {
       setSortOrder(prev => (prev === 'asc' ? 'desc' : 'asc'));
     } else {
@@ -402,9 +217,7 @@ export default function StudentManagement({
       const matchesSearch =
         (user?.name.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
         student.rollNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (user?.email.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
-        (student.leetcodeUsername && student.leetcodeUsername.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (student.githubUsername && student.githubUsername.toLowerCase().includes(searchTerm.toLowerCase()));
+        (user?.email.toLowerCase().includes(searchTerm.toLowerCase()) ?? false);
 
       const matchesDept = selectedDept === 'All' || student.departmentId === selectedDept;
 
@@ -429,23 +242,13 @@ export default function StudentManagement({
         comp = b.cgpa - a.cgpa;
       } else if (sortBy === 'semester') {
         comp = b.currentSemester - a.currentSemester;
-      } else if (sortBy === 'leetcode') {
-        const statsA = getStudentStats(a)?.totalSolved || 0;
-        const statsB = getStudentStats(b)?.totalSolved || 0;
-        comp = statsB - statsA;
-      } else if (sortBy === 'github') {
-        const handleA = extractGitHubUsername(a.githubUsername || a.githubUrl || '');
-        const handleB = extractGitHubUsername(b.githubUsername || b.githubUrl || '');
-        const statsA = githubStatsMap[handleA]?.publicRepos || 0;
-        const statsB = githubStatsMap[handleB]?.publicRepos || 0;
-        comp = statsB - statsA;
       }
 
       return sortOrder === 'asc' ? comp : -comp;
     });
 
     return list;
-  }, [students, users, searchTerm, selectedDept, selectedLetter, sortBy, sortOrder, leetcodeStatsMap, githubStatsMap]);
+  }, [students, users, searchTerm, selectedDept, selectedLetter, sortBy, sortOrder]);
 
   return (
     <div className="space-y-6">
@@ -457,7 +260,7 @@ export default function StudentManagement({
               <Search className="absolute top-3 left-3 h-4 w-4 text-slate-400" />
               <input
                 type="text"
-                placeholder="Search Student (Name, Roll No, LeetCode Handle)..."
+                placeholder="Search Student (Name, Roll No, Email)..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pr-4 pl-10 text-xs font-semibold text-slate-800 focus:border-teal-500 focus:outline-hidden dark:border-slate-800 dark:bg-slate-900 dark:text-white"
@@ -491,8 +294,6 @@ export default function StudentManagement({
                 <option value="rollNo">🔢 Roll Number</option>
                 <option value="cgpa">🎓 Academic CGPA</option>
                 <option value="semester">📅 Semester</option>
-                <option value="leetcode">⭐ LeetCode Solves</option>
-                <option value="github">📁 GitHub Repos</option>
               </select>
 
               <button
@@ -508,49 +309,6 @@ export default function StudentManagement({
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            {/* Refresh Real-Time LeetCode Button */}
-            <button
-              onClick={() => loadRealtimeStats(true)}
-              disabled={isRefreshingLeetCode}
-              title="Refresh real-time problem counts for all students"
-              className="inline-flex items-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50/80 px-3 py-2 text-xs font-bold text-amber-700 hover:bg-amber-100 transition-colors disabled:opacity-50 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-300"
-            >
-              <RefreshCw className={`h-3.5 w-3.5 ${isRefreshingLeetCode ? 'animate-spin' : ''}`} />
-              <span className="hidden sm:inline">{isRefreshingLeetCode ? 'Syncing...' : 'Sync'}</span>
-            </button>
-
-            {/* Download LeetCode Details CSV Button */}
-            <button
-              onClick={() => {
-                const selectedDeptObj = departments.find(d => d.id === selectedDept);
-                const deptCode = selectedDept === 'All' ? 'All' : (selectedDeptObj?.code || selectedDept);
-                const records = buildLeetCodeExportRecords(students, users, departments, leetcodeStatsMap);
-                const filtered = records.filter(r => selectedDept === 'All' || r.departmentCode === deptCode);
-                exportDetailedLeetCodeCSV(filtered, deptCode, 'AllYears');
-              }}
-              title="Download student LeetCode links and total solved data as CSV"
-              className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-100 transition-colors dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300"
-            >
-              <Download className="h-3.5 w-3.5" />
-              <span>LeetCode CSV</span>
-            </button>
-
-            {/* Download GitHub Details CSV Button */}
-            <button
-              onClick={() => {
-                const selectedDeptObj = departments.find(d => d.id === selectedDept);
-                const deptCode = selectedDept === 'All' ? 'All' : (selectedDeptObj?.code || selectedDept);
-                const records = buildGitHubExportRecords(students, users, departments, githubStatsMap);
-                const filtered = records.filter(r => selectedDept === 'All' || r.departmentCode === deptCode);
-                exportDetailedGitHubCSV(filtered, deptCode, 'AllYears');
-              }}
-              title="Download student GitHub profile links and repository data as CSV"
-              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-slate-100 px-3 py-2 text-xs font-bold text-slate-800 hover:bg-slate-200 transition-colors dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
-            >
-              <FolderGit2 className="h-3.5 w-3.5 text-teal-600" />
-              <span>GitHub CSV</span>
-            </button>
-
             {canModify && (
               <button
                 id="register-student-btn"
@@ -637,21 +395,6 @@ export default function StudentManagement({
                     )}
                   </div>
                 </th>
-                <th
-                  onClick={() => handleToggleSort('leetcode')}
-                  className="px-5 py-4 cursor-pointer select-none hover:bg-slate-100/60 dark:hover:bg-slate-800/50 transition-colors group"
-                  title="Click to sort by LeetCode Solves"
-                >
-                  <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
-                    <Code2 className="h-4 w-4" />
-                    <span>Realtime LeetCode Stats</span>
-                    {sortBy === 'leetcode' && (
-                      <span className="inline-flex items-center rounded-md bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-700 dark:bg-amber-950 dark:text-amber-300 border border-amber-200 dark:border-amber-900">
-                        {sortOrder === 'asc' ? '↑' : '↓'}
-                      </span>
-                    )}
-                  </div>
-                </th>
                 <th className="px-5 py-4">Parent Details</th>
                 {canModify && <th className="px-5 py-4 text-right">Actions</th>}
               </tr>
@@ -661,9 +404,6 @@ export default function StudentManagement({
                 filteredStudents.map((student) => {
                   const user = users.find(u => u.id === student.userId);
                   const dept = departments.find(d => d.id === student.departmentId);
-                  const handle = extractLeetCodeUsername(student.leetcodeUsername || student.leetcodeUrl || '');
-                  const stats = getStudentStats(student);
-                  const profileUrl = formatLeetCodeProfileUrl(student.leetcodeUrl || handle);
 
                   return (
                     <tr key={student.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
@@ -691,74 +431,6 @@ export default function StudentManagement({
                         </span>
                         <p className="text-[10px] text-slate-400 mt-0.5">Sem {student.currentSemester}</p>
                       </td>
-
-                      {/* Real-time LeetCode Problem Count Column */}
-                      <td className="px-5 py-4">
-                        {handle ? (
-                          <div className="space-y-1.5">
-                            <div className="flex items-center gap-2">
-                              <span className="inline-flex items-center gap-1 rounded-lg bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 text-xs font-bold text-amber-600 dark:text-amber-400">
-                                <Sparkles className="h-3 w-3 text-amber-500" />
-                                <span className="font-mono">{stats ? `${stats.totalSolved} Solved` : 'Fetching...'}</span>
-                              </span>
-
-                              <a
-                                href={profileUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                title={`Open ${handle}'s LeetCode profile`}
-                                className="inline-flex items-center gap-1 text-[11px] font-mono font-medium text-slate-500 hover:text-amber-600 dark:text-slate-400 dark:hover:text-amber-400"
-                              >
-                                <span>@{handle}</span>
-                                <ExternalLink className="h-3 w-3" />
-                              </a>
-
-                              {canModify && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleOpenQuickEdit(student)}
-                                  title="Admin: Edit Student's LeetCode Profile URL"
-                                  className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-amber-600 dark:hover:bg-slate-800 transition-colors"
-                                >
-                                  <Edit className="h-3 w-3" />
-                                </button>
-                              )}
-                            </div>
-
-                            {stats && stats.found && (
-                              <div className="flex items-center gap-1.5 text-[10px] font-mono">
-                                <span className="text-emerald-600 dark:text-emerald-400 font-semibold">E:{stats.easySolved}</span>
-                                <span className="text-slate-300 dark:text-slate-600">•</span>
-                                <span className="text-amber-600 dark:text-amber-400 font-semibold">M:{stats.mediumSolved}</span>
-                                <span className="text-slate-300 dark:text-slate-600">•</span>
-                                <span className="text-rose-600 dark:text-rose-400 font-semibold">H:{stats.hardSolved}</span>
-                                {stats.ranking ? (
-                                  <>
-                                    <span className="text-slate-300 dark:text-slate-600">•</span>
-                                    <span className="text-slate-400">#{stats.ranking.toLocaleString()}</span>
-                                  </>
-                                ) : null}
-                              </div>
-                            )}
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2">
-                            <span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500 dark:bg-slate-800 dark:text-slate-400">
-                              Not Linked
-                            </span>
-                            {canModify && (
-                              <button
-                                type="button"
-                                onClick={() => handleOpenQuickEdit(student)}
-                                className="inline-flex items-center gap-1 text-[10px] font-bold text-teal-600 hover:underline"
-                              >
-                                + Link LeetCode
-                              </button>
-                            )}
-                          </div>
-                        )}
-                      </td>
-
                       <td className="px-5 py-4">
                         <p className="font-semibold text-slate-800 dark:text-slate-300">{student.parentName}</p>
                         <p className="font-mono text-[10px] text-slate-400 mt-0.5">{student.parentPhone}</p>
@@ -788,7 +460,7 @@ export default function StudentManagement({
                 })
               ) : (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
+                  <td colSpan={5} className="px-6 py-12 text-center text-slate-400">
                     No student records found matching the query.
                   </td>
                 </tr>
@@ -797,128 +469,6 @@ export default function StudentManagement({
           </table>
         </div>
       </div>
-
-      {/* Quick Edit LeetCode Modal for Admin */}
-      {quickEditStudent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-xs">
-          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-900 animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
-                  <Code2 className="h-5 w-5" />
-                </div>
-                <div>
-                  <h3 className="font-sans text-sm font-bold text-slate-900 dark:text-white">
-                    Edit LeetCode Profile URL
-                  </h3>
-                  <p className="text-[11px] text-slate-400 font-mono">
-                    {quickEditStudent.rollNo} • {users.find(u => u.id === quickEditStudent.userId)?.name}
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setQuickEditStudent(null)}
-                className="rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 p-1"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveQuickEdit} className="space-y-4">
-              {quickEditMsg && (
-                <div
-                  className={`flex items-center gap-2 rounded-xl p-3 text-xs font-semibold ${
-                    quickEditMsg.type === 'success'
-                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-900'
-                      : 'bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/30 dark:border-rose-900'
-                  }`}
-                >
-                  {quickEditMsg.type === 'success' ? <CheckCircle2 className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
-                  <span>{quickEditMsg.text}</span>
-                </div>
-              )}
-
-              <div>
-                <label className="block text-xs font-bold uppercase text-slate-400 mb-1.5">
-                  LeetCode Profile URL or Handle
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={quickLeetcodeUrl}
-                    onChange={(e) => {
-                      setQuickLeetcodeUrl(e.target.value);
-                      setQuickPreviewStats(null);
-                    }}
-                    placeholder="https://leetcode.com/u/sanjay/ or sanjay"
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-800 focus:bg-white focus:outline-hidden dark:border-slate-800 dark:bg-slate-950 dark:text-white"
-                  />
-                </div>
-                <div className="flex items-center justify-between mt-1.5">
-                  <p className="text-[10px] text-slate-400 font-mono">
-                    Parsed Handle: <strong className="text-amber-600 dark:text-amber-400">@{extractLeetCodeUsername(quickLeetcodeUrl) || '—'}</strong>
-                  </p>
-                  {extractLeetCodeUsername(quickLeetcodeUrl) && (
-                    <button
-                      type="button"
-                      onClick={handleTestQuickHandle}
-                      disabled={isTestingQuick}
-                      className="text-[10px] font-bold text-teal-600 hover:underline flex items-center gap-1"
-                    >
-                      {isTestingQuick ? <RefreshCw className="h-3 w-3 animate-spin" /> : null}
-                      Test Realtime Stats
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Live Preview Card */}
-              {quickPreviewStats && (
-                <div className="rounded-xl border border-amber-200/60 bg-amber-50/50 p-3 dark:border-amber-900/40 dark:bg-amber-950/20 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold text-slate-800 dark:text-white flex items-center gap-1.5">
-                      <Sparkles className="h-3.5 w-3.5 text-amber-500" />
-                      Live Verified LeetCode Data:
-                    </span>
-                    <span className="text-xs font-mono font-black text-amber-600 dark:text-amber-400">
-                      {quickPreviewStats.totalSolved} Solved
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-3 gap-2 text-center text-[10px] font-bold font-mono">
-                    <div className="rounded-lg bg-emerald-500/10 p-1 text-emerald-600 dark:text-emerald-400">
-                      Easy: {quickPreviewStats.easySolved}
-                    </div>
-                    <div className="rounded-lg bg-amber-500/10 p-1 text-amber-600 dark:text-amber-400">
-                      Medium: {quickPreviewStats.mediumSolved}
-                    </div>
-                    <div className="rounded-lg bg-rose-500/10 p-1 text-rose-600 dark:text-rose-400">
-                      Hard: {quickPreviewStats.hardSolved}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-                <button
-                  type="button"
-                  onClick={() => setQuickEditStudent(null)}
-                  className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-800"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSavingQuickEdit}
-                  className="rounded-xl bg-amber-600 px-4 py-2 text-xs font-bold text-white shadow-md hover:bg-amber-700 transition-colors disabled:opacity-50 flex items-center gap-1.5"
-                >
-                  {isSavingQuickEdit ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
-                  <span>Save LeetCode URL</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* Add/Edit Student Profile Modal */}
       {showModal && (
@@ -1074,107 +624,6 @@ export default function StudentManagement({
                       <option key={d.id} value={d.id}>{d.name}</option>
                     ))}
                   </select>
-                </div>
-              </div>
-
-              {/* LeetCode Profile URL Integration Section */}
-              <div className="rounded-xl border border-amber-200/70 bg-amber-50/40 p-4 dark:border-amber-900/30 dark:bg-amber-950/20 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Code2 className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                    <h4 className="font-sans text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
-                      LeetCode Profile Configuration (Real-Time Solve Tracking)
-                    </h4>
-                  </div>
-                  <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-widest">
-                    Admin Managed
-                  </span>
-                </div>
-
-                <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                  Provide the student's LeetCode profile URL or username to automatically sync their live problem solve count across dashboards.
-                </p>
-
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <input
-                      type="text"
-                      value={leetcodeUrl}
-                      onChange={(e) => {
-                        setLeetcodeUrl(e.target.value);
-                        setTestStatsResult(null);
-                      }}
-                      placeholder="https://leetcode.com/u/sanjay/ or sanjay"
-                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-800 focus:border-amber-500 focus:outline-hidden dark:border-slate-800 dark:bg-slate-900 dark:text-white"
-                    />
-                  </div>
-                  {extractLeetCodeUsername(leetcodeUrl) && (
-                    <button
-                      type="button"
-                      onClick={handleTestLeetCodeHandle}
-                      disabled={testingHandle}
-                      className="rounded-xl bg-amber-600 px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-amber-700 transition-colors disabled:opacity-50 flex items-center gap-1.5 whitespace-nowrap"
-                    >
-                      {testingHandle ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-                      <span>Test & Verify</span>
-                    </button>
-                  )}
-                </div>
-
-                {testStatsResult && (
-                  <div className="rounded-xl border border-amber-300 bg-white p-3 dark:border-amber-800 dark:bg-slate-900 space-y-1.5 animate-in fade-in">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                        <CheckCircle2 className="h-3.5 w-3.5" />
-                        Account Verified: @{testStatsResult.username}
-                      </span>
-                      <span className="text-xs font-mono font-black text-amber-600 dark:text-amber-400">
-                        {testStatsResult.totalSolved} Total Solved
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-3 text-[11px] font-mono">
-                      <span className="text-emerald-600">Easy: {testStatsResult.easySolved}</span>
-                      <span className="text-amber-600">Med: {testStatsResult.mediumSolved}</span>
-                      <span className="text-rose-600">Hard: {testStatsResult.hardSolved}</span>
-                      {testStatsResult.ranking ? (
-                        <span className="text-slate-400">Global Rank: #{testStatsResult.ranking.toLocaleString()}</span>
-                      ) : null}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* GitHub Profile Configuration Box */}
-              <div className="rounded-2xl border border-slate-300 bg-slate-50/70 p-4 dark:border-slate-800 dark:bg-slate-950/40 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <FolderGit2 className="h-4 w-4 text-teal-600 dark:text-teal-400" />
-                    <h4 className="font-sans text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
-                      GitHub Developer Profile Configuration
-                    </h4>
-                  </div>
-                  <span className="text-[10px] font-bold text-teal-600 dark:text-teal-400 uppercase tracking-widest">
-                    Open Source
-                  </span>
-                </div>
-
-                <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                  Provide the student's GitHub profile URL or username to track their public repositories, stars, and commit streaks.
-                </p>
-
-                <div>
-                  <input
-                    type="text"
-                    value={githubUrl}
-                    onChange={(e) => setGithubUrl(e.target.value)}
-                    placeholder="https://github.com/username or username"
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-800 focus:border-teal-500 focus:outline-hidden dark:border-slate-800 dark:bg-slate-900 dark:text-white"
-                  />
-                  {extractGitHubUsername(githubUrl) && (
-                    <p className="text-[10px] text-slate-400 font-mono mt-1">
-                      Parsed Handle: <strong className="text-teal-600 dark:text-teal-400">@{extractGitHubUsername(githubUrl)}</strong>
-                    </p>
-                  )}
                 </div>
               </div>
 

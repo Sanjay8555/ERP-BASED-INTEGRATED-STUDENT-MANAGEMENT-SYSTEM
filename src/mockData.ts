@@ -537,11 +537,7 @@ export const initialStudentProfiles: StudentProfile[] = [
     parentEmail: 'parent@university.edu',
     parentPassword: 'parentPass2026!',
     address: 'Sathy Road, Coimbatore, Tamil Nadu',
-    departmentId: 'dept-5',
-    leetcodeUrl: 'https://leetcode.com/u/sanjay/',
-    leetcodeUsername: 'sanjay',
-    githubUrl: 'https://github.com/sanjay-k',
-    githubUsername: 'sanjay-k'
+    departmentId: 'dept-5'
   },
   {
     id: 's-2',
@@ -556,11 +552,7 @@ export const initialStudentProfiles: StudentProfile[] = [
     parentEmail: 'monica@rivera.com',
     parentPassword: 'parentPass2026!',
     address: 'Avinashi Road, Coimbatore, Tamil Nadu',
-    departmentId: 'dept-5',
-    leetcodeUrl: 'https://leetcode.com/u/neal_wu/',
-    leetcodeUsername: 'neal_wu',
-    githubUrl: 'https://github.com/nealwu',
-    githubUsername: 'nealwu'
+    departmentId: 'dept-5'
   },
   {
     id: 's-3',
@@ -575,11 +567,7 @@ export const initialStudentProfiles: StudentProfile[] = [
     parentEmail: 'rajasekar@gmail.com',
     parentPassword: 'parentPass2026!',
     address: 'Gandhipuram, Coimbatore, Tamil Nadu',
-    departmentId: 'dept-5',
-    leetcodeUrl: 'https://leetcode.com/u/tourist/',
-    leetcodeUsername: 'tourist',
-    githubUrl: 'https://github.com/tourist',
-    githubUsername: 'tourist'
+    departmentId: 'dept-5'
   },
   {
     id: 's-4',
@@ -594,11 +582,7 @@ export const initialStudentProfiles: StudentProfile[] = [
     parentEmail: 'sundar@gmail.com',
     parentPassword: 'parentPass2026!',
     address: 'Peelamedu, Coimbatore, Tamil Nadu',
-    departmentId: 'dept-5',
-    leetcodeUrl: 'https://leetcode.com/u/sanjays/',
-    leetcodeUsername: 'sanjays',
-    githubUrl: 'https://github.com/sanjays',
-    githubUsername: 'sanjays'
+    departmentId: 'dept-5'
   },
   {
     id: 's-5',
@@ -613,11 +597,7 @@ export const initialStudentProfiles: StudentProfile[] = [
     parentEmail: 'krishnan@gmail.com',
     parentPassword: 'parentPass2026!',
     address: 'Saravanampatti, Coimbatore, Tamil Nadu',
-    departmentId: 'dept-5',
-    leetcodeUrl: 'https://leetcode.com/u/santhoshk/',
-    leetcodeUsername: 'santhoshk',
-    githubUrl: 'https://github.com/santhoshk',
-    githubUsername: 'santhoshk'
+    departmentId: 'dept-5'
   },
   {
     id: 's-6',
@@ -632,11 +612,7 @@ export const initialStudentProfiles: StudentProfile[] = [
     parentEmail: 'selvakumar@gmail.com',
     parentPassword: 'parentPass2026!',
     address: 'Singanallur, Coimbatore, Tamil Nadu',
-    departmentId: 'dept-5',
-    leetcodeUrl: 'https://leetcode.com/u/tharun/',
-    leetcodeUsername: 'tharun',
-    githubUrl: 'https://github.com/tharun-k',
-    githubUsername: 'tharun-k'
+    departmentId: 'dept-5'
   },
   {
     id: 's-7',
@@ -651,11 +627,7 @@ export const initialStudentProfiles: StudentProfile[] = [
     parentEmail: 'ganesan@gmail.com',
     parentPassword: 'parentPass2026!',
     address: 'Pollachi, Tamil Nadu',
-    departmentId: 'dept-5',
-    leetcodeUrl: 'https://leetcode.com/u/alexander/',
-    leetcodeUsername: 'alexander',
-    githubUrl: 'https://github.com/alexander',
-    githubUsername: 'alexander'
+    departmentId: 'dept-5'
   },
   {
     id: 's-8',
@@ -670,11 +642,7 @@ export const initialStudentProfiles: StudentProfile[] = [
     parentEmail: 'velusamy@gmail.com',
     parentPassword: 'parentPass2026!',
     address: 'Tiruppur, Tamil Nadu',
-    departmentId: 'dept-5',
-    leetcodeUrl: 'https://leetcode.com/u/vijay/',
-    leetcodeUsername: 'vijay',
-    githubUrl: 'https://github.com/vijay-dev',
-    githubUsername: 'vijay-dev'
+    departmentId: 'dept-5'
   }
 ];
 
