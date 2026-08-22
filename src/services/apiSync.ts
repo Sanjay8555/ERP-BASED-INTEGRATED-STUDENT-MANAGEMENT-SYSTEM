@@ -25,6 +25,10 @@ export interface SyncPayload {
   examsStore?: any[];
   assignmentsStore?: any[];
   submissionsStore?: any[];
+  codingQuestionsStore?: any[];
+  codingTestsStore?: any[];
+  codingSubmissionsStore?: any[];
+  placementDrivesStore?: any[];
 }
 
 let lastLocalSaveTimestamp = 0;

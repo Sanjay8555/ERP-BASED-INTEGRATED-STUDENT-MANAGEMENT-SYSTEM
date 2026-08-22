@@ -70,11 +70,12 @@ export default function SettingsModule({
   const [showAddAdminModal, setShowAddAdminModal] = useState(false);
   const [editingAdmin, setEditingAdmin] = useState<UserType | null>(null);
 
-  // New Admin Form State
+  // New Admin / Staff Form State
   const [newAdminName, setNewAdminName] = useState('');
   const [newAdminEmail, setNewAdminEmail] = useState('');
   const [newAdminUsername, setNewAdminUsername] = useState('');
   const [newAdminPassword, setNewAdminPassword] = useState('adminPass2026!');
+  const [newAdminRole, setNewAdminRole] = useState<UserRole>('Admin');
   const [showNewAdminPassword, setShowNewAdminPassword] = useState(false);
   const [newAdminPhone, setNewAdminPhone] = useState('+1 (555) 019-2834');
   const [newAdminPhoto, setNewAdminPhoto] = useState('https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=250');
@@ -83,7 +84,7 @@ export default function SettingsModule({
   const [adminModalSuccess, setAdminModalSuccess] = useState('');
 
   const isAdmin = role === 'Admin';
-  const allAdmins = users.filter(u => u.role === 'Admin');
+  const allAdmins = users.filter(u => u.role === 'Admin' || u.role === 'Placement');
 
   // Handle Profile / Email Update
   const handleProfileSubmit = (e: React.FormEvent) => {
@@ -246,19 +247,19 @@ export default function SettingsModule({
       }
       setAdminModalSuccess('Administrator profile updated successfully!');
     } else {
-      const newId = `u-admin-${Date.now()}`;
+      const newId = `u-${newAdminRole.toLowerCase()}-${Date.now()}`;
       const newAdmin: UserType = {
         id: newId,
         name: cleanName,
         email: cleanEmail,
         username: cleanUsername,
         password: newAdminPassword,
-        role: 'Admin',
+        role: newAdminRole,
         phone: newAdminPhone.trim(),
         photo: newAdminPhoto
       };
       onAddUser(newAdmin);
-      setAdminModalSuccess('New Administrator account created successfully! The new admin can log in immediately.');
+      setAdminModalSuccess(`New ${newAdminRole === 'Placement' ? 'Placement Incharge' : 'Administrator'} account created successfully!`);
     }
 
     setTimeout(() => {
@@ -826,6 +827,20 @@ export default function SettingsModule({
                     className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-800 focus:bg-white focus:outline-hidden dark:border-slate-800 dark:bg-slate-950 dark:text-white"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase text-slate-400 mb-1.5">
+                  Assigned Administrative Role
+                </label>
+                <select
+                  value={newAdminRole}
+                  onChange={(e) => setNewAdminRole(e.target.value as UserRole)}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-800 focus:bg-white focus:outline-hidden dark:border-slate-800 dark:bg-slate-950 dark:text-white"
+                >
+                  <option value="Admin">System Administrator (Root ERP Access)</option>
+                  <option value="Placement">Placement Incharge / Officer (Student Dossiers, Drives, Coding Assessments)</option>
+                </select>
               </div>
 
               <div>

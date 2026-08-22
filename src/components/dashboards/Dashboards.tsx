@@ -20,7 +20,9 @@ import {
   FileText,
   BookmarkCheck,
   CheckCircle2,
-  ListFilter
+  ListFilter,
+  Code2,
+  ChevronRight
 } from 'lucide-react';
 import {
   BarChart,
@@ -50,7 +52,10 @@ import {
   FeePayment,
   Book,
   BookIssue,
-  Notice
+  Notice,
+  CodingTest,
+  CodingTestSubmission,
+  PlacementDrive
 } from '../../types';
 
 interface DashboardsProps {
@@ -67,6 +72,9 @@ interface DashboardsProps {
   bookIssues: BookIssue[];
   notices: Notice[];
   exams?: Exam[];
+  codingTests?: CodingTest[];
+  submissions?: CodingTestSubmission[];
+  drives?: PlacementDrive[];
   setActiveTab: (tab: string) => void;
   onOpenQuickModal?: (action: string) => void;
   currentUser?: User;
@@ -86,6 +94,9 @@ export default function Dashboards({
   bookIssues,
   notices,
   exams = [],
+  codingTests = [],
+  submissions = [],
+  drives = [],
   setActiveTab,
   onOpenQuickModal,
   currentUser
@@ -812,9 +823,171 @@ export default function Dashboards({
     );
   };
 
+  // -------------------------------------------------------------
+  // PLACEMENT INCHARGE DASHBOARD
+  // -------------------------------------------------------------
+  const renderPlacementDashboard = () => {
+    const eligibleStudents = students.filter(s => s.cgpa >= 7.5);
+    const avgCodingScore = submissions.length > 0
+      ? Math.round(submissions.reduce((a, b) => a + b.percentage, 0) / submissions.length)
+      : 0;
+
+    const deptReadinessData = departments.map(d => ({
+      department: d.code,
+      Eligible: students.filter(s => s.departmentId === d.id && s.cgpa >= 7.5).length,
+      Total: students.filter(s => s.departmentId === d.id).length
+    }));
+
+    return (
+      <div className="space-y-6">
+        {/* Banner */}
+        <div className="flex flex-col gap-4 rounded-2xl bg-linear-to-r from-slate-900 via-indigo-950 to-teal-950 p-6 text-white shadow-xl md:flex-row md:items-center md:justify-between border border-indigo-800/40">
+          <div>
+            <span className="text-xs font-mono font-bold text-teal-400 uppercase tracking-widest">
+              Corporate Relations & Career Center
+            </span>
+            <h2 className="text-xl font-bold tracking-tight text-white md:text-2xl mt-1">
+              Welcome back, {currentUser?.name || 'Placement Incharge'}
+            </h2>
+            <p className="text-xs text-slate-300 font-mono mt-1">
+              Active campus recruitment season 2026 • Tracking student readiness & technical scores
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-2.5">
+            <button
+              onClick={() => setActiveTab('coding-tests')}
+              className="flex items-center gap-2 rounded-xl bg-teal-500 px-4 py-2.5 text-xs font-bold text-slate-950 shadow-lg hover:bg-teal-400 transition-all cursor-pointer"
+            >
+              <Code2 className="h-4 w-4" />
+              <span>Manage Coding Tests</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('placement')}
+              className="flex items-center gap-2 rounded-xl bg-white/10 px-4 py-2.5 text-xs font-bold text-white shadow-md hover:bg-white/20 transition-all cursor-pointer backdrop-blur-xs border border-white/10"
+            >
+              <Briefcase className="h-4 w-4" />
+              <span>Placement Cell</span>
+            </button>
+          </div>
+        </div>
+
+        {/* 4 Stat Cards */}
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-500 font-mono">Total Candidates</span>
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400">
+                <Users className="h-4.5 w-4.5" />
+              </div>
+            </div>
+            <p className="mt-2 font-sans text-2xl font-black text-slate-900 dark:text-white">{students.length}</p>
+            <p className="mt-1 text-[11px] text-slate-400 font-mono">Active Student Pool</p>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 font-mono">Tier-1 Eligible</span>
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400">
+                <CheckCircle2 className="h-4.5 w-4.5" />
+              </div>
+            </div>
+            <p className="mt-2 font-sans text-2xl font-black text-slate-900 dark:text-white">{eligibleStudents.length}</p>
+            <p className="mt-1 text-[11px] text-emerald-600 dark:text-emerald-400 font-mono">CGPA &ge; 7.5 verified</p>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 font-mono">Hiring Drives</span>
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-400">
+                <Building className="h-4.5 w-4.5" />
+              </div>
+            </div>
+            <p className="mt-2 font-sans text-2xl font-black text-slate-900 dark:text-white">{drives.length}</p>
+            <p className="mt-1 text-[11px] text-indigo-500 font-mono">Companies registered</p>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-teal-600 dark:text-teal-400 font-mono">Coding Rating</span>
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-50 text-teal-600 dark:bg-teal-950/40 dark:text-teal-400">
+                <TrendingUp className="h-4.5 w-4.5" />
+              </div>
+            </div>
+            <p className="mt-2 font-sans text-2xl font-black text-slate-900 dark:text-white">{avgCodingScore}%</p>
+            <p className="mt-1 text-[11px] text-teal-600 dark:text-teal-400 font-mono">300+ problem pool</p>
+          </div>
+        </div>
+
+        {/* Charts & Quick Actions */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          {/* Department Placement Readiness */}
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900 lg:col-span-2">
+            <h4 className="font-sans text-sm font-bold text-slate-900 dark:text-white mb-4">
+              Department-Wise Placement Readiness Ratio
+            </h4>
+            <div className="h-72 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={deptReadinessData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis dataKey="department" fontSize={11} stroke="#94a3b8" />
+                  <YAxis fontSize={11} stroke="#94a3b8" />
+                  <Tooltip />
+                  <Bar dataKey="Eligible" fill="#0d9488" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="Total" fill="#e2e8f0" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Quick Actions Card */}
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900 flex flex-col justify-between">
+            <div className="space-y-4">
+              <h4 className="font-sans text-sm font-bold text-slate-900 dark:text-white">
+                Placement Officer Quick Desk
+              </h4>
+              <div className="space-y-2.5">
+                <button
+                  onClick={() => setActiveTab('placement')}
+                  className="w-full flex items-center justify-between rounded-xl bg-slate-50 border border-slate-200 p-3 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:bg-slate-950 dark:border-slate-800 dark:text-slate-300 cursor-pointer"
+                >
+                  <span>Student Placement Dossier</span>
+                  <ChevronRight className="h-4 w-4 text-teal-500" />
+                </button>
+                <button
+                  onClick={() => setActiveTab('coding-tests')}
+                  className="w-full flex items-center justify-between rounded-xl bg-slate-50 border border-slate-200 p-3 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:bg-slate-950 dark:border-slate-800 dark:text-slate-300 cursor-pointer"
+                >
+                  <span>Create Coding Test (300 Q Pool)</span>
+                  <PlusCircle className="h-4 w-4 text-emerald-500" />
+                </button>
+                <button
+                  onClick={() => setActiveTab('placement')}
+                  className="w-full flex items-center justify-between rounded-xl bg-slate-50 border border-slate-200 p-3 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:bg-slate-950 dark:border-slate-800 dark:text-slate-300 cursor-pointer"
+                >
+                  <span>View Campus Drives</span>
+                  <Briefcase className="h-4 w-4 text-indigo-500" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-xl bg-teal-50 border border-teal-200/50 dark:bg-teal-950/20 dark:border-teal-900/50 mt-4 text-[11px] text-teal-900 dark:text-teal-300">
+              <p className="font-bold">Automated Test Shuffling Active</p>
+              <p className="mt-0.5 opacity-90 leading-relaxed">
+                Coding test engine dynamically delivers unique shuffled questions to students within configured limits.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   switch (role) {
     case 'Admin':
       return renderAdminDashboard();
+    case 'Placement':
+      return renderPlacementDashboard();
     case 'Faculty':
       return renderFacultyDashboard();
     case 'Student':
@@ -827,3 +1000,4 @@ export default function Dashboards({
       return renderAdminDashboard();
   }
 }
+

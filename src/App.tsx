@@ -46,7 +46,11 @@ import {
   Assignment,
   AssignmentSubmission,
   Notice,
-  UserRole
+  UserRole,
+  CodingQuestion,
+  CodingTest,
+  CodingTestSubmission,
+  PlacementDrive
 } from './types';
 
 // Seed Mock Data Imports
@@ -66,8 +70,12 @@ import {
   initialTimetable,
   initialAssignments,
   initialAssignmentSubmissions,
-  initialNotices
+  initialNotices,
+  initialCodingTests,
+  initialTestSubmissions,
+  initialPlacementDrives
 } from './mockData';
+import { initialCodingQuestions } from './data/codingQuestionsPool';
 
 // Shared Layout Components
 import Sidebar from './components/shared/Sidebar';
@@ -94,6 +102,8 @@ import {
 import { CourseCurriculumManagement } from './components/modules/CourseCurriculumManagement';
 import PrintReceiptPage from './components/modules/PrintReceiptPage';
 import SettingsModule from './components/modules/SettingsModule';
+import CodingTestModule from './components/modules/CodingTestModule';
+import PlacementModule from './components/modules/PlacementModule';
 
 export default function App() {
   // Initialize dark/light theme on boot
@@ -279,6 +289,38 @@ export default function App() {
       return initialNotices;
     }
   });
+  const [codingQuestionsStore, setCodingQuestionsStore] = useState<CodingQuestion[]>(() => {
+    try {
+      const saved = localStorage.getItem('codingQuestionsStore');
+      return saved ? JSON.parse(saved) : initialCodingQuestions;
+    } catch {
+      return initialCodingQuestions;
+    }
+  });
+  const [codingTestsStore, setCodingTestsStore] = useState<CodingTest[]>(() => {
+    try {
+      const saved = localStorage.getItem('codingTestsStore');
+      return saved ? JSON.parse(saved) : initialCodingTests;
+    } catch {
+      return initialCodingTests;
+    }
+  });
+  const [codingSubmissionsStore, setCodingSubmissionsStore] = useState<CodingTestSubmission[]>(() => {
+    try {
+      const saved = localStorage.getItem('codingSubmissionsStore');
+      return saved ? JSON.parse(saved) : initialTestSubmissions;
+    } catch {
+      return initialTestSubmissions;
+    }
+  });
+  const [placementDrivesStore, setPlacementDrivesStore] = useState<PlacementDrive[]>(() => {
+    try {
+      const saved = localStorage.getItem('placementDrivesStore');
+      return saved ? JSON.parse(saved) : initialPlacementDrives;
+    } catch {
+      return initialPlacementDrives;
+    }
+  });
 
   // Seed initial stores if local state is completely empty
   useEffect(() => {
@@ -378,6 +420,22 @@ export default function App() {
     safeLocalStorageSet('noticesStore', JSON.stringify(noticesStore));
   }, [noticesStore]);
 
+  useEffect(() => {
+    safeLocalStorageSet('codingQuestionsStore', JSON.stringify(codingQuestionsStore));
+  }, [codingQuestionsStore]);
+
+  useEffect(() => {
+    safeLocalStorageSet('codingTestsStore', JSON.stringify(codingTestsStore));
+  }, [codingTestsStore]);
+
+  useEffect(() => {
+    safeLocalStorageSet('codingSubmissionsStore', JSON.stringify(codingSubmissionsStore));
+  }, [codingSubmissionsStore]);
+
+  useEffect(() => {
+    safeLocalStorageSet('placementDrivesStore', JSON.stringify(placementDrivesStore));
+  }, [placementDrivesStore]);
+
   // Ref to prevent circular echo re-triggers during incoming cloud updates
   const isRemoteUpdatingRef = useRef(false);
   const isInitialMountRef = useRef(true);
@@ -399,6 +457,10 @@ export default function App() {
       if (cloudData.examsStore?.length) setExamsStore(cloudData.examsStore);
       if (cloudData.assignmentsStore?.length) setAssignmentsStore(cloudData.assignmentsStore);
       if (cloudData.submissionsStore?.length) setSubmissionsStore(cloudData.submissionsStore);
+      if (cloudData.codingQuestionsStore?.length) setCodingQuestionsStore(cloudData.codingQuestionsStore);
+      if (cloudData.codingTestsStore?.length) setCodingTestsStore(cloudData.codingTestsStore);
+      if (cloudData.codingSubmissionsStore?.length) setCodingSubmissionsStore(cloudData.codingSubmissionsStore);
+      if (cloudData.placementDrivesStore?.length) setPlacementDrivesStore(cloudData.placementDrivesStore);
 
       // Release remote lock immediately after React state updates are scheduled
       setTimeout(() => {
@@ -445,7 +507,11 @@ export default function App() {
       attendanceStore,
       examsStore,
       assignmentsStore,
-      submissionsStore
+      submissionsStore,
+      codingQuestionsStore,
+      codingTestsStore,
+      codingSubmissionsStore,
+      placementDrivesStore
     };
     saveBackendState(syncPayload);
   }, [
@@ -463,7 +529,11 @@ export default function App() {
     attendanceStore,
     examsStore,
     assignmentsStore,
-    submissionsStore
+    submissionsStore,
+    codingQuestionsStore,
+    codingTestsStore,
+    codingSubmissionsStore,
+    placementDrivesStore
   ]);
 
   // Auth screen specific state
@@ -724,7 +794,20 @@ export default function App() {
 
   // Action: Quick demo login bypass
   const handleDemoLogin = (roleType: UserRole) => {
-    const matchedUser = usersStore.find(u => u && u.role === roleType);
+    let matchedUser = usersStore.find(u => u && u.role === roleType);
+    if (!matchedUser && roleType === 'Placement') {
+      matchedUser = {
+        id: 'u-placement',
+        username: 'placement',
+        email: 'placement@university.edu',
+        password: 'placementPass2026!',
+        name: 'Dr. Aravind Swamy',
+        role: 'Placement',
+        phone: '+91 98401 55678',
+        photo: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=120',
+        departmentId: 'dept-5'
+      };
+    }
     if (matchedUser) {
       setCurrentUser(matchedUser);
       setActiveRole(roleType);
@@ -995,6 +1078,65 @@ export default function App() {
     setUsersStore(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
   };
 
+  // Modifying: Coding Questions Bank (300+ pool)
+  const handleAddCodingQuestion = (newQ: CodingQuestion) => {
+    setCodingQuestionsStore(prev => [newQ, ...prev]);
+  };
+
+  const handleUpdateCodingQuestion = (updatedQ: CodingQuestion) => {
+    setCodingQuestionsStore(prev => prev.map(q => q.id === updatedQ.id ? updatedQ : q));
+  };
+
+  const handleDeleteCodingQuestion = (qId: string) => {
+    setCodingQuestionsStore(prev => prev.filter(q => q.id !== qId));
+  };
+
+  // Modifying: Coding Assessments & Tests
+  const handleAddCodingTest = (newTest: CodingTest) => {
+    setCodingTestsStore(prev => [newTest, ...prev]);
+  };
+
+  const handleUpdateCodingTest = (updatedTest: CodingTest) => {
+    setCodingTestsStore(prev => prev.map(t => t.id === updatedTest.id ? updatedTest : t));
+  };
+
+  const handleDeleteCodingTest = (testId: string) => {
+    setCodingTestsStore(prev => prev.filter(t => t.id !== testId));
+  };
+
+  // Modifying: Coding Test Submissions
+  const handleSubmitCodingTest = (newSub: CodingTestSubmission) => {
+    setCodingSubmissionsStore(prev => {
+      const exists = prev.some(s => s.id === newSub.id || (s.testId === newSub.testId && s.studentId === newSub.studentId));
+      if (exists) {
+        return prev.map(s => (s.id === newSub.id || (s.testId === newSub.testId && s.studentId === newSub.studentId)) ? newSub : s);
+      }
+      return [newSub, ...prev];
+    });
+  };
+
+  // Modifying: Campus Placement Drives
+  const handleAddPlacementDrive = (newDrive: PlacementDrive) => {
+    setPlacementDrivesStore(prev => [newDrive, ...prev]);
+  };
+
+  const handleUpdatePlacementDrive = (updatedDrive: PlacementDrive) => {
+    setPlacementDrivesStore(prev => prev.map(d => d.id === updatedDrive.id ? updatedDrive : d));
+  };
+
+  const handleDeletePlacementDrive = (driveId: string) => {
+    setPlacementDrivesStore(prev => prev.filter(d => d.id !== driveId));
+  };
+
+  const handleRegisterStudentForDrive = (driveId: string, studentId: string) => {
+    setPlacementDrivesStore(prev => prev.map(d => {
+      if (d.id === driveId && !d.registeredStudentIds.includes(studentId)) {
+        return { ...d, registeredStudentIds: [...d.registeredStudentIds, studentId] };
+      }
+      return d;
+    }));
+  };
+
   // Render Page Content based on Active Tab State
   const renderTabContent = () => {
     switch (activeTab) {
@@ -1014,8 +1156,48 @@ export default function App() {
             bookIssues={bookIssuesStore}
             notices={noticesStore}
             exams={examsStore}
+            codingTests={codingTestsStore}
+            submissions={codingSubmissionsStore}
+            drives={placementDrivesStore}
             setActiveTab={setActiveTab}
             currentUser={currentUser}
+          />
+        );
+      case 'coding-tests':
+        return (
+          <CodingTestModule
+            questions={codingQuestionsStore}
+            tests={codingTestsStore}
+            submissions={codingSubmissionsStore}
+            students={studentsStore}
+            users={usersStore}
+            departments={departmentsStore}
+            role={activeRole}
+            currentUser={currentUser}
+            onAddQuestion={handleAddCodingQuestion}
+            onUpdateQuestion={handleUpdateCodingQuestion}
+            onDeleteQuestion={handleDeleteCodingQuestion}
+            onAddTest={handleAddCodingTest}
+            onUpdateTest={handleUpdateCodingTest}
+            onDeleteTest={handleDeleteCodingTest}
+            onSubmitTest={handleSubmitCodingTest}
+          />
+        );
+      case 'placement':
+        return (
+          <PlacementModule
+            students={studentsStore}
+            users={usersStore}
+            departments={departmentsStore}
+            codingTests={codingTestsStore}
+            submissions={codingSubmissionsStore}
+            drives={placementDrivesStore}
+            role={activeRole}
+            currentUser={currentUser}
+            onAddDrive={handleAddPlacementDrive}
+            onUpdateDrive={handleUpdatePlacementDrive}
+            onDeleteDrive={handleDeletePlacementDrive}
+            onRegisterStudentForDrive={handleRegisterStudentForDrive}
           />
         );
       case 'students':
@@ -1202,6 +1384,8 @@ export default function App() {
   const getTabTitle = () => {
     const tabObj = [
       { id: 'dashboard', val: `${activeRole} Dashboard Panel` },
+      { id: 'coding-tests', val: 'Interactive Coding IDE & Technical Assessments' },
+      { id: 'placement', val: 'Corporate Relations & Placement Cell Portal' },
       { id: 'students', val: 'Student Accounts Directory' },
       { id: 'courses', val: 'Department Subjects & Semester Curriculum' },
       { id: 'faculty', val: 'Faculty Roster Administration' },
@@ -1353,6 +1537,7 @@ export default function App() {
                   <span className="text-[10px] text-slate-400 font-bold uppercase">Quick Fill:</span>
                   {[
                     { label: 'Admin', email: 'admin@university.edu' },
+                    { label: 'Placement', email: 'placement@university.edu' },
                     { label: 'Student', email: 'student@university.edu' },
                     { label: 'Faculty', email: 'faculty@university.edu' },
                     { label: 'Parent', email: 'parent@university.edu' }
@@ -1556,6 +1741,12 @@ export default function App() {
                 className="rounded-lg bg-purple-50 border border-purple-100 py-2 text-[10px] font-bold text-purple-700 hover:bg-purple-100 dark:bg-purple-950/20 dark:border-purple-900"
               >
                 Accountant
+              </button>
+              <button
+                onClick={() => handleDemoLogin('Placement')}
+                className="rounded-lg bg-indigo-50 border border-indigo-100 py-2 text-[10px] font-bold text-indigo-700 hover:bg-indigo-100 dark:bg-indigo-950/20 dark:border-indigo-900"
+              >
+                Placement
               </button>
             </div>
           </div>

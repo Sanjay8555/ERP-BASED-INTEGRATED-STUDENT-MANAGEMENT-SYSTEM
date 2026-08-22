@@ -19,8 +19,12 @@ import {
   TimetableEntry,
   Assignment,
   AssignmentSubmission,
-  Notice
+  Notice,
+  CodingTest,
+  CodingTestSubmission,
+  PlacementDrive
 } from './types';
+import { initialCodingQuestions } from './data/codingQuestionsPool';
 
 export const initialUsers: User[] = [
   {
@@ -32,6 +36,17 @@ export const initialUsers: User[] = [
     role: 'Admin',
     phone: '+1 (555) 019-2834',
     photo: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=120'
+  },
+  {
+    id: 'u-placement',
+    username: 'placement',
+    email: 'placement@university.edu',
+    password: 'placementPass2026!',
+    name: 'Dr. Aravind Swamy',
+    role: 'Placement',
+    phone: '+91 98401 55678',
+    photo: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=120',
+    departmentId: 'dept-5'
   },
   {
     id: 'u-2',
@@ -1772,3 +1787,277 @@ export const initialNotices: Notice[] = [
   { id: 'not-2', title: 'IT Faculty Review Meeting', content: 'There will be a mandatory CSE department review meeting tomorrow at 3:00 PM in Conference Room A regarding academic syllabus progress.', date: '2026-07-02', targetRole: 'Faculty', authorName: 'Dr. Eleanor Vance' },
   { id: 'not-3', title: 'Annual Library Stock Audit', content: 'Please note that the reference section will be closed from July 5th to July 7th due to the annual books audit. Issue services will remain active.', date: '2026-07-03', targetRole: 'All', authorName: 'Marcus Aurelius' }
 ];
+
+export const initialCodingTests: CodingTest[] = [
+  {
+    id: 'ct-1',
+    title: 'Campus Placement Tech Assessment 2026',
+    description: 'Comprehensive campus placement screening assessment evaluating Data Structures, Dynamic Programming, String Algorithms, and SQL query optimizations.',
+    category: 'Placement Screening',
+    durationMinutes: 60,
+    totalQuestionPoolCount: initialCodingQuestions.length,
+    questionPoolIds: initialCodingQuestions.map(q => q.id),
+    questionLimitPerStudent: 5, // Admin sets: Each student gets 5 unique shuffled questions from the pool of 300+
+    shuffleQuestions: true,
+    status: 'Active',
+    targetDepartmentId: 'dept-5', // CSE/IT or All
+    targetSemester: 6,
+    passingPercentage: 60,
+    totalMarks: 100,
+    createdBy: 'Dr. Aravind Swamy',
+    createdAt: '2026-07-01',
+    startDate: '2026-07-01T09:00:00',
+    endDate: '2026-08-30T23:59:59'
+  },
+  {
+    id: 'ct-2',
+    title: 'Core DSA & Algorithms Mastery Sprint',
+    description: 'Timed algorithmic sprint covering Binary Search, Stacks, Trees, and Graph traversals. Randomized pool of 300 questions.',
+    category: 'Algorithms & DSA',
+    durationMinutes: 45,
+    totalQuestionPoolCount: initialCodingQuestions.length,
+    questionPoolIds: initialCodingQuestions.map(q => q.id),
+    questionLimitPerStudent: 4, // Each student gets 4 unique questions
+    shuffleQuestions: true,
+    status: 'Active',
+    targetDepartmentId: 'all',
+    targetSemester: 0,
+    passingPercentage: 50,
+    totalMarks: 80,
+    createdBy: 'RAJESH',
+    createdAt: '2026-07-05',
+    startDate: '2026-07-05T00:00:00',
+    endDate: '2026-09-15T23:59:59'
+  },
+  {
+    id: 'ct-3',
+    title: 'Full-Stack Developer & Database Screening',
+    description: 'Technical evaluation for junior software engineer roles focusing on JavaScript arrays, object manipulation, and SQL relations.',
+    category: 'Software Engineering',
+    durationMinutes: 30,
+    totalQuestionPoolCount: initialCodingQuestions.length,
+    questionPoolIds: initialCodingQuestions.map(q => q.id),
+    questionLimitPerStudent: 3,
+    shuffleQuestions: true,
+    status: 'Upcoming',
+    targetDepartmentId: 'dept-5',
+    targetSemester: 8,
+    passingPercentage: 65,
+    totalMarks: 60,
+    createdBy: 'Dr. Aravind Swamy',
+    createdAt: '2026-07-10',
+    startDate: '2026-08-01T10:00:00',
+    endDate: '2026-08-25T18:00:00'
+  }
+];
+
+export const initialTestSubmissions: CodingTestSubmission[] = [
+  {
+    id: 'cts-1',
+    testId: 'ct-1',
+    testTitle: 'Campus Placement Tech Assessment 2026',
+    studentId: 's-1',
+    studentUserId: 'u-3',
+    studentName: 'Sanjay K',
+    studentRollNo: 'CS2026-001',
+    departmentId: 'dept-5',
+    assignedQuestionIds: ['cq-1', 'cq-2', 'cq-3', 'cq-4', 'cq-5'],
+    answers: {
+      'cq-1': {
+        questionId: 'cq-1',
+        questionTitle: 'Two Sum Target Index',
+        language: 'javascript',
+        code: `function twoSum(nums, target) {\n  const map = new Map();\n  for (let i = 0; i < nums.length; i++) {\n    const comp = target - nums[i];\n    if (map.has(comp)) return [map.get(comp), i];\n    map.set(nums[i], i);\n  }\n  return [];\n}`,
+        testCasesPassed: 3,
+        totalTestCases: 3,
+        score: 20,
+        maxScore: 20,
+        status: 'Passed',
+        executionOutput: 'All 3 test cases passed! Execution time: 1.2ms',
+        executionTimeMs: 1.2,
+        lastExecutedAt: '2026-07-02T10:15:00'
+      },
+      'cq-2': {
+        questionId: 'cq-2',
+        questionTitle: 'Valid Palindrome String',
+        language: 'javascript',
+        code: `function isPalindrome(s) {\n  const clean = s.toLowerCase().replace(/[^a-z0-9]/g, '');\n  return clean === clean.split('').reverse().join('');\n}`,
+        testCasesPassed: 3,
+        totalTestCases: 3,
+        score: 20,
+        maxScore: 20,
+        status: 'Passed',
+        executionOutput: 'All 3 test cases passed! Execution time: 0.8ms',
+        executionTimeMs: 0.8,
+        lastExecutedAt: '2026-07-02T10:24:00'
+      },
+      'cq-3': {
+        questionId: 'cq-3',
+        questionTitle: 'Longest Substring Without Repeating Characters',
+        language: 'javascript',
+        code: `function lengthOfLongestSubstring(s) {\n  let maxLen = 0, start = 0;\n  const map = new Map();\n  for (let end = 0; end < s.length; end++) {\n    if (map.has(s[end]) && map.get(s[end]) >= start) start = map.get(s[end]) + 1;\n    map.set(s[end], end);\n    maxLen = Math.max(maxLen, end - start + 1);\n  }\n  return maxLen;\n}`,
+        testCasesPassed: 3,
+        totalTestCases: 3,
+        score: 30,
+        maxScore: 30,
+        status: 'Passed',
+        executionOutput: 'All 3 test cases passed! Execution time: 1.5ms',
+        executionTimeMs: 1.5,
+        lastExecutedAt: '2026-07-02T10:38:00'
+      },
+      'cq-4': {
+        questionId: 'cq-4',
+        questionTitle: 'Valid Parentheses Balancing',
+        language: 'javascript',
+        code: `function isValid(s) {\n  const stack = [];\n  const pairs = { ')': '(', '}': '{', ']': '[' };\n  for (const c of s) {\n    if (c in pairs) {\n      if (stack.pop() !== pairs[c]) return false;\n    } else stack.push(c);\n  }\n  return stack.length === 0;\n}`,
+        testCasesPassed: 3,
+        totalTestCases: 3,
+        score: 20,
+        maxScore: 20,
+        status: 'Passed',
+        executionOutput: 'All 3 test cases passed! Execution time: 0.9ms',
+        executionTimeMs: 0.9,
+        lastExecutedAt: '2026-07-02T10:45:00'
+      },
+      'cq-5': {
+        questionId: 'cq-5',
+        questionTitle: 'Climbing Stairs DP',
+        language: 'javascript',
+        code: `function climbStairs(n) {\n  if (n <= 2) return n;\n  let a = 1, b = 2;\n  for (let i = 3; i <= n; i++) {\n    const next = a + b;\n    a = b;\n    b = next;\n  }\n  return b;\n}`,
+        testCasesPassed: 3,
+        totalTestCases: 3,
+        score: 20,
+        maxScore: 20,
+        status: 'Passed',
+        executionOutput: 'All 3 test cases passed! Execution time: 0.5ms',
+        executionTimeMs: 0.5,
+        lastExecutedAt: '2026-07-02T10:52:00'
+      }
+    },
+    totalScore: 110,
+    maxScore: 110,
+    percentage: 100,
+    status: 'Evaluated',
+    startedAt: '2026-07-02T10:00:00',
+    submittedAt: '2026-07-02T10:55:12',
+    timeSpentSeconds: 3312,
+    tabSwitchCount: 0
+  },
+  {
+    id: 'cts-2',
+    testId: 'ct-1',
+    testTitle: 'Campus Placement Tech Assessment 2026',
+    studentId: 's-2',
+    studentUserId: 'u-8',
+    studentName: 'Sanjay S',
+    studentRollNo: 'CS2026-002',
+    departmentId: 'dept-5',
+    assignedQuestionIds: ['cq-6', 'cq-7', 'cq-8', 'cq-9', 'cq-10'],
+    answers: {
+      'cq-7': {
+        questionId: 'cq-7',
+        questionTitle: 'Binary Search Implementation',
+        language: 'python',
+        code: `def search(nums, target):\n    l, r = 0, len(nums) - 1\n    while l <= r:\n        m = (l + r) // 2\n        if nums[m] == target: return m\n        elif nums[m] < target: l = m + 1\n        else: r = m - 1\n    return -1`,
+        testCasesPassed: 3,
+        totalTestCases: 3,
+        score: 20,
+        maxScore: 20,
+        status: 'Passed',
+        executionOutput: 'All 3 test cases passed! Execution time: 1.1ms',
+        executionTimeMs: 1.1,
+        lastExecutedAt: '2026-07-03T11:15:00'
+      },
+      'cq-9': {
+        questionId: 'cq-9',
+        questionTitle: 'Maximum Subarray (Kadane Algorithm)',
+        language: 'python',
+        code: `def max_sub_array(nums):\n    max_so_far = curr = nums[0]\n    for x in nums[1:]:\n        curr = max(x, curr + x)\n        max_so_far = max(max_so_far, curr)\n    return max_so_far`,
+        testCasesPassed: 3,
+        totalTestCases: 3,
+        score: 30,
+        maxScore: 30,
+        status: 'Passed',
+        executionOutput: 'All 3 test cases passed! Execution time: 1.3ms',
+        executionTimeMs: 1.3,
+        lastExecutedAt: '2026-07-03T11:32:00'
+      }
+    },
+    totalScore: 50,
+    maxScore: 140,
+    percentage: 35.7,
+    status: 'Evaluated',
+    startedAt: '2026-07-03T11:00:00',
+    submittedAt: '2026-07-03T11:45:00',
+    timeSpentSeconds: 2700,
+    tabSwitchCount: 1
+  }
+];
+
+export const initialPlacementDrives: PlacementDrive[] = [
+  {
+    id: 'pd-1',
+    companyName: 'Google India',
+    companyLogo: 'https://images.unsplash.com/photo-1572021335469-31706a17aaef?auto=format&fit=crop&q=80&w=120',
+    role: 'Associate Software Engineer',
+    packageLPA: 24.5,
+    eligibleMinCgpa: 8.0,
+    eligibleDepartments: ['dept-5'], // CSE/IT
+    minCodingScorePercent: 75,
+    jobLocation: 'Bengaluru / Hyderabad',
+    driveDate: '2026-08-15',
+    deadline: '2026-08-10',
+    description: 'Hiring software engineers with deep problem solving and algorithmic reasoning skills for core systems and cloud platforms.',
+    status: 'Upcoming',
+    registeredStudentIds: ['s-1']
+  },
+  {
+    id: 'pd-2',
+    companyName: 'Microsoft R&D',
+    companyLogo: 'https://images.unsplash.com/photo-1617042375876-a13e36732a04?auto=format&fit=crop&q=80&w=120',
+    role: 'Software Development Engineer (SDE-1)',
+    packageLPA: 21.0,
+    eligibleMinCgpa: 7.5,
+    eligibleDepartments: ['dept-5', 'dept-3'],
+    minCodingScorePercent: 70,
+    jobLocation: 'Hyderabad',
+    driveDate: '2026-08-20',
+    deadline: '2026-08-14',
+    description: 'Looking for candidates strong in C++, Java/C#, distributed architectures, and web fundamentals.',
+    status: 'Upcoming',
+    registeredStudentIds: ['s-1', 's-2']
+  },
+  {
+    id: 'pd-3',
+    companyName: 'Zoho Corporation',
+    companyLogo: 'https://images.unsplash.com/photo-1551836022-d5d88e9218df?auto=format&fit=crop&q=80&w=120',
+    role: 'Member Technical Staff',
+    packageLPA: 9.5,
+    eligibleMinCgpa: 7.0,
+    eligibleDepartments: ['dept-5', 'dept-3', 'dept-2', 'dept-1'],
+    minCodingScorePercent: 60,
+    jobLocation: 'Chennai / Tenkasi',
+    driveDate: '2026-08-28',
+    deadline: '2026-08-22',
+    description: 'Product engineering roles across SaaS applications, databases, security, and mobile platforms.',
+    status: 'Upcoming',
+    registeredStudentIds: ['s-1', 's-2', 's-3', 's-4']
+  },
+  {
+    id: 'pd-4',
+    companyName: 'TCS Digital',
+    companyLogo: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&q=80&w=120',
+    role: 'Systems Engineer - Digital Hub',
+    packageLPA: 7.5,
+    eligibleMinCgpa: 6.5,
+    eligibleDepartments: ['dept-5', 'dept-3', 'dept-2', 'dept-1'],
+    minCodingScorePercent: 50,
+    jobLocation: 'Pan India',
+    driveDate: '2026-09-05',
+    deadline: '2026-08-30',
+    description: 'Campus hiring drive for Digital Transformation initiatives, cloud engineering, and enterprise AI.',
+    status: 'Upcoming',
+    registeredStudentIds: ['s-1', 's-2', 's-3']
+  }
+];
+

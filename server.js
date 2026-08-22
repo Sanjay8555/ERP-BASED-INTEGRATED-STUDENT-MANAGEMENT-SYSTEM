@@ -100,7 +100,11 @@ function getStateOrEmpty() {
       attendanceStore: [],
       examsStore: [],
       assignmentsStore: [],
-      submissionsStore: []
+      submissionsStore: [],
+      codingQuestionsStore: [],
+      codingTestsStore: [],
+      codingSubmissionsStore: [],
+      placementDrivesStore: []
     };
     saveState(current);
   }

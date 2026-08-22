@@ -19,7 +19,9 @@ import {
   Settings,
   X,
   Building,
-  BookOpen
+  BookOpen,
+  Code2,
+  Building2
 } from 'lucide-react';
 import { UserRole } from '../../types';
 
@@ -34,8 +36,10 @@ interface SidebarProps {
 export default function Sidebar({ activeTab, setActiveTab, role, isOpen, setIsOpen }: SidebarProps) {
   // Define menu items and their role permissions
   const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: GraduationCap, roles: ['Admin', 'Faculty', 'Student', 'Parent', 'Accountant'] },
-    { id: 'students', label: 'Students', icon: Users, roles: ['Admin', 'Faculty', 'Accountant'] },
+    { id: 'dashboard', label: 'Dashboard', icon: GraduationCap, roles: ['Admin', 'Placement', 'Faculty', 'Student', 'Parent', 'Accountant'] },
+    { id: 'coding-tests', label: 'Coding Tests & IDE', icon: Code2, roles: ['Admin', 'Placement', 'Faculty', 'Student'] },
+    { id: 'placement', label: 'Placement Cell', icon: Building2, roles: ['Admin', 'Placement'] },
+    { id: 'students', label: 'Students', icon: Users, roles: ['Admin', 'Placement', 'Faculty', 'Accountant'] },
     { id: 'courses', label: 'Subjects / Curriculum', icon: BookOpen, roles: ['Admin', 'Faculty', 'Student', 'Parent'] },
     { id: 'faculty', label: 'Faculty', icon: Briefcase, roles: ['Admin', 'Faculty'] },
     { id: 'attendance', label: 'Attendance', icon: CalendarDays, roles: ['Admin', 'Faculty', 'Student', 'Parent'] },
@@ -44,9 +48,9 @@ export default function Sidebar({ activeTab, setActiveTab, role, isOpen, setIsOp
     { id: 'library', label: 'Library', icon: BookMarked, roles: ['Admin', 'Student', 'Parent'] },
     { id: 'timetable', label: 'Timetable', icon: Clock, roles: ['Admin', 'Faculty', 'Student', 'Parent'] },
     { id: 'assignments', label: 'Assignments', icon: ClipboardList, roles: ['Admin', 'Faculty', 'Student'] },
-    { id: 'notices', label: 'Notice Board', icon: Megaphone, roles: ['Admin', 'Faculty', 'Student', 'Parent', 'Accountant'] },
-    { id: 'reports', label: 'Reports & Export', icon: FileDown, roles: ['Admin', 'Faculty', 'Accountant'] },
-    { id: 'settings', label: 'Settings', icon: Settings, roles: ['Admin', 'Faculty', 'Student', 'Parent', 'Accountant'] }
+    { id: 'notices', label: 'Notice Board', icon: Megaphone, roles: ['Admin', 'Placement', 'Faculty', 'Student', 'Parent', 'Accountant'] },
+    { id: 'reports', label: 'Reports & Export', icon: FileDown, roles: ['Admin', 'Placement', 'Faculty', 'Accountant'] },
+    { id: 'settings', label: 'Settings', icon: Settings, roles: ['Admin', 'Placement', 'Faculty', 'Student', 'Parent', 'Accountant'] }
   ];
 
   const allowedItems = menuItems.filter(item => item.roles.includes(role));

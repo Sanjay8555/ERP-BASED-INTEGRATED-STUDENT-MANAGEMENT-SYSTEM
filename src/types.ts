@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export type UserRole = 'Admin' | 'Faculty' | 'Student' | 'Parent' | 'Accountant' | 'Librarian';
+export type UserRole = 'Admin' | 'Faculty' | 'Student' | 'Parent' | 'Accountant' | 'Librarian' | 'Placement';
 
 export interface User {
   id: string;
@@ -173,3 +173,109 @@ export interface Notice {
   targetRole: 'All' | 'Faculty' | 'Student' | 'Parent';
   authorName: string;
 }
+
+export interface CodingTestCase {
+  id: string;
+  input: string;
+  expectedOutput: string;
+  hidden?: boolean;
+  explanation?: string;
+}
+
+export interface CodingQuestion {
+  id: string;
+  title: string;
+  category: 'Arrays & Strings' | 'Dynamic Programming' | 'Trees & Graphs' | 'Linked Lists & Stacks' | 'Searching & Sorting' | 'SQL & Databases' | 'Algorithms' | 'Core CS & Logic' | 'System Design' | string;
+  difficulty: 'Easy' | 'Medium' | 'Hard';
+  description: string;
+  constraints: string[];
+  sampleInput: string;
+  sampleOutput: string;
+  testCases: CodingTestCase[];
+  starterCode: {
+    javascript: string;
+    python: string;
+    java: string;
+    cpp: string;
+    sql?: string;
+    [lang: string]: string | undefined;
+  };
+  hints?: string[];
+  points: number;
+  tags?: string[];
+}
+
+export interface CodingTest {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  durationMinutes: number;
+  totalQuestionPoolCount: number;
+  questionPoolIds: string[]; // pool of question IDs (can be up to 300+)
+  questionLimitPerStudent: number; // e.g. 5, 10, 15 questions uniquely picked per student
+  shuffleQuestions: boolean;
+  status: 'Active' | 'Draft' | 'Completed' | 'Upcoming';
+  targetDepartmentId?: string; // 'all' or departmentId
+  targetSemester?: number; // 0 for all
+  passingPercentage: number;
+  totalMarks: number;
+  createdBy: string;
+  createdAt: string;
+  startDate: string;
+  endDate: string;
+}
+
+export interface StudentCodingAnswer {
+  questionId: string;
+  questionTitle: string;
+  language: string;
+  code: string;
+  testCasesPassed: number;
+  totalTestCases: number;
+  score: number;
+  maxScore: number;
+  status: 'Passed' | 'Partial' | 'Failed' | 'Unattempted';
+  executionOutput?: string;
+  executionTimeMs?: number;
+  lastExecutedAt?: string;
+}
+
+export interface CodingTestSubmission {
+  id: string;
+  testId: string;
+  testTitle: string;
+  studentId: string; // student profile ID
+  studentUserId: string;
+  studentName: string;
+  studentRollNo: string;
+  departmentId: string;
+  assignedQuestionIds: string[]; // The unique randomized subset assigned to this student
+  answers: Record<string, StudentCodingAnswer>;
+  totalScore: number;
+  maxScore: number;
+  percentage: number;
+  status: 'In-Progress' | 'Submitted' | 'Evaluated';
+  startedAt: string;
+  submittedAt?: string;
+  timeSpentSeconds: number;
+  tabSwitchCount?: number;
+}
+
+export interface PlacementDrive {
+  id: string;
+  companyName: string;
+  companyLogo?: string;
+  role: string;
+  packageLPA: number;
+  eligibleMinCgpa: number;
+  eligibleDepartments: string[];
+  minCodingScorePercent: number;
+  jobLocation: string;
+  driveDate: string;
+  deadline: string;
+  description: string;
+  status: 'Upcoming' | 'Ongoing' | 'Completed';
+  registeredStudentIds: string[];
+}
+
