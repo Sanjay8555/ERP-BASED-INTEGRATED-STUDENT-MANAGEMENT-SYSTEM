@@ -601,20 +601,20 @@ function buildFull300QuestionsPool(): CodingQuestion[] {
       testCases: [
         {
           id: `tc-${currentId}-1`,
-          input: `Sample test standard input vector #${variantIndex}`,
-          expectedOutput: `Verified valid result token`,
+          input: `[${(variantIndex * 3) % 10 + 1}, ${(variantIndex * 7) % 15 + 2}, ${(variantIndex * 11) % 20 + 3}]`,
+          expectedOutput: `true`,
           explanation: 'Standard baseline validation'
         },
         {
           id: `tc-${currentId}-2`,
-          input: `Edge case bounds input vector [0, -1, max_int]`,
-          expectedOutput: `Expected edge case boundary output`,
+          input: `[0, -1, 100]`,
+          expectedOutput: `true`,
           hidden: false
         },
         {
           id: `tc-${currentId}-3`,
-          input: `Large scale performance test benchmark N=10000`,
-          expectedOutput: `Deterministic large benchmark match`,
+          input: `[5, 10, 15, 20]`,
+          expectedOutput: `true`,
           hidden: true
         }
       ]

@@ -292,8 +292,8 @@ export default function App() {
   const [codingQuestionsStore, setCodingQuestionsStore] = useState<CodingQuestion[]>(() => {
     try {
       const version = localStorage.getItem('codingQuestionsVersion');
-      if (version !== 'v2') {
-        localStorage.setItem('codingQuestionsVersion', 'v2');
+      if (version !== 'v3') {
+        localStorage.setItem('codingQuestionsVersion', 'v3');
         localStorage.setItem('codingQuestionsStore', JSON.stringify(initialCodingQuestions));
         return initialCodingQuestions;
       }
