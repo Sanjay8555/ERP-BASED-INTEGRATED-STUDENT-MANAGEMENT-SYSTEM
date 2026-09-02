@@ -36,7 +36,9 @@ import {
   Flame,
   FileCode,
   Users,
-  Database
+  Database,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';
 import {
   CodingQuestion,
@@ -107,6 +109,33 @@ export default function CodingTestModule({
   const [timeRemainingSeconds, setTimeRemainingSeconds] = useState<number>(0);
   const [tabSwitchWarnings, setTabSwitchWarnings] = useState<number>(0);
   const [showSubmitModal, setShowSubmitModal] = useState<boolean>(false);
+  const [isFullscreenActive, setIsFullscreenActive] = useState<boolean>(false);
+
+  // Fullscreen Helpers
+  const enterFullscreen = () => {
+    try {
+      const elem = document.documentElement;
+      if (elem.requestFullscreen) {
+        elem.requestFullscreen().catch(() => {});
+      }
+    } catch (e) {}
+  };
+
+  const exitFullscreen = () => {
+    try {
+      if (document.fullscreenElement && document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      }
+    } catch (e) {}
+  };
+
+  useEffect(() => {
+    const handleFsChange = () => {
+      setIsFullscreenActive(Boolean(document.fullscreenElement));
+    };
+    document.addEventListener('fullscreenchange', handleFsChange);
+    return () => document.removeEventListener('fullscreenchange', handleFsChange);
+  }, []);
 
   // Question Bank Filter & Search States
   const [bankSearch, setBankSearch] = useState<string>('');
@@ -222,6 +251,7 @@ export default function CodingTestModule({
         setSelectedLanguage((savedAns?.language as any) || 'javascript');
       }
       setActiveTab('ide');
+      enterFullscreen();
       return;
     }
 
@@ -286,6 +316,7 @@ export default function CodingTestModule({
       setSelectedLanguage('javascript');
     }
     setActiveTab('ide');
+    enterFullscreen();
   };
 
   // Get currently assigned questions for active submission
@@ -402,6 +433,7 @@ export default function CodingTestModule({
     setActiveTestSession(null);
     setCurrentSubmission(null);
     setActiveTab('assessments');
+    exitFullscreen();
 
     alert(`🎉 Assessment Submitted Successfully!\nYour Score: ${totalScore}/${maxScore} (${percentage}%)\nResults have been forwarded to the Placement Cell.`);
   };
@@ -800,23 +832,44 @@ export default function CodingTestModule({
       )}
 
       {/* ------------------------------------------------------------- */}
-      {/* 2. INTERACTIVE STUDENT IDE & ASSESSMENT RUNNER */}
+      {/* 2. INTERACTIVE STUDENT IDE & ASSESSMENT RUNNER (FULL SCREEN) */}
       {/* ------------------------------------------------------------- */}
       {activeTestSession && currentQuestion && (
-        <div className="space-y-4">
+        <div className="fixed inset-0 z-50 bg-slate-950 flex flex-col h-screen w-screen overflow-hidden p-3 md:p-5 text-slate-100 animate-in fade-in duration-200">
+          {/* Fullscreen warning banner if candidate drops out of browser fullscreen */}
+          {!isFullscreenActive && (
+            <div className="mb-2.5 flex items-center justify-between rounded-xl bg-amber-500/20 px-4 py-2 text-xs font-semibold text-amber-200 border border-amber-500/30 shrink-0">
+              <div className="flex items-center gap-2">
+                <ShieldAlert className="h-4 w-4 text-amber-400" />
+                <span>⚠️ Placement Exam Fullscreen Required: Please maintain full screen mode during the assessment.</span>
+              </div>
+              <button
+                onClick={enterFullscreen}
+                className="flex items-center gap-1.5 rounded-lg bg-amber-500 px-3 py-1 font-bold text-slate-950 hover:bg-amber-400 transition-colors cursor-pointer text-[11px]"
+              >
+                <Maximize2 className="h-3 w-3" />
+                <span>Enter Fullscreen</span>
+              </button>
+            </div>
+          )}
+
           {/* Assessment Live Top Navigation Bar */}
-          <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-slate-900 p-4 text-white shadow-lg border border-slate-800">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-slate-900 px-4 py-3 text-white shadow-lg border border-slate-800 shrink-0 mb-3">
             <div className="flex items-center gap-3">
+              <span className="flex items-center gap-1.5 rounded-lg bg-rose-500/20 px-2.5 py-1 text-xs font-mono font-bold text-rose-300 border border-rose-500/30">
+                <span className="h-2 w-2 rounded-full bg-rose-500 animate-pulse" />
+                LIVE PROCTORED
+              </span>
               <span className="rounded-lg bg-teal-500/20 px-2.5 py-1 text-xs font-mono font-bold text-teal-300 border border-teal-500/30">
                 Question {currentQuestionIndex + 1} of {assignedQuestions.length}
               </span>
-              <h2 className="text-sm font-bold text-white">
+              <h2 className="text-sm font-bold text-white line-clamp-1">
                 {activeTestSession.title}
               </h2>
             </div>
 
             {/* Live Countdown & Actions */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
               <div className="flex items-center gap-2 rounded-xl bg-slate-950 px-3.5 py-1.5 font-mono text-xs font-bold border border-slate-800">
                 <Clock className={`h-4 w-4 ${timeRemainingSeconds < 300 ? 'text-rose-500 animate-pulse' : 'text-teal-400'}`} />
                 <span className={timeRemainingSeconds < 300 ? 'text-rose-400' : 'text-slate-200'}>
@@ -832,8 +885,20 @@ export default function CodingTestModule({
               )}
 
               <button
+                onClick={() => {
+                  if (isFullscreenActive) exitFullscreen();
+                  else enterFullscreen();
+                }}
+                className="flex items-center gap-1.5 rounded-xl bg-slate-800 px-3 py-1.5 text-xs font-bold text-slate-300 hover:bg-slate-700 transition-colors border border-slate-700 cursor-pointer"
+                title={isFullscreenActive ? "Exit Fullscreen" : "Enter Fullscreen"}
+              >
+                {isFullscreenActive ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+                <span className="hidden sm:inline">{isFullscreenActive ? 'Windowed' : 'Fullscreen'}</span>
+              </button>
+
+              <button
                 onClick={() => setShowSubmitModal(true)}
-                className="flex items-center gap-1.5 rounded-xl bg-emerald-500 px-4 py-2 text-xs font-bold text-slate-950 shadow-md hover:bg-emerald-400 transition-colors cursor-pointer"
+                className="flex items-center gap-1.5 rounded-xl bg-emerald-500 px-4 py-1.5 text-xs font-bold text-slate-950 shadow-md hover:bg-emerald-400 transition-colors cursor-pointer"
               >
                 <Send className="h-3.5 w-3.5" />
                 <span>Submit Assessment</span>
@@ -842,9 +907,9 @@ export default function CodingTestModule({
           </div>
 
           {/* Main IDE Split Layout */}
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 flex-1 min-h-0">
             {/* Left Panel: Problem Statement & Constraints (5 Cols) */}
-            <div className="space-y-4 lg:col-span-5 flex flex-col h-[650px] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900 scrollbar-thin">
+            <div className="space-y-4 lg:col-span-5 flex flex-col h-full overflow-y-auto rounded-2xl border border-slate-800 bg-slate-900/90 p-5 shadow-xs scrollbar-thin">
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="rounded-lg bg-indigo-50 px-2.5 py-1 text-xs font-bold text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300 font-mono">
@@ -934,7 +999,7 @@ export default function CodingTestModule({
             </div>
 
             {/* Right Panel: Code Editor, Language Selector, and Runner (7 Cols) */}
-            <div className="space-y-4 lg:col-span-7 flex flex-col h-[650px]">
+            <div className="space-y-3 lg:col-span-7 flex flex-col h-full min-h-0">
               {/* Editor Header Bar */}
               <div className="flex items-center justify-between rounded-t-2xl bg-slate-950 px-4 py-2.5 text-white border-b border-slate-800">
                 <div className="flex items-center gap-2">
