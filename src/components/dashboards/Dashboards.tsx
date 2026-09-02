@@ -983,6 +983,173 @@ export default function Dashboards({
     );
   };
 
+  // -------------------------------------------------------------
+  // LIBRARIAN DASHBOARD
+  // -------------------------------------------------------------
+  const renderLibrarianDashboard = () => {
+    const totalBooksCount = books.reduce((sum, b) => sum + (b.totalCopies || 0), 0);
+    const availableBooksCount = books.reduce((sum, b) => sum + (b.availableCopies || 0), 0);
+    const issuedBooksCount = bookIssues.filter(i => i.status === 'Issued').length;
+    const overdueBooksCount = bookIssues.filter(
+      i => i.status === 'Overdue' || (i.status === 'Issued' && new Date(i.dueDate) < new Date())
+    ).length;
+
+    // Categories Breakdown
+    const categoriesMap: Record<string, number> = {};
+    books.forEach(b => {
+      const cat = b.category || 'General';
+      categoriesMap[cat] = (categoriesMap[cat] || 0) + (b.totalCopies || 1);
+    });
+
+    const libraryChartData = Object.entries(categoriesMap).map(([name, Total]) => ({
+      name,
+      Total
+    }));
+
+    return (
+      <div className="space-y-6">
+        {/* Banner */}
+        <div className="flex flex-col gap-4 rounded-2xl bg-linear-to-r from-slate-900 via-teal-950 to-emerald-950 p-6 text-white shadow-xl md:flex-row md:items-center md:justify-between border border-teal-800/40">
+          <div>
+            <span className="text-xs font-mono font-bold text-teal-400 uppercase tracking-widest">
+              Central University Library Desk
+            </span>
+            <h2 className="text-xl font-bold tracking-tight text-white md:text-2xl mt-1">
+              Welcome, {currentUser?.name || 'Chief Librarian'}
+            </h2>
+            <p className="text-xs text-slate-300 font-mono mt-1">
+              Automated Cataloging • RFID Inventory • Lending Records & Return Tracking
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-2.5">
+            <button
+              onClick={() => setActiveTab('library')}
+              className="flex items-center gap-2 rounded-xl bg-teal-500 px-4 py-2.5 text-xs font-bold text-slate-950 shadow-lg hover:bg-teal-400 transition-all cursor-pointer"
+            >
+              <BookOpen className="h-4 w-4" />
+              <span>Issue / Return Books</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('reports')}
+              className="flex items-center gap-2 rounded-xl bg-white/10 px-4 py-2.5 text-xs font-bold text-white shadow-md hover:bg-white/20 transition-all cursor-pointer backdrop-blur-xs border border-white/10"
+            >
+              <FileText className="h-4 w-4" />
+              <span>Circulation Reports</span>
+            </button>
+          </div>
+        </div>
+
+        {/* 4 Stat Cards */}
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-500 font-mono">Catalog Titles</span>
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-50 text-teal-600 dark:bg-teal-950/40 dark:text-teal-400">
+                <BookOpen className="h-4.5 w-4.5" />
+              </div>
+            </div>
+            <p className="mt-2 font-sans text-2xl font-black text-slate-900 dark:text-white">{books.length}</p>
+            <p className="mt-1 text-[11px] text-slate-400 font-mono">{totalBooksCount} Total Physical Copies</p>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 font-mono">Available on Shelf</span>
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400">
+                <CheckCircle2 className="h-4.5 w-4.5" />
+              </div>
+            </div>
+            <p className="mt-2 font-sans text-2xl font-black text-slate-900 dark:text-white">{availableBooksCount}</p>
+            <p className="mt-1 text-[11px] text-emerald-600 dark:text-emerald-400 font-mono">Ready for lending</p>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 font-mono">Currently Issued</span>
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-400">
+                <BookmarkCheck className="h-4.5 w-4.5" />
+              </div>
+            </div>
+            <p className="mt-2 font-sans text-2xl font-black text-slate-900 dark:text-white">{issuedBooksCount}</p>
+            <p className="mt-1 text-[11px] text-indigo-500 font-mono">Borrowed by Students</p>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 font-mono">Overdue Returns</span>
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400">
+                <AlertCircle className="h-4.5 w-4.5" />
+              </div>
+            </div>
+            <p className="mt-2 font-sans text-2xl font-black text-rose-600 dark:text-rose-400">{overdueBooksCount}</p>
+            <p className="mt-1 text-[11px] text-rose-500 font-mono">Fines calculated daily</p>
+          </div>
+        </div>
+
+        {/* Charts & Actions */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          {/* Category Distribution Chart */}
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900 lg:col-span-2">
+            <h4 className="font-sans text-sm font-bold text-slate-900 dark:text-white mb-4">
+              Library Resource Distribution by Subject Category
+            </h4>
+            <div className="h-72 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={libraryChartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis dataKey="name" fontSize={11} stroke="#94a3b8" />
+                  <YAxis fontSize={11} stroke="#94a3b8" />
+                  <Tooltip />
+                  <Bar dataKey="Total" fill="#0d9488" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Quick Desk Actions */}
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900 flex flex-col justify-between">
+            <div className="space-y-4">
+              <h4 className="font-sans text-sm font-bold text-slate-900 dark:text-white">
+                Circulation Quick Desk
+              </h4>
+              <div className="space-y-2.5">
+                <button
+                  onClick={() => setActiveTab('library')}
+                  className="w-full flex items-center justify-between rounded-xl bg-slate-50 border border-slate-200 p-3 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:bg-slate-950 dark:border-slate-800 dark:text-slate-300 cursor-pointer"
+                >
+                  <span>Issue Material to Student</span>
+                  <PlusCircle className="h-4 w-4 text-teal-500" />
+                </button>
+                <button
+                  onClick={() => setActiveTab('library')}
+                  className="w-full flex items-center justify-between rounded-xl bg-slate-50 border border-slate-200 p-3 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:bg-slate-950 dark:border-slate-800 dark:text-slate-300 cursor-pointer"
+                >
+                  <span>Verify Material Return</span>
+                  <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                </button>
+                <button
+                  onClick={() => setActiveTab('library')}
+                  className="w-full flex items-center justify-between rounded-xl bg-slate-50 border border-slate-200 p-3 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:bg-slate-950 dark:border-slate-800 dark:text-slate-300 cursor-pointer"
+                >
+                  <span>Add New Book to Catalog</span>
+                  <BookOpen className="h-4 w-4 text-indigo-500" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-xl bg-teal-50 border border-teal-200/50 dark:bg-teal-950/20 dark:border-teal-900/50 mt-4 text-[11px] text-teal-900 dark:text-teal-300">
+              <p className="font-bold">Automated Fine Engine Active</p>
+              <p className="mt-0.5 opacity-90 leading-relaxed">
+                Overdue items automatically compute ₹2.00/day fine in compliance with university library policy.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   switch (role) {
     case 'Admin':
       return renderAdminDashboard();
@@ -996,8 +1163,11 @@ export default function Dashboards({
       return renderParentDashboard();
     case 'Accountant':
       return renderAccountantDashboard();
+    case 'Librarian':
+      return renderLibrarianDashboard();
     default:
       return renderAdminDashboard();
   }
 }
+
 

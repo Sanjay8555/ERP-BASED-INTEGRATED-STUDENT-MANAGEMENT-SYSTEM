@@ -91,6 +91,16 @@ export const initialUsers: User[] = [
     photo: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=120'
   },
   {
+    id: 'u-librarian',
+    username: 'librarian',
+    email: 'librarian@university.edu',
+    password: 'libraryPass2026!',
+    name: 'Mrs. Lakshmi Raman',
+    role: 'Librarian',
+    phone: '+91 94455 66778',
+    photo: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=120'
+  },
+  {
     id: 'u-7',
     username: 'saravanan_f',
     email: 'saravanan@university.edu',

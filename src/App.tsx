@@ -815,6 +815,18 @@ export default function App() {
         departmentId: 'dept-5'
       };
     }
+    if (!matchedUser && roleType === 'Librarian') {
+      matchedUser = {
+        id: 'u-librarian',
+        username: 'librarian',
+        email: 'librarian@university.edu',
+        password: 'libraryPass2026!',
+        name: 'Mrs. Lakshmi Raman',
+        role: 'Librarian',
+        phone: '+91 94455 66778',
+        photo: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=120'
+      };
+    }
     if (matchedUser) {
       setCurrentUser(matchedUser);
       setActiveRole(roleType);
@@ -922,7 +934,7 @@ export default function App() {
   // Modifying: Courses / Subject Curriculum
   const handleAddCourse = (newCourse: Course) => {
     setCoursesStore(prev => [newCourse, ...prev]);
-    fetch('http://localhost:5000/api/courses', {
+    fetch('/api/courses', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newCourse)
@@ -931,7 +943,7 @@ export default function App() {
 
   const handleUpdateCourse = (updatedCourse: Course) => {
     setCoursesStore(prev => prev.map(c => c.id === updatedCourse.id ? updatedCourse : c));
-    fetch(`http://localhost:5000/api/courses/${updatedCourse.id}`, {
+    fetch(`/api/courses/${updatedCourse.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updatedCourse)
@@ -940,7 +952,7 @@ export default function App() {
 
   const handleDeleteCourse = (courseId: string) => {
     setCoursesStore(prev => prev.filter(c => c.id !== courseId));
-    fetch(`http://localhost:5000/api/courses/${courseId}`, {
+    fetch(`/api/courses/${courseId}`, {
       method: 'DELETE'
     }).catch(console.error);
   };
@@ -1548,7 +1560,9 @@ export default function App() {
                     { label: 'Placement', email: 'placement@university.edu' },
                     { label: 'Student', email: 'student@university.edu' },
                     { label: 'Faculty', email: 'faculty@university.edu' },
-                    { label: 'Parent', email: 'parent@university.edu' }
+                    { label: 'Parent', email: 'parent@university.edu' },
+                    { label: 'Accountant', email: 'accountant@university.edu' },
+                    { label: 'Librarian', email: 'librarian@university.edu' }
                   ].map(acc => (
                     <button
                       key={acc.label}
@@ -1722,39 +1736,45 @@ export default function App() {
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 mb-4">
               <button
                 onClick={() => handleDemoLogin('Admin')}
-                className="rounded-lg bg-teal-50 border border-teal-100 py-2 text-[10px] font-bold text-teal-700 hover:bg-teal-100 dark:bg-teal-950/20 dark:border-teal-900"
+                className="rounded-lg bg-teal-50 border border-teal-100 py-2 text-[10px] font-bold text-teal-700 hover:bg-teal-100 dark:bg-teal-950/20 dark:border-teal-900 cursor-pointer"
               >
                 Admin
               </button>
               <button
                 onClick={() => handleDemoLogin('Faculty')}
-                className="rounded-lg bg-blue-50 border border-blue-100 py-2 text-[10px] font-bold text-blue-700 hover:bg-blue-100 dark:bg-blue-950/20 dark:border-blue-900"
+                className="rounded-lg bg-blue-50 border border-blue-100 py-2 text-[10px] font-bold text-blue-700 hover:bg-blue-100 dark:bg-blue-950/20 dark:border-blue-900 cursor-pointer"
               >
                 Faculty
               </button>
               <button
                 onClick={() => handleDemoLogin('Student')}
-                className="rounded-lg bg-emerald-50 border border-emerald-100 py-2 text-[10px] font-bold text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/20 dark:border-emerald-900"
+                className="rounded-lg bg-emerald-50 border border-emerald-100 py-2 text-[10px] font-bold text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/20 dark:border-emerald-900 cursor-pointer"
               >
                 Student
               </button>
               <button
                 onClick={() => handleDemoLogin('Parent')}
-                className="rounded-lg bg-amber-50 border border-amber-100 py-2 text-[10px] font-bold text-amber-700 hover:bg-amber-100 dark:bg-amber-950/20 dark:border-amber-900"
+                className="rounded-lg bg-amber-50 border border-amber-100 py-2 text-[10px] font-bold text-amber-700 hover:bg-amber-100 dark:bg-amber-950/20 dark:border-amber-900 cursor-pointer"
               >
                 Parent
               </button>
               <button
                 onClick={() => handleDemoLogin('Accountant')}
-                className="rounded-lg bg-purple-50 border border-purple-100 py-2 text-[10px] font-bold text-purple-700 hover:bg-purple-100 dark:bg-purple-950/20 dark:border-purple-900"
+                className="rounded-lg bg-purple-50 border border-purple-100 py-2 text-[10px] font-bold text-purple-700 hover:bg-purple-100 dark:bg-purple-950/20 dark:border-purple-900 cursor-pointer"
               >
                 Accountant
               </button>
               <button
                 onClick={() => handleDemoLogin('Placement')}
-                className="rounded-lg bg-indigo-50 border border-indigo-100 py-2 text-[10px] font-bold text-indigo-700 hover:bg-indigo-100 dark:bg-indigo-950/20 dark:border-indigo-900"
+                className="rounded-lg bg-indigo-50 border border-indigo-100 py-2 text-[10px] font-bold text-indigo-700 hover:bg-indigo-100 dark:bg-indigo-950/20 dark:border-indigo-900 cursor-pointer"
               >
                 Placement
+              </button>
+              <button
+                onClick={() => handleDemoLogin('Librarian')}
+                className="col-span-2 sm:col-span-3 rounded-lg bg-teal-50 border border-teal-200 py-2 text-[10px] font-bold text-teal-800 hover:bg-teal-100 dark:bg-teal-950/30 dark:border-teal-800 dark:text-teal-300 cursor-pointer"
+              >
+                Librarian
               </button>
             </div>
           </div>

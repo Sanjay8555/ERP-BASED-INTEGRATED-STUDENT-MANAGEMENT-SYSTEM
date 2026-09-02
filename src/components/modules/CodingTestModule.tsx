@@ -226,6 +226,8 @@ export default function CodingTestModule({
   // Resolve current student record
   const currentStudent = students.find(s => s.userId === currentUser?.id) || students[0];
 
+  const handleFinalSubmitRef = useRef<() => void>(() => {});
+
   // Timer countdown for active test session
   useEffect(() => {
     if (!activeTestSession || timeRemainingSeconds <= 0) return;
@@ -233,7 +235,8 @@ export default function CodingTestModule({
       setTimeRemainingSeconds(prev => {
         if (prev <= 1) {
           clearInterval(interval);
-          handleAutoSubmitDueToTime();
+          alert('⏰ Time is up! Your assessment is being automatically submitted.');
+          handleFinalSubmitRef.current();
           return 0;
         }
         return prev - 1;
@@ -593,6 +596,8 @@ export default function CodingTestModule({
 
     alert(`🎉 Assessment Submitted Successfully!\nYour Score: ${totalScore}/${maxScore} (${percentage}%)\nResults have been recorded to the Placement & Examination Cell.`);
   };
+
+  handleFinalSubmitRef.current = handleFinalSubmit;
 
   const handleAutoSubmitDueToTime = () => {
     alert('⏰ Time is up! Your assessment is being automatically submitted.');

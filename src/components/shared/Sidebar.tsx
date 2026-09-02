@@ -41,7 +41,7 @@ export default function Sidebar({ activeTab, setActiveTab, role, isOpen, setIsOp
 
   // Define menu items and their role permissions
   const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: GraduationCap, roles: ['Admin', 'Placement', 'Faculty', 'Student', 'Parent', 'Accountant'] },
+    { id: 'dashboard', label: 'Dashboard', icon: GraduationCap, roles: ['Admin', 'Placement', 'Faculty', 'Student', 'Parent', 'Accountant', 'Librarian'] },
     { id: 'coding-tests', label: 'Coding Tests & IDE', icon: Code2, roles: ['Admin', 'Placement', 'Faculty', 'Student'] },
     { id: 'placement', label: 'Placement Cell', icon: Building2, roles: ['Admin', 'Placement'] },
     { id: 'students', label: 'Students', icon: Users, roles: ['Admin', 'Placement', 'Faculty', 'Accountant'] },
@@ -50,12 +50,12 @@ export default function Sidebar({ activeTab, setActiveTab, role, isOpen, setIsOp
     { id: 'attendance', label: 'Attendance', icon: CalendarDays, roles: ['Admin', 'Faculty', 'Student', 'Parent'] },
     { id: 'exams', label: 'Examinations', icon: FileSpreadsheet, roles: ['Admin', 'Faculty', 'Student', 'Parent'] },
     { id: 'fees', label: 'Fees & Finance', icon: CreditCard, roles: ['Admin', 'Accountant', 'Student', 'Parent'] },
-    { id: 'library', label: 'Library', icon: BookMarked, roles: ['Admin', 'Student', 'Parent'] },
+    { id: 'library', label: 'Library', icon: BookMarked, roles: ['Admin', 'Librarian', 'Student', 'Parent'] },
     { id: 'timetable', label: 'Timetable', icon: Clock, roles: ['Admin', 'Faculty', 'Student', 'Parent'] },
     { id: 'assignments', label: 'Assignments', icon: ClipboardList, roles: ['Admin', 'Faculty', 'Student'] },
-    { id: 'notices', label: 'Notice Board', icon: Megaphone, roles: ['Admin', 'Placement', 'Faculty', 'Student', 'Parent', 'Accountant'] },
-    { id: 'reports', label: 'Reports & Export', icon: FileDown, roles: ['Admin', 'Placement', 'Faculty', 'Accountant'] },
-    { id: 'settings', label: 'Settings', icon: Settings, roles: ['Admin', 'Placement', 'Faculty', 'Student', 'Parent', 'Accountant'] }
+    { id: 'notices', label: 'Notice Board', icon: Megaphone, roles: ['Admin', 'Placement', 'Faculty', 'Student', 'Parent', 'Accountant', 'Librarian'] },
+    { id: 'reports', label: 'Reports & Export', icon: FileDown, roles: ['Admin', 'Placement', 'Faculty', 'Accountant', 'Librarian'] },
+    { id: 'settings', label: 'Settings', icon: Settings, roles: ['Admin', 'Placement', 'Faculty', 'Student', 'Parent', 'Accountant', 'Librarian'] }
   ];
 
   const allowedItems = menuItems.filter(item => item.roles.includes(role));

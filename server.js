@@ -519,6 +519,115 @@ app.post('/api/notices', (req, res) => {
   res.json({ success: true });
 });
 
+// Books / Library REST API
+app.get('/api/books', (req, res) => {
+  const state = getStateOrEmpty();
+  res.json(state.booksStore || []);
+});
+
+app.post('/api/books', (req, res) => {
+  const newBook = req.body;
+  const state = getStateOrEmpty();
+  const index = (state.booksStore || []).findIndex(b => b.id === newBook.id);
+  if (index >= 0) {
+    state.booksStore[index] = newBook;
+  } else {
+    state.booksStore = [newBook, ...(state.booksStore || [])];
+  }
+  saveState(state);
+  broadcastStateUpdate(state);
+  res.json({ success: true, book: newBook });
+});
+
+// Attendance REST API
+app.get('/api/attendance', (req, res) => {
+  const state = getStateOrEmpty();
+  res.json(state.attendanceStore || []);
+});
+
+app.post('/api/attendance', (req, res) => {
+  const records = Array.isArray(req.body) ? req.body : [req.body];
+  const state = getStateOrEmpty();
+  state.attendanceStore = [...records, ...(state.attendanceStore || [])];
+  saveState(state);
+  broadcastStateUpdate(state);
+  res.json({ success: true, count: records.length });
+});
+
+// Assignments & Submissions REST API
+app.get('/api/assignments', (req, res) => {
+  const state = getStateOrEmpty();
+  res.json(state.assignmentsStore || []);
+});
+
+app.post('/api/assignments', (req, res) => {
+  const assignment = req.body;
+  const state = getStateOrEmpty();
+  state.assignmentsStore = [assignment, ...(state.assignmentsStore || [])];
+  saveState(state);
+  broadcastStateUpdate(state);
+  res.json({ success: true, assignment });
+});
+
+app.get('/api/submissions', (req, res) => {
+  const state = getStateOrEmpty();
+  res.json(state.submissionsStore || []);
+});
+
+app.post('/api/submissions', (req, res) => {
+  const submission = req.body;
+  const state = getStateOrEmpty();
+  const index = (state.submissionsStore || []).findIndex(s => s.id === submission.id);
+  if (index >= 0) {
+    state.submissionsStore[index] = submission;
+  } else {
+    state.submissionsStore = [submission, ...(state.submissionsStore || [])];
+  }
+  saveState(state);
+  broadcastStateUpdate(state);
+  res.json({ success: true, submission });
+});
+
+// Coding Tests REST API
+app.get('/api/coding-tests', (req, res) => {
+  const state = getStateOrEmpty();
+  res.json(state.codingTestsStore || []);
+});
+
+app.post('/api/coding-tests', (req, res) => {
+  const test = req.body;
+  const state = getStateOrEmpty();
+  const index = (state.codingTestsStore || []).findIndex(t => t.id === test.id);
+  if (index >= 0) {
+    state.codingTestsStore[index] = test;
+  } else {
+    state.codingTestsStore = [test, ...(state.codingTestsStore || [])];
+  }
+  saveState(state);
+  broadcastStateUpdate(state);
+  res.json({ success: true, test });
+});
+
+// Placement Drives REST API
+app.get('/api/placement-drives', (req, res) => {
+  const state = getStateOrEmpty();
+  res.json(state.placementDrivesStore || []);
+});
+
+app.post('/api/placement-drives', (req, res) => {
+  const drive = req.body;
+  const state = getStateOrEmpty();
+  const index = (state.placementDrivesStore || []).findIndex(d => d.id === drive.id);
+  if (index >= 0) {
+    state.placementDrivesStore[index] = drive;
+  } else {
+    state.placementDrivesStore = [drive, ...(state.placementDrivesStore || [])];
+  }
+  saveState(state);
+  broadcastStateUpdate(state);
+  res.json({ success: true, drive });
+});
+
 // Real-Time Server-Sent Events (SSE) Stream
 app.get('/api/events', (req, res) => {
   res.setHeader('Content-Type', 'text/event-stream');

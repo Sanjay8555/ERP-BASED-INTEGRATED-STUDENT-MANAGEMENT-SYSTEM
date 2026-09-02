@@ -81,7 +81,7 @@ export default function Navbar({
     setDarkMode(prev => !prev);
   };
 
-  const rolesList: UserRole[] = ['Admin', 'Placement', 'Faculty', 'Student', 'Parent', 'Accountant'];
+  const rolesList: UserRole[] = ['Admin', 'Placement', 'Faculty', 'Student', 'Parent', 'Accountant', 'Librarian'];
 
   const notifications = [
     { id: 1, title: 'Exam Registration Out', desc: 'Syllabus and forms uploaded.', time: '1h ago' },
