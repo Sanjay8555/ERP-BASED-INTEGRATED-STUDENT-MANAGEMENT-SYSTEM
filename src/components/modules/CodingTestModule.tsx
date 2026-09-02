@@ -62,7 +62,7 @@ import {
 import { initialCodingQuestions, shuffleAndSelectQuestions } from '../../data/codingQuestionsPool';
 import { evaluateSolution, SingleTestCaseResult } from '../../utils/codeEvaluator';
 
-interface EditableCustomTestCase {
+export interface EditableCustomTestCase {
   id: string;
   input: string;
   expectedOutput: string;
@@ -164,7 +164,6 @@ export default function CodingTestModule({
   const [bankCategory, setBankCategory] = useState<string>('All');
   const [bankDifficulty, setBankDifficulty] = useState<string>('All');
   const [selectedQuestionForView, setSelectedQuestionForView] = useState<CodingQuestion | null>(null);
-  const [showAddQuestionModal, setShowAddQuestionModal] = useState<boolean>(false);
   const [editingQuestion, setEditingQuestion] = useState<CodingQuestion | null>(null);
 
   // Assessment Creation Modal State
@@ -187,7 +186,7 @@ export default function CodingTestModule({
   const [submissionSearch, setSubmissionSearch] = useState<string>('');
   const [submissionFilterTest, setSubmissionFilterTest] = useState<string>('all');
 
-  // Give Custom Question Modal State
+  // Custom Question Modal State (Used for both Giving New Questions & Editing Existing Questions)
   const [showGiveCustomQuestionModal, setShowGiveCustomQuestionModal] = useState<boolean>(false);
   const [customQTitle, setCustomQTitle] = useState<string>('');
   const [customQCategory, setCustomQCategory] = useState<string>('Algorithms');
@@ -256,6 +255,69 @@ export default function CodingTestModule({
     window.addEventListener('blur', handleBlur);
     return () => window.removeEventListener('blur', handleBlur);
   }, [activeTestSession]);
+
+  // -------------------------------------------------------------
+  // OPEN EDIT QUESTION MODAL (LOADS EXISTING QUESTION INTO RICH BUILDER)
+  // -------------------------------------------------------------
+  const handleOpenEditQuestion = (q: CodingQuestion) => {
+    setEditingQuestion(q);
+    setCustomQTitle(q.title || '');
+    setCustomQCategory(q.category || 'Algorithms');
+    setCustomQDifficulty(q.difficulty || 'Medium');
+    setCustomQPoints(q.points || 30);
+    setCustomQDescription(q.description || '');
+    setCustomQConstraints((q.constraints || []).join('\n'));
+    setCustomQSampleInput(q.sampleInput || '');
+    setCustomQSampleOutput(q.sampleOutput || '');
+    setCustomQStarterJS(q.starterCode?.javascript || 'function solve(input) {\n  return input;\n}');
+    setCustomQStarterPy(q.starterCode?.python || 'def solve(input_data):\n    return input_data');
+    setCustomQStarterJava(q.starterCode?.java || 'public class Solution {\n    public static Object solve(Object input) {\n        return input;\n    }\n}');
+    setCustomQStarterCpp(q.starterCode?.cpp || '#include <iostream>\nusing namespace std;\nint solve(int input) {\n    return input;\n}');
+    setCustomQStarterSql(q.starterCode?.sql || '-- SQL Solution\nSELECT * FROM table;');
+
+    if (q.testCases && q.testCases.length > 0) {
+      setCustomTestCases(
+        q.testCases.map((tc, idx) => ({
+          id: tc.id || String(idx + 1),
+          input: tc.input || '',
+          expectedOutput: tc.expectedOutput || '',
+          hidden: Boolean(tc.hidden),
+          explanation: tc.explanation || ''
+        }))
+      );
+    } else {
+      setCustomTestCases([
+        { id: '1', input: q.sampleInput || '[1, 2, 3]', expectedOutput: q.sampleOutput || '[1, 2, 3]', hidden: false, explanation: 'Sample verification' }
+      ]);
+    }
+
+    setShowGiveCustomQuestionModal(true);
+  };
+
+  // Reset to empty custom question builder
+  const handleOpenNewCustomQuestionModal = () => {
+    setEditingQuestion(null);
+    setCustomQTitle('');
+    setCustomQCategory('Algorithms');
+    setCustomQDifficulty('Medium');
+    setCustomQPoints(30);
+    setCustomQDescription('');
+    setCustomQConstraints('1 <= nums.length <= 10^5\n-10^9 <= nums[i] <= 10^9\nTime Limit: 1.0s, Memory: 256MB');
+    setCustomQSampleInput('[2, 7, 11, 15], 9');
+    setCustomQSampleOutput('[0, 1]');
+    setCustomAssessmentDuration(45);
+    setCustomQStarterJS('function solve(input) {\n  // Write your algorithm solution here:\n  \n  return input;\n}');
+    setCustomQStarterPy('def solve(input_data):\n    # Write your solution here:\n    return input_data');
+    setCustomQStarterJava('public class Solution {\n    public static Object solve(Object input) {\n        // Write solution here\n        return input;\n    }\n}');
+    setCustomQStarterCpp('#include <iostream>\n#include <vector>\nusing namespace std;\n\nint solve(int input) {\n    // Write solution here\n    return input;\n}');
+    setCustomQStarterSql('-- SQL Solution\nSELECT id, name FROM students WHERE score >= 80;');
+    setCustomTestCases([
+      { id: '1', input: '[2, 7, 11, 15], 9', expectedOutput: '[0, 1]', hidden: false, explanation: 'Sample verification' },
+      { id: '2', input: '[3, 2, 4], 6', expectedOutput: '[1, 2]', hidden: false, explanation: 'Edge bounds verification' },
+      { id: '3', input: '[3, 3], 6', expectedOutput: '[0, 1]', hidden: true, explanation: 'Hidden boundary test case' }
+    ]);
+    setShowGiveCustomQuestionModal(true);
+  };
 
   // -------------------------------------------------------------
   // START OR RESUME CODING TEST FLOW (WITH SHUFFLING & LIMITS)
@@ -598,7 +660,7 @@ export default function CodingTestModule({
   };
 
   // -------------------------------------------------------------
-  // GIVE CUSTOM QUESTIONS HANDLERS (INSTANT TEST, SAVE TO BANK, OR CREATE TEST)
+  // BUILD OR UPDATE CUSTOM QUESTION OBJECT
   // -------------------------------------------------------------
   const buildCustomQuestionObject = (): CodingQuestion | null => {
     if (!customQTitle.trim()) {
@@ -616,8 +678,10 @@ export default function CodingTestModule({
       return null;
     }
 
+    const qId = editingQuestion ? editingQuestion.id : `cq-custom-${Date.now()}`;
+
     const customQuestionObj: CodingQuestion = {
-      id: `cq-custom-${Date.now()}`,
+      id: qId,
       title: customQTitle.trim(),
       category: customQCategory.trim() || 'Algorithms',
       difficulty: customQDifficulty,
@@ -627,7 +691,7 @@ export default function CodingTestModule({
       sampleOutput: customQSampleOutput || validTestCases[0].expectedOutput,
       points: Number(customQPoints) || 30,
       tags: [customQCategory, customQDifficulty, 'Custom Question', '2026'],
-      hints: ['Analyze boundary conditions and optimize asymptotic time complexity.'],
+      hints: editingQuestion?.hints || ['Analyze boundary conditions and optimize asymptotic time complexity.'],
       starterCode: {
         javascript: customQStarterJS || `function solve(input) {\n  // Write implementation\n  return input;\n}`,
         python: customQStarterPy || `def solve(input_data):\n    # Write implementation\n    return input_data`,
@@ -647,26 +711,47 @@ export default function CodingTestModule({
     return customQuestionObj;
   };
 
-  const handleLaunchCustomQuestionAssessment = () => {
-    const customQ = buildCustomQuestionObject();
-    if (!customQ) return;
-    onAddQuestion(customQ);
-    setShowGiveCustomQuestionModal(false);
-    handleLaunchInstantAssessment(customQ, Number(customAssessmentDuration) || 45);
-  };
-
+  // Save changes (Handles both Add new and Edit existing problem)
   const handleSaveCustomQuestionToBank = () => {
     const customQ = buildCustomQuestionObject();
     if (!customQ) return;
-    onAddQuestion(customQ);
+
+    if (editingQuestion) {
+      onUpdateQuestion(customQ);
+      alert(`Problem "${customQ.title}" updated successfully!`);
+    } else {
+      onAddQuestion(customQ);
+      alert(`Custom Question "${customQ.title}" successfully added to Question Bank (Total Pool: ${questions.length + 1})!`);
+    }
+
     setShowGiveCustomQuestionModal(false);
-    alert(`Custom Question "${customQ.title}" successfully added to Question Bank (Total Pool: ${questions.length + 1})!`);
+    setEditingQuestion(null);
+  };
+
+  const handleLaunchCustomQuestionAssessment = () => {
+    const customQ = buildCustomQuestionObject();
+    if (!customQ) return;
+
+    if (editingQuestion) {
+      onUpdateQuestion(customQ);
+    } else {
+      onAddQuestion(customQ);
+    }
+
+    setShowGiveCustomQuestionModal(false);
+    setEditingQuestion(null);
+    handleLaunchInstantAssessment(customQ, Number(customAssessmentDuration) || 45);
   };
 
   const handleCreateTestWithCustomQuestion = () => {
     const customQ = buildCustomQuestionObject();
     if (!customQ) return;
-    onAddQuestion(customQ);
+
+    if (editingQuestion) {
+      onUpdateQuestion(customQ);
+    } else {
+      onAddQuestion(customQ);
+    }
 
     const newTest: CodingTest = {
       id: `ct-${Date.now()}`,
@@ -691,99 +776,8 @@ export default function CodingTestModule({
 
     onAddTest(newTest);
     setShowGiveCustomQuestionModal(false);
-    alert(`Assessment "${newTest.title}" created with your custom question and published!`);
-  };
-
-  // Add / Edit existing question handler in Bank
-  const handleSaveQuestion = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newQTitle.trim()) {
-      alert('Question title is required.');
-      return;
-    }
-
-    const constraintsList = newQConstraints
-      .split('\n')
-      .map(s => s.trim())
-      .filter(Boolean);
-
-    const testCases: CodingTestCase[] = [
-      {
-        id: `tc-${Date.now()}-1`,
-        input: newQSampleInput,
-        expectedOutput: newQSampleOutput,
-        explanation: 'Standard sample case validation'
-      },
-      {
-        id: `tc-${Date.now()}-2`,
-        input: 'Edge case bounds test',
-        expectedOutput: newQSampleOutput,
-        hidden: true
-      }
-    ];
-
-    if (editingQuestion) {
-      const updated: CodingQuestion = {
-        ...editingQuestion,
-        title: newQTitle.trim(),
-        category: newQCategory,
-        difficulty: newQDifficulty,
-        description: newQDescription.trim(),
-        constraints: constraintsList,
-        sampleInput: newQSampleInput,
-        sampleOutput: newQSampleOutput,
-        points: Number(newQPoints) || 30,
-        starterCode: {
-          javascript: newQStarterCodeJS,
-          python: newQStarterCodePy,
-          java: 'public class Solution { }',
-          cpp: '#include <vector>\nusing namespace std;'
-        }
-      };
-      onUpdateQuestion(updated);
-      alert('Question updated in Question Bank!');
-    } else {
-      const newQ: CodingQuestion = {
-        id: `cq-${Date.now()}`,
-        title: newQTitle.trim(),
-        category: newQCategory,
-        difficulty: newQDifficulty,
-        description: newQDescription.trim(),
-        constraints: constraintsList,
-        sampleInput: newQSampleInput,
-        sampleOutput: newQSampleOutput,
-        points: Number(newQPoints) || 30,
-        tags: [newQCategory, newQDifficulty, 'Placement 2026'],
-        hints: ['Consider optimal two-pointer, hash table, or dynamic programming approach.'],
-        starterCode: {
-          javascript: newQStarterCodeJS,
-          python: newQStarterCodePy,
-          java: 'public class Solution {\n    // Code here\n}',
-          cpp: '#include <vector>\nusing namespace std;'
-        },
-        testCases
-      };
-      onAddQuestion(newQ);
-      alert(`New question "${newQ.title}" added to Question Bank (Total Pool: ${questions.length + 1})!`);
-    }
-
-    setShowAddQuestionModal(false);
     setEditingQuestion(null);
-  };
-
-  const handleOpenEditQuestion = (q: CodingQuestion) => {
-    setEditingQuestion(q);
-    setNewQTitle(q.title);
-    setNewQCategory(q.category);
-    setNewQDifficulty(q.difficulty);
-    setNewQDescription(q.description);
-    setNewQConstraints(q.constraints.join('\n'));
-    setNewQSampleInput(q.sampleInput);
-    setNewQSampleOutput(q.sampleOutput);
-    setNewQPoints(q.points);
-    setNewQStarterCodeJS(q.starterCode.javascript || '');
-    setNewQStarterCodePy(q.starterCode.python || '');
-    setShowAddQuestionModal(true);
+    alert(`Assessment "${newTest.title}" published with question and ready for candidates!`);
   };
 
   // -------------------------------------------------------------
@@ -887,7 +881,7 @@ export default function CodingTestModule({
                 Coding Assessment & Testing Portal
               </h1>
               <p className="text-xs text-teal-200/80 font-mono">
-                300+ Question Pool Bank • Custom Questions Option • In-Browser IDE Runner
+                300+ Question Pool Bank • Custom Questions & Edit Support • Fullscreen IDE
               </p>
             </div>
           </div>
@@ -896,7 +890,7 @@ export default function CodingTestModule({
         {/* Global Action Badges */}
         <div className="flex flex-wrap items-center gap-3">
           <button
-            onClick={() => setShowGiveCustomQuestionModal(true)}
+            onClick={handleOpenNewCustomQuestionModal}
             className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2.5 text-xs font-bold text-slate-950 shadow-lg hover:from-amber-400 hover:to-orange-400 transition-all cursor-pointer"
             title="Create and test your own custom coding questions"
           >
@@ -980,7 +974,7 @@ export default function CodingTestModule({
               Live & Scheduled Assessments
             </h3>
             <button
-              onClick={() => setShowGiveCustomQuestionModal(true)}
+              onClick={handleOpenNewCustomQuestionModal}
               className="flex items-center gap-1.5 text-xs font-bold text-amber-600 hover:text-amber-700 dark:text-amber-400 cursor-pointer"
             >
               <Sparkles className="h-3.5 w-3.5" />
@@ -1160,6 +1154,16 @@ export default function CodingTestModule({
                 </div>
               )}
 
+              {/* Edit Problem button in IDE */}
+              <button
+                onClick={() => handleOpenEditQuestion(currentQuestion)}
+                className="flex items-center gap-1.5 rounded-xl bg-slate-800 px-3 py-1.5 text-xs font-bold text-amber-300 hover:bg-slate-700 transition-colors border border-slate-700 cursor-pointer"
+                title="Edit Problem Statement, Constraints or Test Cases"
+              >
+                <Edit className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Edit Problem</span>
+              </button>
+
               <button
                 onClick={() => {
                   if (isFullscreenActive) exitFullscreen();
@@ -1209,9 +1213,19 @@ export default function CodingTestModule({
                   </div>
                 </div>
 
-                <h2 className="text-lg font-bold text-white">
-                  {currentQuestion.title}
-                </h2>
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-bold text-white">
+                    {currentQuestion.title}
+                  </h2>
+                  <button
+                    onClick={() => handleOpenEditQuestion(currentQuestion)}
+                    className="p-1 rounded text-amber-400 hover:bg-slate-800 transition-colors"
+                    title="Edit this question"
+                  >
+                    <Edit className="h-4 w-4" />
+                  </button>
+                </div>
+
                 <div className="text-xs text-slate-300 leading-relaxed whitespace-pre-line">
                   {currentQuestion.description}
                 </div>
@@ -1439,7 +1453,7 @@ export default function CodingTestModule({
 
             <div className="flex items-center gap-2">
               <button
-                onClick={() => setShowGiveCustomQuestionModal(true)}
+                onClick={handleOpenNewCustomQuestionModal}
                 className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2 text-xs font-bold text-slate-950 shadow-md hover:from-amber-400 hover:to-orange-400 transition-all cursor-pointer"
               >
                 <Sparkles className="h-4 w-4 fill-current" />
@@ -1448,12 +1462,7 @@ export default function CodingTestModule({
 
               {isAdminOrPlacement && (
                 <button
-                  onClick={() => {
-                    setEditingQuestion(null);
-                    setNewQTitle('');
-                    setNewQDescription('');
-                    setShowAddQuestionModal(true);
-                  }}
+                  onClick={handleOpenNewCustomQuestionModal}
                   className="flex items-center gap-2 rounded-xl bg-teal-600 px-4 py-2 text-xs font-bold text-white shadow-md hover:bg-teal-700 transition-colors cursor-pointer"
                 >
                   <Plus className="h-4 w-4" />
@@ -1512,25 +1521,34 @@ export default function CodingTestModule({
                       <span>Solve in IDE</span>
                     </button>
 
+                    <button
+                      onClick={() => setSelectedQuestionForView(q)}
+                      className="p-1.5 rounded-lg text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 cursor-pointer"
+                      title="Preview Problem"
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                    </button>
+
+                    {/* Edit Problem button available for instructors / admins and all users */}
+                    <button
+                      onClick={() => handleOpenEditQuestion(q)}
+                      className="flex items-center gap-1 rounded-lg bg-amber-50 px-2 py-1 text-xs font-bold text-amber-700 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-300 cursor-pointer"
+                      title="Edit this problem statement, constraints, or test cases"
+                    >
+                      <Edit className="h-3 w-3" />
+                      <span>Edit</span>
+                    </button>
+
                     {isAdminOrPlacement && (
-                      <>
-                        <button
-                          onClick={() => handleOpenEditQuestion(q)}
-                          className="p-1.5 rounded-lg text-indigo-600 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-950/30 cursor-pointer"
-                          title="Edit Problem"
-                        >
-                          <Edit className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          onClick={() => {
-                            if (confirm(`Remove "${q.title}" from question bank?`)) onDeleteQuestion(q.id);
-                          }}
-                          className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 cursor-pointer"
-                          title="Delete Problem"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </>
+                      <button
+                        onClick={() => {
+                          if (confirm(`Remove "${q.title}" from question bank?`)) onDeleteQuestion(q.id);
+                        }}
+                        className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 cursor-pointer"
+                        title="Delete Problem"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
                     )}
                   </div>
                 </div>
@@ -1668,7 +1686,101 @@ export default function CodingTestModule({
       )}
 
       {/* ------------------------------------------------------------- */}
-      {/* MODAL: GIVE CUSTOM QUESTION & INSTANT ASSESSMENT LAUNCHER */}
+      {/* MODAL: PREVIEW QUESTION MODAL WITH EDIT ACTION */}
+      {/* ------------------------------------------------------------- */}
+      {selectedQuestionForView && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-xs">
+          <div className="relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-800">
+              <div className="flex items-center gap-2">
+                <span className="rounded-lg bg-teal-50 px-2.5 py-1 text-xs font-bold text-teal-700 dark:bg-teal-950/40 dark:text-teal-300 font-mono">
+                  {selectedQuestionForView.category}
+                </span>
+                <span className="rounded-full px-2.5 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
+                  {selectedQuestionForView.difficulty} ({selectedQuestionForView.points} Pts)
+                </span>
+              </div>
+              <button
+                onClick={() => setSelectedQuestionForView(null)}
+                className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+              {selectedQuestionForView.title}
+            </h3>
+
+            <div className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-line">
+              {selectedQuestionForView.description}
+            </div>
+
+            {/* Sample Example */}
+            <div className="rounded-xl bg-slate-50 p-3 font-mono text-xs text-slate-800 dark:bg-slate-950 dark:text-slate-200 border border-slate-200/80 dark:border-slate-800 space-y-1">
+              <div>
+                <span className="text-slate-400">Sample Input: </span>
+                <span className="font-bold text-teal-600 dark:text-teal-400">{selectedQuestionForView.sampleInput}</span>
+              </div>
+              <div>
+                <span className="text-slate-400">Sample Output: </span>
+                <span className="font-bold text-emerald-600 dark:text-emerald-400">{selectedQuestionForView.sampleOutput}</span>
+              </div>
+            </div>
+
+            {/* Constraints */}
+            <div className="space-y-1">
+              <p className="text-xs font-bold uppercase text-slate-400 font-mono">Constraints</p>
+              <ul className="list-disc pl-4 text-xs font-mono text-slate-600 dark:text-slate-400 space-y-0.5">
+                {selectedQuestionForView.constraints.map((c, i) => (
+                  <li key={i}>{c}</li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Actions */}
+            <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const q = selectedQuestionForView;
+                  setSelectedQuestionForView(null);
+                  handleOpenEditQuestion(q);
+                }}
+                className="flex items-center gap-1.5 rounded-xl bg-amber-500 px-4 py-2 text-xs font-bold text-slate-950 shadow-md hover:bg-amber-400 transition-colors cursor-pointer"
+              >
+                <Edit className="h-4 w-4" />
+                <span>Edit Problem</span>
+              </button>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedQuestionForView(null)}
+                  className="rounded-xl px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 cursor-pointer"
+                >
+                  Close
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const q = selectedQuestionForView;
+                    setSelectedQuestionForView(null);
+                    handleLaunchInstantAssessment(q, 45);
+                  }}
+                  className="flex items-center gap-1.5 rounded-xl bg-teal-600 px-4 py-2 text-xs font-bold text-white shadow-md hover:bg-teal-700 transition-colors cursor-pointer"
+                >
+                  <Play className="h-3.5 w-3.5 fill-current" />
+                  <span>Solve in IDE</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ------------------------------------------------------------- */}
+      {/* MODAL: GIVE CUSTOM QUESTION & EDIT PROBLEM MODAL */}
       {/* ------------------------------------------------------------- */}
       {showGiveCustomQuestionModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-xs">
@@ -1676,19 +1788,24 @@ export default function CodingTestModule({
             <div className="flex items-center justify-between border-b border-slate-100 pb-4 dark:border-slate-800">
               <div className="flex items-center gap-2.5">
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/20 text-amber-500">
-                  <Sparkles className="h-5 w-5" />
+                  {editingQuestion ? <Edit className="h-5 w-5" /> : <Sparkles className="h-5 w-5" />}
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-                    Give Custom Question & Coding Challenge
+                    {editingQuestion ? `Edit Problem: ${editingQuestion.title}` : 'Give Custom Question & Coding Challenge'}
                   </h3>
                   <p className="text-xs text-slate-500 font-mono">
-                    Define custom problem statement, test cases & launch proctored assessment
+                    {editingQuestion
+                      ? 'Modify problem statement, constraints, test cases, and starter code'
+                      : 'Define custom problem statement, test cases & launch proctored assessment'}
                   </p>
                 </div>
               </div>
               <button
-                onClick={() => setShowGiveCustomQuestionModal(false)}
+                onClick={() => {
+                  setShowGiveCustomQuestionModal(false);
+                  setEditingQuestion(null);
+                }}
                 className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
               >
                 <X className="h-5 w-5" />
@@ -1958,7 +2075,10 @@ export default function CodingTestModule({
             <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2">
               <button
                 type="button"
-                onClick={() => setShowGiveCustomQuestionModal(false)}
+                onClick={() => {
+                  setShowGiveCustomQuestionModal(false);
+                  setEditingQuestion(null);
+                }}
                 className="rounded-xl px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 cursor-pointer"
               >
                 Cancel
@@ -1968,11 +2088,12 @@ export default function CodingTestModule({
                 <button
                   type="button"
                   onClick={handleSaveCustomQuestionToBank}
-                  className="rounded-xl bg-slate-100 px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 transition-colors cursor-pointer"
+                  className="rounded-xl bg-teal-600 px-4 py-2 text-xs font-bold text-white shadow-md hover:bg-teal-700 transition-colors cursor-pointer"
                 >
-                  Save to Question Bank
+                  {editingQuestion ? 'Save Changes' : 'Save to Question Bank'}
                 </button>
-                {isAdminOrPlacement && (
+
+                {!editingQuestion && isAdminOrPlacement && (
                   <button
                     type="button"
                     onClick={handleCreateTestWithCustomQuestion}
@@ -1981,13 +2102,14 @@ export default function CodingTestModule({
                     Publish as Test
                   </button>
                 )}
+
                 <button
                   type="button"
                   onClick={handleLaunchCustomQuestionAssessment}
                   className="rounded-xl bg-gradient-to-r from-amber-500 to-teal-500 px-5 py-2 text-xs font-bold text-slate-950 shadow-md hover:opacity-95 transition-all cursor-pointer flex items-center gap-1.5"
                 >
                   <Play className="h-3.5 w-3.5 fill-current" />
-                  <span>Launch Instant Assessment</span>
+                  <span>{editingQuestion ? 'Update & Solve in IDE' : 'Launch Instant Assessment'}</span>
                 </button>
               </div>
             </div>
@@ -2085,7 +2207,7 @@ export default function CodingTestModule({
                         type="button"
                         onClick={() => {
                           setShowCreateTestModal(false);
-                          setShowGiveCustomQuestionModal(true);
+                          handleOpenNewCustomQuestionModal();
                         }}
                         className="text-[11px] font-bold text-indigo-600 hover:underline flex items-center gap-1"
                       >
@@ -2112,20 +2234,22 @@ export default function CodingTestModule({
                         return (
                           <div
                             key={q.id}
-                            onClick={() => {
-                              if (isSelected) {
-                                setSelectedCustomQuestionIds(selectedCustomQuestionIds.filter(id => id !== q.id));
-                              } else {
-                                setSelectedCustomQuestionIds([...selectedCustomQuestionIds, q.id]);
-                              }
-                            }}
-                            className={`flex items-center justify-between p-2 rounded-lg cursor-pointer transition-colors ${
+                            className={`flex items-center justify-between p-2 rounded-lg transition-colors ${
                               isSelected
                                 ? 'bg-teal-50 border border-teal-200 dark:bg-teal-950/40 dark:border-teal-800'
                                 : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
                             }`}
                           >
-                            <div className="flex items-center gap-2 min-w-0">
+                            <div
+                              onClick={() => {
+                                if (isSelected) {
+                                  setSelectedCustomQuestionIds(selectedCustomQuestionIds.filter(id => id !== q.id));
+                                } else {
+                                  setSelectedCustomQuestionIds([...selectedCustomQuestionIds, q.id]);
+                                }
+                              }}
+                              className="flex items-center gap-2 min-w-0 flex-1 cursor-pointer"
+                            >
                               {isSelected ? (
                                 <CheckSquare className="h-4 w-4 text-teal-600 shrink-0" />
                               ) : (
@@ -2135,9 +2259,22 @@ export default function CodingTestModule({
                                 {q.title}
                               </span>
                             </div>
+
                             <div className="flex items-center gap-2 font-mono text-[11px] shrink-0">
                               <span className="text-slate-400">{q.category}</span>
                               <span className="font-bold text-teal-600 dark:text-teal-400">{q.points} pts</span>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setShowCreateTestModal(false);
+                                  handleOpenEditQuestion(q);
+                                }}
+                                className="p-1 rounded text-amber-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+                                title="Edit this question"
+                              >
+                                <Edit className="h-3 w-3" />
+                              </button>
                             </div>
                           </div>
                         );
@@ -2219,140 +2356,6 @@ export default function CodingTestModule({
                   className="rounded-xl bg-teal-600 px-5 py-2 text-xs font-bold text-white shadow-md hover:bg-teal-700 transition-colors cursor-pointer"
                 >
                   Publish Assessment
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* ------------------------------------------------------------- */}
-      {/* MODAL: ADD / EDIT CODING PROBLEM TO BANK */}
-      {/* ------------------------------------------------------------- */}
-      {showAddQuestionModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-xs">
-          <div className="relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4 dark:border-slate-800">
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-                {editingQuestion ? 'Edit Coding Problem' : 'Add New Problem to 300+ Pool'}
-              </h3>
-              <button
-                onClick={() => setShowAddQuestionModal(false)}
-                className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveQuestion} className="mt-4 space-y-4">
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                <div className="sm:col-span-2">
-                  <label className="block text-xs font-bold uppercase text-slate-400 mb-1">Problem Title</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Trapping Rain Water"
-                    value={newQTitle}
-                    onChange={(e) => setNewQTitle(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-800 dark:border-slate-800 dark:bg-slate-950 dark:text-white"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold uppercase text-slate-400 mb-1">Difficulty</label>
-                  <select
-                    value={newQDifficulty}
-                    onChange={(e) => setNewQDifficulty(e.target.value as any)}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-800 dark:border-slate-800 dark:bg-slate-950 dark:text-white"
-                  >
-                    <option value="Easy">Easy (20 Pts)</option>
-                    <option value="Medium">Medium (30 Pts)</option>
-                    <option value="Hard">Hard (50 Pts)</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold uppercase text-slate-400 mb-1">Category / Domain</label>
-                  <select
-                    value={newQCategory}
-                    onChange={(e) => setNewQCategory(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-800 dark:border-slate-800 dark:bg-slate-950 dark:text-white"
-                  >
-                    {categoriesList.filter(c => c !== 'All').map(cat => (
-                      <option key={cat} value={cat}>{cat}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold uppercase text-slate-400 mb-1">Points</label>
-                  <input
-                    type="number"
-                    value={newQPoints}
-                    onChange={(e) => setNewQPoints(Number(e.target.value))}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-mono text-slate-800 dark:border-slate-800 dark:bg-slate-950 dark:text-white"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold uppercase text-slate-400 mb-1">Problem Description</label>
-                <textarea
-                  required
-                  rows={3}
-                  placeholder="Detailed description of algorithm requirements and invariants..."
-                  value={newQDescription}
-                  onChange={(e) => setNewQDescription(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-800 dark:border-slate-800 dark:bg-slate-950 dark:text-white"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold uppercase text-slate-400 mb-1">Sample Input</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. [2, 7, 11, 15], 9"
-                    value={newQSampleInput}
-                    onChange={(e) => setNewQSampleInput(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-mono text-slate-800 dark:border-slate-800 dark:bg-slate-950 dark:text-white"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold uppercase text-slate-400 mb-1">Sample Output</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. [0, 1]"
-                    value={newQSampleOutput}
-                    onChange={(e) => setNewQSampleOutput(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-mono text-slate-800 dark:border-slate-800 dark:bg-slate-950 dark:text-white"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold uppercase text-slate-400 mb-1">JavaScript Starter Template</label>
-                <textarea
-                  rows={3}
-                  value={newQStarterCodeJS}
-                  onChange={(e) => setNewQStarterCodeJS(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-slate-950 px-3 py-2 text-xs font-mono text-emerald-400"
-                />
-              </div>
-
-              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowAddQuestionModal(false)}
-                  className="rounded-xl px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="rounded-xl bg-teal-600 px-5 py-2 text-xs font-bold text-white shadow-md hover:bg-teal-700 transition-colors cursor-pointer"
-                >
-                  {editingQuestion ? 'Save Changes' : 'Add to Bank'}
                 </button>
               </div>
             </form>
