@@ -558,6 +558,7 @@ export default function CodingTestModule({
   const handleFinalSubmit = () => {
     if (!currentSubmission || !activeTestSession) return;
 
+    // Save currently active editor code
     if (currentQuestion) {
       currentSubmission.answers[currentQuestion.id] = {
         ...currentSubmission.answers[currentQuestion.id],
@@ -565,6 +566,29 @@ export default function CodingTestModule({
         language: selectedLanguage
       };
     }
+
+    // Auto-evaluate any unexecuted or updated answers against test suites
+    assignedQuestions.forEach(q => {
+      const existingAns = currentSubmission.answers[q.id];
+      const codeToEval = q.id === currentQuestion?.id ? activeCode : (existingAns?.code || q.starterCode.javascript || '');
+      const langToEval = q.id === currentQuestion?.id ? selectedLanguage : ((existingAns?.language as any) || 'javascript');
+
+      const evalRes = evaluateSolution(codeToEval, langToEval, q);
+      currentSubmission.answers[q.id] = {
+        questionId: q.id,
+        questionTitle: q.title,
+        language: langToEval,
+        code: codeToEval,
+        testCasesPassed: evalRes.passedCount,
+        totalTestCases: evalRes.totalCount,
+        score: evalRes.earnedScore,
+        maxScore: q.points,
+        status: evalRes.isAllPassed ? 'Passed' : evalRes.passedCount > 0 ? 'Partial' : 'Failed',
+        executionOutput: evalRes.outputLog,
+        executionTimeMs: evalRes.executionTimeMs,
+        lastExecutedAt: new Date().toISOString()
+      };
+    });
 
     let totalScore = 0;
     let maxScore = 0;
@@ -574,7 +598,7 @@ export default function CodingTestModule({
     });
 
     const percentage = maxScore > 0 ? Math.round((totalScore / maxScore) * 100 * 10) / 10 : 0;
-    const spentSecs = activeTestSession.durationMinutes * 60 - timeRemainingSeconds;
+    const spentSecs = Math.max(1, activeTestSession.durationMinutes * 60 - timeRemainingSeconds);
 
     const finalizedSubmission: CodingTestSubmission = {
       ...currentSubmission,
@@ -591,7 +615,7 @@ export default function CodingTestModule({
     setShowSubmitModal(false);
     setActiveTestSession(null);
     setCurrentSubmission(null);
-    setActiveTab('assessments');
+    setActiveTab(isAdminOrPlacement ? 'submissions' : 'assessments');
     exitFullscreen();
 
     alert(`🎉 Assessment Submitted Successfully!\nYour Score: ${totalScore}/${maxScore} (${percentage}%)\nResults have been recorded to the Placement & Examination Cell.`);
@@ -1182,6 +1206,24 @@ export default function CodingTestModule({
               </button>
 
               <button
+                type="button"
+                onClick={() => {
+                  if (confirm('Leave assessment? Your written progress will be preserved.')) {
+                    setActiveTestSession(null);
+                    setCurrentSubmission(null);
+                    exitFullscreen();
+                    setActiveTab('assessments');
+                  }
+                }}
+                className="flex items-center gap-1 rounded-xl bg-slate-800 px-3 py-1.5 text-xs font-bold text-rose-400 hover:bg-slate-700 transition-colors border border-slate-700 cursor-pointer"
+                title="Exit Assessment without submitting"
+              >
+                <X className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Exit</span>
+              </button>
+
+              <button
+                type="button"
                 onClick={() => setShowSubmitModal(true)}
                 className="flex items-center gap-1.5 rounded-xl bg-emerald-500 px-4 py-1.5 text-xs font-bold text-slate-950 shadow-md hover:bg-emerald-400 transition-colors cursor-pointer"
               >
@@ -1694,7 +1736,7 @@ export default function CodingTestModule({
       {/* MODAL: PREVIEW QUESTION MODAL WITH EDIT ACTION */}
       {/* ------------------------------------------------------------- */}
       {selectedQuestionForView && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-xs">
+        <div className="fixed inset-0 z-[100000] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-xs">
           <div className="relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-800">
               <div className="flex items-center gap-2">
@@ -1788,7 +1830,7 @@ export default function CodingTestModule({
       {/* MODAL: GIVE CUSTOM QUESTION & EDIT PROBLEM MODAL */}
       {/* ------------------------------------------------------------- */}
       {showGiveCustomQuestionModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-xs">
+        <div className="fixed inset-0 z-[100000] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-xs">
           <div className="relative max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-5">
             <div className="flex items-center justify-between border-b border-slate-100 pb-4 dark:border-slate-800">
               <div className="flex items-center gap-2.5">
@@ -2126,7 +2168,7 @@ export default function CodingTestModule({
       {/* MODAL: CREATE TEST CONFIGURATOR (WITH HAND-PICKED QUESTIONS) */}
       {/* ------------------------------------------------------------- */}
       {showCreateTestModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-xs">
+        <div className="fixed inset-0 z-[100000] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-xs">
           <div className="relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
             <div className="flex items-center justify-between border-b border-slate-100 pb-4 dark:border-slate-800">
               <h3 className="text-lg font-bold text-slate-900 dark:text-white">
@@ -2372,7 +2414,7 @@ export default function CodingTestModule({
       {/* MODAL: SUBMISSION REVIEW & STUDENT CODE INSPECTOR */}
       {/* ------------------------------------------------------------- */}
       {selectedSubmissionForReview && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-xs">
+        <div className="fixed inset-0 z-[100000] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-xs">
           <div className="relative max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-6">
             <div className="flex items-center justify-between border-b border-slate-100 pb-4 dark:border-slate-800">
               <div>
@@ -2476,7 +2518,7 @@ export default function CodingTestModule({
       {/* MODAL: OFFICIAL PRINTABLE SCORECARD / PDF TRANSCRIPT */}
       {/* ------------------------------------------------------------- */}
       {selectedSubmissionForPrintScorecard && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-xs">
+        <div className="fixed inset-0 z-[100000] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-xs">
           <div className="relative max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-3xl bg-white p-8 shadow-2xl dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-6 print:p-0 print:border-none print:shadow-none">
             {/* Header with Print Controls */}
             <div className="flex items-center justify-between border-b border-slate-200 pb-4 dark:border-slate-800 print:hidden">
@@ -2613,27 +2655,29 @@ export default function CodingTestModule({
       {/* MODAL: SUBMISSION CONFIRMATION */}
       {/* ------------------------------------------------------------- */}
       {showSubmitModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-xs">
-          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-4">
-            <div className="flex items-center gap-3 text-amber-500">
-              <AlertCircle className="h-6 w-6" />
+        <div className="fixed inset-0 z-[100000] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-xs">
+          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-4 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-3 text-emerald-500">
+              <CheckCircle2 className="h-6 w-6" />
               <h3 className="text-base font-bold text-slate-900 dark:text-white">
                 Submit Assessment Confirmation
               </h3>
             </div>
 
             <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-              Are you sure you want to finalize and submit your test? Your code for all {assignedQuestions.length} assigned questions will be evaluated and logged directly to the Corporate Placement Cell.
+              Are you sure you want to finalize and submit your test? Your code for all {assignedQuestions.length} assigned question{assignedQuestions.length > 1 ? 's' : ''} will be evaluated and logged directly to the Corporate Placement Cell.
             </p>
 
             <div className="flex justify-end gap-2 pt-2">
               <button
+                type="button"
                 onClick={() => setShowSubmitModal(false)}
                 className="rounded-xl px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 cursor-pointer"
               >
                 Return to Editor
               </button>
               <button
+                type="button"
                 onClick={handleFinalSubmit}
                 className="rounded-xl bg-emerald-500 px-5 py-2 text-xs font-bold text-slate-950 shadow-md hover:bg-emerald-400 transition-colors cursor-pointer"
               >
