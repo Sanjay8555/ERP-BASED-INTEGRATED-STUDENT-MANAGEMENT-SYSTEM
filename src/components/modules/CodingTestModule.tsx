@@ -38,7 +38,15 @@ import {
   Users,
   Database,
   Maximize2,
-  Minimize2
+  Minimize2,
+  Printer,
+  FileDown,
+  ListChecks,
+  CheckSquare,
+  Square,
+  FileSpreadsheet,
+  Building,
+  GraduationCap
 } from 'lucide-react';
 import {
   CodingQuestion,
@@ -53,6 +61,14 @@ import {
 } from '../../types';
 import { initialCodingQuestions, shuffleAndSelectQuestions } from '../../data/codingQuestionsPool';
 import { evaluateSolution, SingleTestCaseResult } from '../../utils/codeEvaluator';
+
+interface EditableCustomTestCase {
+  id: string;
+  input: string;
+  expectedOutput: string;
+  hidden: boolean;
+  explanation: string;
+}
 
 interface CodingTestModuleProps {
   questions: CodingQuestion[];
@@ -70,6 +86,7 @@ interface CodingTestModuleProps {
   onUpdateTest: (t: CodingTest) => void;
   onDeleteTest: (tId: string) => void;
   onSubmitTest: (submission: CodingTestSubmission) => void;
+  onTestSessionChange?: (isActive: boolean) => void;
 }
 
 export default function CodingTestModule({
@@ -87,17 +104,15 @@ export default function CodingTestModule({
   onAddTest,
   onUpdateTest,
   onDeleteTest,
-  onSubmitTest
+  onSubmitTest,
+  onTestSessionChange
 }: CodingTestModuleProps) {
-  // Navigation tabs within Coding Module
   const isStudent = role === 'Student';
   const isAdminOrPlacement = role === 'Admin' || role === 'Placement' || role === 'Faculty';
 
-  const [activeTab, setActiveTab] = useState<'assessments' | 'ide' | 'bank' | 'submissions'>(
-    isStudent ? 'assessments' : 'assessments'
-  );
+  const [activeTab, setActiveTab] = useState<'assessments' | 'ide' | 'bank' | 'submissions'>('assessments');
 
-  // Current active assessment taking session (for student)
+  // Current active assessment taking session (for candidate)
   const [activeTestSession, setActiveTestSession] = useState<CodingTest | null>(null);
   const [currentSubmission, setCurrentSubmission] = useState<CodingTestSubmission | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
@@ -110,6 +125,13 @@ export default function CodingTestModule({
   const [tabSwitchWarnings, setTabSwitchWarnings] = useState<number>(0);
   const [showSubmitModal, setShowSubmitModal] = useState<boolean>(false);
   const [isFullscreenActive, setIsFullscreenActive] = useState<boolean>(false);
+
+  // Synchronize test session state with parent App (to completely hide left sidebar & navbar until test is submitted)
+  useEffect(() => {
+    if (onTestSessionChange) {
+      onTestSessionChange(Boolean(activeTestSession));
+    }
+  }, [activeTestSession, onTestSessionChange]);
 
   // Fullscreen Helpers
   const enterFullscreen = () => {
@@ -154,23 +176,39 @@ export default function CodingTestModule({
   const [newTestQuestionLimit, setNewTestQuestionLimit] = useState<number>(5);
   const [newTestDepartment, setNewTestDepartment] = useState<string>('all');
   const [newTestPassPercentage, setNewTestPassPercentage] = useState<number>(60);
+  const [newTestQuestionMode, setNewTestQuestionMode] = useState<'random_pool' | 'custom_selection'>('random_pool');
+  const [selectedCustomQuestionIds, setSelectedCustomQuestionIds] = useState<string[]>([]);
+  const [customQuestionSearchInModal, setCustomQuestionSearchInModal] = useState<string>('');
+  const [customQuestionCategoryInModal, setCustomQuestionCategoryInModal] = useState<string>('All');
 
-  // Submissions Leaderboard Review Modal
+  // Submissions Leaderboard Review Modal & Scorecard Print
   const [selectedSubmissionForReview, setSelectedSubmissionForReview] = useState<CodingTestSubmission | null>(null);
+  const [selectedSubmissionForPrintScorecard, setSelectedSubmissionForPrintScorecard] = useState<CodingTestSubmission | null>(null);
   const [submissionSearch, setSubmissionSearch] = useState<string>('');
   const [submissionFilterTest, setSubmissionFilterTest] = useState<string>('all');
 
-  // New Question Form state
-  const [newQTitle, setNewQTitle] = useState<string>('');
-  const [newQCategory, setNewQCategory] = useState<string>('Arrays & Strings');
-  const [newQDifficulty, setNewQDifficulty] = useState<'Easy' | 'Medium' | 'Hard'>('Medium');
-  const [newQDescription, setNewQDescription] = useState<string>('');
-  const [newQConstraints, setNewQConstraints] = useState<string>('1 <= nums.length <= 10^5\n-10^9 <= nums[i] <= 10^9');
-  const [newQSampleInput, setNewQSampleInput] = useState<string>('[1, 2, 3, 4]');
-  const [newQSampleOutput, setNewQSampleOutput] = useState<string>('[2, 4, 6, 8]');
-  const [newQPoints, setNewQPoints] = useState<number>(30);
-  const [newQStarterCodeJS, setNewQStarterCodeJS] = useState<string>('function solve(input) {\n  // Write solution\n  return input;\n}');
-  const [newQStarterCodePy, setNewQStarterCodePy] = useState<string>('def solve(input_data):\n    # Write solution\n    return input_data');
+  // Give Custom Question Modal State
+  const [showGiveCustomQuestionModal, setShowGiveCustomQuestionModal] = useState<boolean>(false);
+  const [customQTitle, setCustomQTitle] = useState<string>('');
+  const [customQCategory, setCustomQCategory] = useState<string>('Algorithms');
+  const [customQDifficulty, setCustomQDifficulty] = useState<'Easy' | 'Medium' | 'Hard'>('Medium');
+  const [customQPoints, setCustomQPoints] = useState<number>(30);
+  const [customQDescription, setCustomQDescription] = useState<string>('');
+  const [customQConstraints, setCustomQConstraints] = useState<string>('1 <= nums.length <= 10^5\n-10^9 <= nums[i] <= 10^9\nTime Limit: 1.0s, Memory: 256MB');
+  const [customQSampleInput, setCustomQSampleInput] = useState<string>('nums = [2, 7, 11, 15], target = 9');
+  const [customQSampleOutput, setCustomQSampleOutput] = useState<string>('[0, 1]');
+  const [customAssessmentDuration, setCustomAssessmentDuration] = useState<number>(45);
+  const [customSelectedLangTab, setCustomSelectedLangTab] = useState<'javascript' | 'python' | 'java' | 'cpp' | 'sql'>('javascript');
+  const [customQStarterJS, setCustomQStarterJS] = useState<string>('function solve(input) {\n  // Write your algorithm solution here:\n  \n  return input;\n}');
+  const [customQStarterPy, setCustomQStarterPy] = useState<string>('def solve(input_data):\n    # Write your solution here:\n    return input_data');
+  const [customQStarterJava, setCustomQStarterJava] = useState<string>('public class Solution {\n    public static Object solve(Object input) {\n        // Write solution here\n        return input;\n    }\n}');
+  const [customQStarterCpp, setCustomQStarterCpp] = useState<string>('#include <iostream>\n#include <vector>\nusing namespace std;\n\nint solve(int input) {\n    // Write solution here\n    return input;\n}');
+  const [customQStarterSql, setCustomQStarterSql] = useState<string>('-- SQL Solution\nSELECT id, name FROM students WHERE score >= 80;');
+  const [customTestCases, setCustomTestCases] = useState<EditableCustomTestCase[]>([
+    { id: '1', input: '[2, 7, 11, 15], 9', expectedOutput: '[0, 1]', hidden: false, explanation: 'Sample verification' },
+    { id: '2', input: '[3, 2, 4], 6', expectedOutput: '[1, 2]', hidden: false, explanation: 'Edge bounds verification' },
+    { id: '3', input: '[3, 3], 6', expectedOutput: '[0, 1]', hidden: true, explanation: 'Hidden boundary test case' }
+  ]);
 
   // Categories list
   const categoriesList = [
@@ -223,7 +261,6 @@ export default function CodingTestModule({
   // START OR RESUME CODING TEST FLOW (WITH SHUFFLING & LIMITS)
   // -------------------------------------------------------------
   const handleStartAssessment = (test: CodingTest) => {
-    // Check if student has an existing submission
     const existingSub = submissions.find(
       s => s.testId === test.id && s.studentId === currentStudent.id
     );
@@ -234,7 +271,6 @@ export default function CodingTestModule({
     }
 
     if (existingSub && existingSub.status === 'In-Progress') {
-      // Resume existing submission with already assigned randomized questions
       const assignedQs = existingSub.assignedQuestionIds
         .map(id => questions.find(q => q.id === id))
         .filter(Boolean) as CodingQuestion[];
@@ -255,20 +291,18 @@ export default function CodingTestModule({
       return;
     }
 
-    // New Test Session: Filter question pool and apply randomized shuffling
+    // Pick questions from test pool
     const testPool = test.questionPoolIds
       .map(id => questions.find(q => q.id === id))
       .filter(Boolean) as CodingQuestion[];
 
     const finalPool = testPool.length > 0 ? testPool : questions;
 
-    // Shuffle and pick unique N questions as configured by admin (e.g. 5 questions)
+    // Shuffle and pick unique N questions
     const seed = `${currentStudent.id}-${test.id}-${Date.now()}`;
-    const selectedQuestions = shuffleAndSelectQuestions(
-      finalPool,
-      test.questionLimitPerStudent || 5,
-      seed
-    );
+    const selectedQuestions = test.shuffleQuestions
+      ? shuffleAndSelectQuestions(finalPool, test.questionLimitPerStudent || 5, seed)
+      : finalPool.slice(0, test.questionLimitPerStudent || finalPool.length);
 
     const initialAnswers: Record<string, StudentCodingAnswer> = {};
     selectedQuestions.forEach(q => {
@@ -319,6 +353,75 @@ export default function CodingTestModule({
     enterFullscreen();
   };
 
+  // Launch instant single-question assessment (for practice or custom question solving)
+  const handleLaunchInstantAssessment = (questionToTest: CodingQuestion, durationMinutes: number = 45) => {
+    const instantTest: CodingTest = {
+      id: `ct-instant-${Date.now()}`,
+      title: `IDE Test: ${questionToTest.title}`,
+      description: questionToTest.description.slice(0, 100) + '...',
+      category: questionToTest.category,
+      durationMinutes: durationMinutes,
+      totalQuestionPoolCount: 1,
+      questionPoolIds: [questionToTest.id],
+      questionLimitPerStudent: 1,
+      shuffleQuestions: false,
+      status: 'Active',
+      targetDepartmentId: 'all',
+      targetSemester: 0,
+      passingPercentage: 60,
+      totalMarks: questionToTest.points,
+      createdBy: currentUser?.name || 'User',
+      createdAt: new Date().toISOString().split('T')[0],
+      startDate: new Date().toISOString(),
+      endDate: new Date(Date.now() + 86400000).toISOString()
+    };
+
+    const initialAnswers: Record<string, StudentCodingAnswer> = {
+      [questionToTest.id]: {
+        questionId: questionToTest.id,
+        questionTitle: questionToTest.title,
+        language: 'javascript',
+        code: questionToTest.starterCode.javascript || '',
+        testCasesPassed: 0,
+        totalTestCases: questionToTest.testCases.length,
+        score: 0,
+        maxScore: questionToTest.points,
+        status: 'Unattempted'
+      }
+    };
+
+    const newSub: CodingTestSubmission = {
+      id: `sub-instant-${Date.now()}`,
+      testId: instantTest.id,
+      testTitle: instantTest.title,
+      studentId: currentStudent.id,
+      studentUserId: currentUser?.id || 'u-user',
+      studentName: currentUser?.name || 'Candidate',
+      studentRollNo: currentStudent.rollNo || '2026-CAND',
+      departmentId: currentStudent.departmentId || 'dept-5',
+      assignedQuestionIds: [questionToTest.id],
+      answers: initialAnswers,
+      totalScore: 0,
+      maxScore: questionToTest.points,
+      percentage: 0,
+      status: 'In-Progress',
+      startedAt: new Date().toISOString(),
+      timeSpentSeconds: 0,
+      tabSwitchCount: 0
+    };
+
+    setActiveTestSession(instantTest);
+    setCurrentSubmission(newSub);
+    setCurrentQuestionIndex(0);
+    setTimeRemainingSeconds(durationMinutes * 60);
+    setActiveCode(questionToTest.starterCode.javascript || '');
+    setSelectedLanguage('javascript');
+    setExecutionOutput('');
+    setTestCasesResult([]);
+    setActiveTab('ide');
+    enterFullscreen();
+  };
+
   // Get currently assigned questions for active submission
   const assignedQuestions: CodingQuestion[] = currentSubmission
     ? (currentSubmission.assignedQuestionIds
@@ -332,7 +435,6 @@ export default function CodingTestModule({
   const handleSelectQuestionIndex = (index: number) => {
     if (!currentSubmission || !assignedQuestions[index]) return;
 
-    // Save current code to submission answer store
     if (currentQuestion) {
       currentSubmission.answers[currentQuestion.id] = {
         ...currentSubmission.answers[currentQuestion.id],
@@ -353,28 +455,23 @@ export default function CodingTestModule({
   const handleChangeLanguage = (lang: 'javascript' | 'python' | 'java' | 'cpp' | 'sql') => {
     setSelectedLanguage(lang);
     if (!currentQuestion) return;
-    // Load starter code for that language if not already heavily edited
     const template = currentQuestion.starterCode[lang] || currentQuestion.starterCode.javascript || '';
     setActiveCode(template);
   };
 
-  // -------------------------------------------------------------
-  // RUN CODE & TEST CASES EVALUATION ENGINE
-  // -------------------------------------------------------------
+  // Run Code & Evaluate against test suite
   const handleRunCode = () => {
     if (!currentQuestion || !currentSubmission) return;
     setIsExecuting(true);
-    setExecutionOutput('Compiling and running against test suite...');
+    setExecutionOutput('Compiling and executing algorithm against test suite...');
 
     setTimeout(() => {
-      // Execute the candidate's code using the real in-browser multi-language evaluation engine
       const evalResult = evaluateSolution(activeCode, selectedLanguage, currentQuestion);
 
       setTestCasesResult(evalResult.results);
       setExecutionOutput(evalResult.outputLog);
       setIsExecuting(false);
 
-      // Update current submission record with real evaluation metrics
       currentSubmission.answers[currentQuestion.id] = {
         questionId: currentQuestion.id,
         questionTitle: currentQuestion.title,
@@ -389,16 +486,13 @@ export default function CodingTestModule({
         executionTimeMs: evalResult.executionTimeMs,
         lastExecutedAt: new Date().toISOString()
       };
-    }, 400);
+    }, 350);
   };
 
-  // -------------------------------------------------------------
-  // SUBMIT ASSESSMENT FINALIZATION
-  // -------------------------------------------------------------
+  // Submit assessment finalization (Hides proctored IDE and restores standard sidebar navigation)
   const handleFinalSubmit = () => {
     if (!currentSubmission || !activeTestSession) return;
 
-    // Save active question
     if (currentQuestion) {
       currentSubmission.answers[currentQuestion.id] = {
         ...currentSubmission.answers[currentQuestion.id],
@@ -435,7 +529,7 @@ export default function CodingTestModule({
     setActiveTab('assessments');
     exitFullscreen();
 
-    alert(`🎉 Assessment Submitted Successfully!\nYour Score: ${totalScore}/${maxScore} (${percentage}%)\nResults have been forwarded to the Placement Cell.`);
+    alert(`🎉 Assessment Submitted Successfully!\nYour Score: ${totalScore}/${maxScore} (${percentage}%)\nResults have been recorded to the Placement & Examination Cell.`);
   };
 
   const handleAutoSubmitDueToTime = () => {
@@ -444,7 +538,7 @@ export default function CodingTestModule({
   };
 
   // -------------------------------------------------------------
-  // CREATE NEW ASSESSMENT (ADMIN / PLACEMENT INCHARGE)
+  // CREATE NEW ASSESSMENT (WITH RANDOM POOL OR HAND-PICKED CUSTOM QUESTIONS)
   // -------------------------------------------------------------
   const handleCreateTest = (e: React.FormEvent) => {
     e.preventDefault();
@@ -453,21 +547,42 @@ export default function CodingTestModule({
       return;
     }
 
+    let finalQuestionPoolIds: string[] = [];
+    let questionLimit = newTestQuestionLimit;
+    let totalMarks = 100;
+
+    if (newTestQuestionMode === 'custom_selection') {
+      if (selectedCustomQuestionIds.length === 0) {
+        alert('Please select at least 1 custom question from the checklist.');
+        return;
+      }
+      finalQuestionPoolIds = selectedCustomQuestionIds;
+      questionLimit = selectedCustomQuestionIds.length;
+      totalMarks = selectedCustomQuestionIds.reduce((sum, qId) => {
+        const found = questions.find(q => q.id === qId);
+        return sum + (found?.points || 20);
+      }, 0);
+    } else {
+      finalQuestionPoolIds = questions.map(q => q.id);
+      questionLimit = Math.min(Number(newTestQuestionLimit) || 5, questions.length);
+      totalMarks = questionLimit * 25;
+    }
+
     const newTest: CodingTest = {
       id: `ct-${Date.now()}`,
       title: newTestTitle.trim(),
       description: newTestDesc.trim() || 'Comprehensive technical placement assessment.',
       category: newTestCategory,
       durationMinutes: Number(newTestDuration) || 60,
-      totalQuestionPoolCount: questions.length,
-      questionPoolIds: questions.map(q => q.id),
-      questionLimitPerStudent: Number(newTestQuestionLimit) || 5, // Custom limit assigned to students
-      shuffleQuestions: true,
+      totalQuestionPoolCount: finalQuestionPoolIds.length,
+      questionPoolIds: finalQuestionPoolIds,
+      questionLimitPerStudent: questionLimit,
+      shuffleQuestions: newTestQuestionMode === 'random_pool',
       status: 'Active',
       targetDepartmentId: newTestDepartment,
       targetSemester: 0,
       passingPercentage: Number(newTestPassPercentage) || 60,
-      totalMarks: Number(newTestQuestionLimit) * 25,
+      totalMarks,
       createdBy: currentUser?.name || 'Admin',
       createdAt: new Date().toISOString().split('T')[0],
       startDate: new Date().toISOString(),
@@ -478,12 +593,108 @@ export default function CodingTestModule({
     setShowCreateTestModal(false);
     setNewTestTitle('');
     setNewTestDesc('');
-    alert(`Assessment "${newTest.title}" created successfully!\nStudents will each receive ${newTest.questionLimitPerStudent} uniquely shuffled questions from the pool of ${questions.length} questions.`);
+    setSelectedCustomQuestionIds([]);
+    alert(`Assessment "${newTest.title}" published successfully with ${newTest.questionLimitPerStudent} questions (${newTest.totalMarks} Marks)!`);
   };
 
   // -------------------------------------------------------------
-  // ADD / EDIT QUESTION TO BANK
+  // GIVE CUSTOM QUESTIONS HANDLERS (INSTANT TEST, SAVE TO BANK, OR CREATE TEST)
   // -------------------------------------------------------------
+  const buildCustomQuestionObject = (): CodingQuestion | null => {
+    if (!customQTitle.trim()) {
+      alert('Please enter a question title.');
+      return null;
+    }
+    const constraintsList = customQConstraints
+      .split('\n')
+      .map(s => s.trim())
+      .filter(Boolean);
+
+    const validTestCases = customTestCases.filter(tc => tc.input.trim() && tc.expectedOutput.trim());
+    if (validTestCases.length === 0) {
+      alert('Please provide at least 1 valid test case with Input and Expected Output.');
+      return null;
+    }
+
+    const customQuestionObj: CodingQuestion = {
+      id: `cq-custom-${Date.now()}`,
+      title: customQTitle.trim(),
+      category: customQCategory.trim() || 'Algorithms',
+      difficulty: customQDifficulty,
+      description: customQDescription.trim() || 'Implement the algorithm as described.',
+      constraints: constraintsList.length > 0 ? constraintsList : ['Standard time and memory constraints apply.'],
+      sampleInput: customQSampleInput || validTestCases[0].input,
+      sampleOutput: customQSampleOutput || validTestCases[0].expectedOutput,
+      points: Number(customQPoints) || 30,
+      tags: [customQCategory, customQDifficulty, 'Custom Question', '2026'],
+      hints: ['Analyze boundary conditions and optimize asymptotic time complexity.'],
+      starterCode: {
+        javascript: customQStarterJS || `function solve(input) {\n  // Write implementation\n  return input;\n}`,
+        python: customQStarterPy || `def solve(input_data):\n    # Write implementation\n    return input_data`,
+        java: customQStarterJava || `public class Solution {\n    public static Object solve(Object input) {\n        return input;\n    }\n}`,
+        cpp: customQStarterCpp || `#include <iostream>\nusing namespace std;\n\nint solve(int input) {\n    return input;\n}`,
+        sql: customQStarterSql || `-- SQL Query Solution\nSELECT * FROM table;`
+      },
+      testCases: validTestCases.map((tc, idx) => ({
+        id: tc.id || `tc-c-${idx + 1}`,
+        input: tc.input,
+        expectedOutput: tc.expectedOutput,
+        hidden: tc.hidden,
+        explanation: tc.explanation || `Assertion Case #${idx + 1}`
+      }))
+    };
+
+    return customQuestionObj;
+  };
+
+  const handleLaunchCustomQuestionAssessment = () => {
+    const customQ = buildCustomQuestionObject();
+    if (!customQ) return;
+    onAddQuestion(customQ);
+    setShowGiveCustomQuestionModal(false);
+    handleLaunchInstantAssessment(customQ, Number(customAssessmentDuration) || 45);
+  };
+
+  const handleSaveCustomQuestionToBank = () => {
+    const customQ = buildCustomQuestionObject();
+    if (!customQ) return;
+    onAddQuestion(customQ);
+    setShowGiveCustomQuestionModal(false);
+    alert(`Custom Question "${customQ.title}" successfully added to Question Bank (Total Pool: ${questions.length + 1})!`);
+  };
+
+  const handleCreateTestWithCustomQuestion = () => {
+    const customQ = buildCustomQuestionObject();
+    if (!customQ) return;
+    onAddQuestion(customQ);
+
+    const newTest: CodingTest = {
+      id: `ct-${Date.now()}`,
+      title: `Assessment: ${customQ.title}`,
+      description: customQ.description.slice(0, 120) + '...',
+      category: customQ.category,
+      durationMinutes: Number(customAssessmentDuration) || 60,
+      totalQuestionPoolCount: 1,
+      questionPoolIds: [customQ.id],
+      questionLimitPerStudent: 1,
+      shuffleQuestions: false,
+      status: 'Active',
+      targetDepartmentId: 'all',
+      targetSemester: 0,
+      passingPercentage: 60,
+      totalMarks: customQ.points,
+      createdBy: currentUser?.name || 'Instructor',
+      createdAt: new Date().toISOString().split('T')[0],
+      startDate: new Date().toISOString(),
+      endDate: new Date(Date.now() + 30 * 86400000).toISOString()
+    };
+
+    onAddTest(newTest);
+    setShowGiveCustomQuestionModal(false);
+    alert(`Assessment "${newTest.title}" created with your custom question and published!`);
+  };
+
+  // Add / Edit existing question handler in Bank
   const handleSaveQuestion = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newQTitle.trim()) {
@@ -575,12 +786,81 @@ export default function CodingTestModule({
     setShowAddQuestionModal(true);
   };
 
+  // -------------------------------------------------------------
+  // MARKS SECURED DOWNLOAD & OFFICIAL TRANSCRIPT EXPORT
+  // -------------------------------------------------------------
+  const handleExportMarksCSV = () => {
+    const listToExport = filteredSubmissions.length > 0 ? filteredSubmissions : submissions;
+    if (listToExport.length === 0) {
+      alert('No candidate coding assessment submissions found to download.');
+      return;
+    }
+
+    const headers = [
+      'Submission ID',
+      'Candidate Name',
+      'Roll Number',
+      'Department ID',
+      'Assessment Title',
+      'Questions Attempted',
+      'Total Marks Secured',
+      'Maximum Total Marks',
+      'Percentage (%)',
+      'Time Spent (Seconds)',
+      'Time Spent (Formatted)',
+      'Proctored Tab Switch Violations',
+      'Result Status',
+      'Started Timestamp',
+      'Submitted Timestamp'
+    ];
+
+    const rows = listToExport.map(s => {
+      const qAttempted = Object.keys(s.answers || {}).length;
+      const mins = Math.floor(s.timeSpentSeconds / 60);
+      const secs = s.timeSpentSeconds % 60;
+      const formattedTime = `${mins}m ${secs}s`;
+      return [
+        s.id,
+        `"${s.studentName.replace(/"/g, '""')}"`,
+        `"${s.studentRollNo}"`,
+        `"${s.departmentId || 'CS'}"`,
+        `"${s.testTitle.replace(/"/g, '""')}"`,
+        qAttempted,
+        s.totalScore,
+        s.maxScore,
+        `${s.percentage}%`,
+        s.timeSpentSeconds,
+        `"${formattedTime}"`,
+        s.tabSwitchCount || 0,
+        `"${s.status}"`,
+        `"${s.startedAt || ''}"`,
+        `"${s.submittedAt || s.startedAt || ''}"`
+      ];
+    });
+
+    const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `University_Placement_Coding_Marks_Secured_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   // Filter questions in the bank
   const filteredQuestions = questions.filter(q => {
     const matchesSearch = !bankSearch || q.title.toLowerCase().includes(bankSearch.toLowerCase()) || q.description.toLowerCase().includes(bankSearch.toLowerCase());
     const matchesCat = bankCategory === 'All' || q.category === bankCategory;
     const matchesDiff = bankDifficulty === 'All' || q.difficulty === bankDifficulty;
     return matchesSearch && matchesCat && matchesDiff;
+  });
+
+  // Filter questions in modal picker
+  const filteredModalQuestions = questions.filter(q => {
+    const matchesSearch = !customQuestionSearchInModal || q.title.toLowerCase().includes(customQuestionSearchInModal.toLowerCase());
+    const matchesCat = customQuestionCategoryInModal === 'All' || q.category === customQuestionCategoryInModal;
+    return matchesSearch && matchesCat;
   });
 
   // Filter submissions
@@ -592,33 +872,6 @@ export default function CodingTestModule({
     const matchesTest = submissionFilterTest === 'all' || sub.testId === submissionFilterTest;
     return matchesSearch && matchesTest;
   });
-
-  // Export Leaderboard to CSV
-  const handleExportLeaderboardCSV = () => {
-    const headers = ['Submission ID', 'Student Name', 'Roll No', 'Test Title', 'Score', 'Max Score', 'Percentage', 'Time Spent (s)', 'Tab Switches', 'Status', 'Submitted At'];
-    const rows = filteredSubmissions.map(s => [
-      s.id,
-      `"${s.studentName}"`,
-      s.studentRollNo,
-      `"${s.testTitle}"`,
-      s.totalScore,
-      s.maxScore,
-      `${s.percentage}%`,
-      s.timeSpentSeconds,
-      s.tabSwitchCount || 0,
-      s.status,
-      s.submittedAt || s.startedAt
-    ]);
-
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `Placement_Coding_Leaderboard_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
 
   return (
     <div className="space-y-6">
@@ -634,7 +887,7 @@ export default function CodingTestModule({
                 Coding Assessment & Testing Portal
               </h1>
               <p className="text-xs text-teal-200/80 font-mono">
-                300+ Question Pool Bank • Dynamic Shuffled Test Limits • In-Browser IDE Runner
+                300+ Question Pool Bank • Custom Questions Option • In-Browser IDE Runner
               </p>
             </div>
           </div>
@@ -642,22 +895,34 @@ export default function CodingTestModule({
 
         {/* Global Action Badges */}
         <div className="flex flex-wrap items-center gap-3">
-          <div className="rounded-xl bg-white/10 px-3.5 py-2 backdrop-blur-xs border border-white/10 text-right">
-            <p className="text-[10px] uppercase font-bold text-teal-300">Question Pool Bank</p>
-            <p className="text-sm font-extrabold text-white font-mono">{questions.length} Problems</p>
-          </div>
-          <div className="rounded-xl bg-white/10 px-3.5 py-2 backdrop-blur-xs border border-white/10 text-right">
-            <p className="text-[10px] uppercase font-bold text-indigo-300">Active Assessments</p>
-            <p className="text-sm font-extrabold text-white font-mono">{tests.length} Drives</p>
-          </div>
+          <button
+            onClick={() => setShowGiveCustomQuestionModal(true)}
+            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2.5 text-xs font-bold text-slate-950 shadow-lg hover:from-amber-400 hover:to-orange-400 transition-all cursor-pointer"
+            title="Create and test your own custom coding questions"
+          >
+            <Sparkles className="h-4 w-4 fill-current" />
+            <span>Give Custom Question</span>
+          </button>
+
           {isAdminOrPlacement && (
-            <button
-              onClick={() => setShowCreateTestModal(true)}
-              className="flex items-center gap-2 rounded-xl bg-teal-500 px-4 py-2.5 text-xs font-bold text-slate-950 shadow-lg hover:bg-teal-400 transition-all cursor-pointer"
-            >
-              <Plus className="h-4 w-4" />
-              <span>Create New Test</span>
-            </button>
+            <>
+              <button
+                onClick={() => setShowCreateTestModal(true)}
+                className="flex items-center gap-2 rounded-xl bg-teal-500 px-4 py-2.5 text-xs font-bold text-slate-950 shadow-lg hover:bg-teal-400 transition-all cursor-pointer"
+              >
+                <Plus className="h-4 w-4" />
+                <span>Create New Test</span>
+              </button>
+
+              <button
+                onClick={handleExportMarksCSV}
+                className="flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white shadow-md hover:bg-emerald-500 transition-all cursor-pointer"
+                title="Download consolidated candidate marks secured"
+              >
+                <FileSpreadsheet className="h-4 w-4" />
+                <span>Download Marks Secured</span>
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -674,35 +939,33 @@ export default function CodingTestModule({
             }`}
           >
             <Laptop className="h-4 w-4" />
-            <span>Available Assessments</span>
+            <span>Available Assessments ({tests.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('bank')}
+            className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition-all cursor-pointer ${
+              activeTab === 'bank'
+                ? 'bg-teal-600 text-white shadow-md shadow-teal-600/20'
+                : 'bg-white text-slate-600 hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-slate-800'
+            }`}
+          >
+            <Database className="h-4 w-4" />
+            <span>Question Bank & Practice ({questions.length})</span>
           </button>
 
           {isAdminOrPlacement && (
-            <>
-              <button
-                onClick={() => setActiveTab('bank')}
-                className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition-all cursor-pointer ${
-                  activeTab === 'bank'
-                    ? 'bg-teal-600 text-white shadow-md shadow-teal-600/20'
-                    : 'bg-white text-slate-600 hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-slate-800'
-                }`}
-              >
-                <Database className="h-4 w-4" />
-                <span>Question Bank ({questions.length} Pool)</span>
-              </button>
-
-              <button
-                onClick={() => setActiveTab('submissions')}
-                className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition-all cursor-pointer ${
-                  activeTab === 'submissions'
-                    ? 'bg-teal-600 text-white shadow-md shadow-teal-600/20'
-                    : 'bg-white text-slate-600 hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-slate-800'
-                }`}
-              >
-                <Award className="h-4 w-4" />
-                <span>Submissions & Leaderboard ({submissions.length})</span>
-              </button>
-            </>
+            <button
+              onClick={() => setActiveTab('submissions')}
+              className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition-all cursor-pointer ${
+                activeTab === 'submissions'
+                  ? 'bg-teal-600 text-white shadow-md shadow-teal-600/20'
+                  : 'bg-white text-slate-600 hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-slate-800'
+              }`}
+            >
+              <Award className="h-4 w-4" />
+              <span>Submissions & Marks ({submissions.length})</span>
+            </button>
           )}
         </div>
       )}
@@ -712,6 +975,19 @@ export default function CodingTestModule({
       {/* ------------------------------------------------------------- */}
       {activeTab === 'assessments' && !activeTestSession && (
         <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500 font-mono">
+              Live & Scheduled Assessments
+            </h3>
+            <button
+              onClick={() => setShowGiveCustomQuestionModal(true)}
+              className="flex items-center gap-1.5 text-xs font-bold text-amber-600 hover:text-amber-700 dark:text-amber-400 cursor-pointer"
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              <span>+ Give Custom Question / Instant Challenge</span>
+            </button>
+          </div>
+
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
             {tests.map(test => {
               const mySub = submissions.find(s => s.testId === test.id && s.studentId === currentStudent.id);
@@ -758,10 +1034,10 @@ export default function CodingTestModule({
                         </span>
                       </div>
                       <div>
-                        <span className="text-[10px] uppercase text-slate-400 block">Questions Per Student</span>
+                        <span className="text-[10px] uppercase text-slate-400 block">Questions Limit</span>
                         <span className="font-bold text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
                           <Shuffle className="h-3 w-3" />
-                          {test.questionLimitPerStudent} Random / {test.totalQuestionPoolCount || questions.length}
+                          {test.questionLimitPerStudent} / {test.totalQuestionPoolCount || questions.length}
                         </span>
                       </div>
                       <div>
@@ -785,13 +1061,13 @@ export default function CodingTestModule({
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400">
                           <CheckCircle2 className="h-4 w-4" />
-                          <span>Completed: {mySub.percentage}% ({mySub.totalScore}/{mySub.maxScore})</span>
+                          <span>Score: {mySub.percentage}% ({mySub.totalScore}/{mySub.maxScore})</span>
                         </div>
                         <button
                           onClick={() => setSelectedSubmissionForReview(mySub)}
                           className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 cursor-pointer"
                         >
-                          View Transcript
+                          Transcript
                         </button>
                       </div>
                     ) : isInProgress ? (
@@ -800,7 +1076,7 @@ export default function CodingTestModule({
                         className="w-full flex items-center justify-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-xs font-bold text-slate-950 shadow-md hover:bg-amber-400 transition-colors cursor-pointer"
                       >
                         <Play className="h-4 w-4 fill-current" />
-                        <span>Resume In-Progress Assessment</span>
+                        <span>Resume Assessment</span>
                       </button>
                     ) : (
                       <div className="flex items-center gap-2">
@@ -835,7 +1111,7 @@ export default function CodingTestModule({
       {/* 2. INTERACTIVE STUDENT IDE & ASSESSMENT RUNNER (FULL SCREEN) */}
       {/* ------------------------------------------------------------- */}
       {activeTestSession && currentQuestion && (
-        <div className="fixed inset-0 z-50 bg-slate-950 flex flex-col h-screen w-screen overflow-hidden p-3 md:p-5 text-slate-100 animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[99999] bg-slate-950 flex flex-col h-screen w-screen overflow-hidden p-3 md:p-5 text-slate-100 animate-in fade-in duration-200">
           {/* Fullscreen warning banner if candidate drops out of browser fullscreen */}
           {!isFullscreenActive && (
             <div className="mb-2.5 flex items-center justify-between rounded-xl bg-amber-500/20 px-4 py-2 text-xs font-semibold text-amber-200 border border-amber-500/30 shrink-0">
@@ -912,54 +1188,54 @@ export default function CodingTestModule({
             <div className="space-y-4 lg:col-span-5 flex flex-col h-full overflow-y-auto rounded-2xl border border-slate-800 bg-slate-900/90 p-5 shadow-xs scrollbar-thin">
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="rounded-lg bg-indigo-50 px-2.5 py-1 text-xs font-bold text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300 font-mono">
+                  <span className="rounded-lg bg-indigo-500/20 px-2.5 py-1 text-xs font-bold text-indigo-300 font-mono border border-indigo-500/30">
                     {currentQuestion.category}
                   </span>
                   <div className="flex items-center gap-2">
                     <span
                       className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
                         currentQuestion.difficulty === 'Easy'
-                          ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300'
+                          ? 'bg-emerald-950/40 text-emerald-300 border border-emerald-800/40'
                           : currentQuestion.difficulty === 'Medium'
-                          ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300'
-                          : 'bg-rose-100 text-rose-800 dark:bg-rose-950/40 dark:text-rose-300'
+                          ? 'bg-amber-950/40 text-amber-300 border border-amber-800/40'
+                          : 'bg-rose-950/40 text-rose-300 border border-rose-800/40'
                       }`}
                     >
                       {currentQuestion.difficulty}
                     </span>
-                    <span className="font-mono text-xs font-bold text-slate-600 dark:text-slate-400">
+                    <span className="font-mono text-xs font-bold text-slate-400">
                       {currentQuestion.points} pts
                     </span>
                   </div>
                 </div>
 
-                <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+                <h2 className="text-lg font-bold text-white">
                   {currentQuestion.title}
                 </h2>
-                <div className="text-xs text-slate-700 leading-relaxed dark:text-slate-300 whitespace-pre-line">
+                <div className="text-xs text-slate-300 leading-relaxed whitespace-pre-line">
                   {currentQuestion.description}
                 </div>
               </div>
 
               {/* Sample Input / Output */}
-              <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <div className="space-y-2 pt-2 border-t border-slate-800">
                 <p className="text-xs font-bold uppercase tracking-wider text-slate-400 font-mono">Sample Example</p>
-                <div className="rounded-xl bg-slate-50 p-3 font-mono text-xs text-slate-800 dark:bg-slate-950 dark:text-slate-200 border border-slate-200/80 dark:border-slate-800 space-y-1">
+                <div className="rounded-xl bg-slate-950 p-3 font-mono text-xs text-slate-200 border border-slate-800 space-y-1">
                   <div>
                     <span className="text-slate-400">Input: </span>
-                    <span className="font-bold text-teal-600 dark:text-teal-400">{currentQuestion.sampleInput}</span>
+                    <span className="font-bold text-teal-400">{currentQuestion.sampleInput}</span>
                   </div>
                   <div>
                     <span className="text-slate-400">Output: </span>
-                    <span className="font-bold text-emerald-600 dark:text-emerald-400">{currentQuestion.sampleOutput}</span>
+                    <span className="font-bold text-emerald-400">{currentQuestion.sampleOutput}</span>
                   </div>
                 </div>
               </div>
 
               {/* Constraints */}
-              <div className="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <div className="space-y-1.5 pt-2 border-t border-slate-800">
                 <p className="text-xs font-bold uppercase tracking-wider text-slate-400 font-mono">Constraints</p>
-                <ul className="list-disc pl-4 text-xs font-mono text-slate-600 dark:text-slate-400 space-y-0.5">
+                <ul className="list-disc pl-4 text-xs font-mono text-slate-400 space-y-0.5">
                   {currentQuestion.constraints.map((c, i) => (
                     <li key={i}>{c}</li>
                   ))}
@@ -967,7 +1243,7 @@ export default function CodingTestModule({
               </div>
 
               {/* Question Navigation Chips */}
-              <div className="mt-auto pt-4 border-t border-slate-100 dark:border-slate-800">
+              <div className="mt-auto pt-4 border-t border-slate-800">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">
                   Assigned Question Set ({assignedQuestions.length} items)
                 </p>
@@ -983,10 +1259,10 @@ export default function CodingTestModule({
                         onClick={() => handleSelectQuestionIndex(idx)}
                         className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-mono font-bold transition-all cursor-pointer ${
                           isCurrent
-                            ? 'bg-teal-600 text-white ring-2 ring-teal-400 ring-offset-2 dark:ring-offset-slate-900'
+                            ? 'bg-teal-600 text-white ring-2 ring-teal-400 ring-offset-2 ring-offset-slate-900'
                             : isSolved
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800'
-                            : 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300'
+                            ? 'bg-emerald-950/40 text-emerald-300 border border-emerald-800'
+                            : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
                         }`}
                       >
                         <span>Q{idx + 1}</span>
@@ -1064,7 +1340,7 @@ export default function CodingTestModule({
                 </div>
 
                 {executionOutput ? (
-                  <pre className="text-slate-300 whitespace-pre-wrap text-[11px] leading-relaxed">
+                  <pre className="text-slate-300 whitespace-pre-wrap text-[11px] leading-relaxed font-mono">
                     {executionOutput}
                   </pre>
                 ) : (
@@ -1121,26 +1397,24 @@ export default function CodingTestModule({
       )}
 
       {/* ------------------------------------------------------------- */}
-      {/* 3. 300+ QUESTION BANK REPOSITORY (ADMIN / PLACEMENT) */}
+      {/* 3. QUESTION BANK & PRACTICE VIEW (ACCESSIBLE TO ALL ROLES) */}
       {/* ------------------------------------------------------------- */}
-      {activeTab === 'bank' && isAdminOrPlacement && (
+      {activeTab === 'bank' && !activeTestSession && (
         <div className="space-y-6">
-          {/* Controls: Search, Category, Difficulty, Add Question */}
+          {/* Controls: Search, Category, Difficulty, Custom Question, Add Question */}
           <div className="flex flex-col gap-3 rounded-2xl bg-white p-4 shadow-xs dark:bg-slate-900 border border-slate-200 dark:border-slate-800 md:flex-row md:items-center md:justify-between">
             <div className="flex flex-1 flex-wrap items-center gap-3">
-              {/* Search */}
               <div className="relative flex-1 min-w-[220px]">
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
                 <input
                   type="text"
-                  placeholder="Search 300+ coding problems..."
+                  placeholder="Search coding problems & algorithms..."
                   value={bankSearch}
                   onChange={(e) => setBankSearch(e.target.value)}
                   className="w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-4 py-2 text-xs font-semibold text-slate-800 focus:bg-white focus:outline-hidden dark:border-slate-800 dark:bg-slate-950 dark:text-white"
                 />
               </div>
 
-              {/* Category Filter */}
               <select
                 value={bankCategory}
                 onChange={(e) => setBankCategory(e.target.value)}
@@ -1151,7 +1425,6 @@ export default function CodingTestModule({
                 ))}
               </select>
 
-              {/* Difficulty Filter */}
               <select
                 value={bankDifficulty}
                 onChange={(e) => setBankDifficulty(e.target.value)}
@@ -1164,36 +1437,42 @@ export default function CodingTestModule({
               </select>
             </div>
 
-            <button
-              onClick={() => {
-                setEditingQuestion(null);
-                setNewQTitle('');
-                setNewQDescription('');
-                setShowAddQuestionModal(true);
-              }}
-              className="flex items-center gap-2 rounded-xl bg-teal-600 px-4 py-2 text-xs font-bold text-white shadow-md hover:bg-teal-700 transition-colors cursor-pointer"
-            >
-              <Plus className="h-4 w-4" />
-              <span>Add Custom Problem</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowGiveCustomQuestionModal(true)}
+                className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-2 text-xs font-bold text-slate-950 shadow-md hover:from-amber-400 hover:to-orange-400 transition-all cursor-pointer"
+              >
+                <Sparkles className="h-4 w-4 fill-current" />
+                <span>Give Custom Question</span>
+              </button>
+
+              {isAdminOrPlacement && (
+                <button
+                  onClick={() => {
+                    setEditingQuestion(null);
+                    setNewQTitle('');
+                    setNewQDescription('');
+                    setShowAddQuestionModal(true);
+                  }}
+                  className="flex items-center gap-2 rounded-xl bg-teal-600 px-4 py-2 text-xs font-bold text-white shadow-md hover:bg-teal-700 transition-colors cursor-pointer"
+                >
+                  <Plus className="h-4 w-4" />
+                  <span>Add Problem</span>
+                </button>
+              )}
+            </div>
           </div>
 
-          {/* Question List Count Summary */}
-          <div className="flex items-center justify-between text-xs text-slate-500 font-mono px-1">
-            <span>Showing {filteredQuestions.length} of {questions.length} problems in bank</span>
-            <span>Up to 300 questions active in assessment rotation</span>
-          </div>
-
-          {/* Questions Grid */}
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {/* Question Grid */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {filteredQuestions.slice(0, 48).map(q => (
               <div
                 key={q.id}
                 className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-xs hover:shadow-md transition-all dark:border-slate-800 dark:bg-slate-900"
               >
                 <div className="space-y-2.5">
-                  <div className="flex items-start justify-between">
-                    <span className="rounded-lg bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-300 font-mono">
+                  <div className="flex items-center justify-between">
+                    <span className="rounded-lg bg-teal-50 px-2 py-0.5 text-[11px] font-bold text-teal-700 dark:bg-teal-950/50 dark:text-teal-300 font-mono">
                       {q.category}
                     </span>
                     <span
@@ -1222,46 +1501,47 @@ export default function CodingTestModule({
                   <span className="font-mono font-bold text-teal-600 dark:text-teal-400">
                     {q.points} Pts
                   </span>
+
                   <div className="flex items-center gap-1.5">
                     <button
-                      onClick={() => setSelectedQuestionForView(q)}
-                      className="p-1.5 rounded-lg text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 cursor-pointer"
-                      title="Preview Problem"
+                      onClick={() => handleLaunchInstantAssessment(q, 45)}
+                      className="flex items-center gap-1 rounded-lg bg-teal-50 px-2.5 py-1 text-xs font-bold text-teal-700 hover:bg-teal-100 dark:bg-teal-950/50 dark:text-teal-300 cursor-pointer"
+                      title="Open and Solve in Fullscreen IDE"
                     >
-                      <Eye className="h-3.5 w-3.5" />
+                      <Play className="h-3 w-3 fill-current" />
+                      <span>Solve in IDE</span>
                     </button>
-                    <button
-                      onClick={() => handleOpenEditQuestion(q)}
-                      className="p-1.5 rounded-lg text-indigo-600 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-950/30 cursor-pointer"
-                      title="Edit Problem"
-                    >
-                      <Edit className="h-3.5 w-3.5" />
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (confirm(`Remove "${q.title}" from question bank?`)) onDeleteQuestion(q.id);
-                      }}
-                      className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 cursor-pointer"
-                      title="Delete Problem"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
+
+                    {isAdminOrPlacement && (
+                      <>
+                        <button
+                          onClick={() => handleOpenEditQuestion(q)}
+                          className="p-1.5 rounded-lg text-indigo-600 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-950/30 cursor-pointer"
+                          title="Edit Problem"
+                        >
+                          <Edit className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (confirm(`Remove "${q.title}" from question bank?`)) onDeleteQuestion(q.id);
+                          }}
+                          className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 cursor-pointer"
+                          title="Delete Problem"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
             ))}
           </div>
-
-          {filteredQuestions.length > 48 && (
-            <div className="text-center py-4 text-xs font-mono text-slate-400">
-              Showing first 48 matching items out of {filteredQuestions.length}. Use category search to narrow results.
-            </div>
-          )}
         </div>
       )}
 
       {/* ------------------------------------------------------------- */}
-      {/* 4. SUBMISSIONS & LEADERBOARD (ADMIN / PLACEMENT INCHARGE) */}
+      {/* 4. SUBMISSIONS & MARKS LEADERBOARD (ADMIN / PLACEMENT INCHARGE) */}
       {/* ------------------------------------------------------------- */}
       {activeTab === 'submissions' && isAdminOrPlacement && (
         <div className="space-y-6">
@@ -1271,7 +1551,7 @@ export default function CodingTestModule({
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
                 <input
                   type="text"
-                  placeholder="Search student name, roll no, or assessment..."
+                  placeholder="Search candidate name, roll no, or assessment title..."
                   value={submissionSearch}
                   onChange={(e) => setSubmissionSearch(e.target.value)}
                   className="w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-4 py-2 text-xs font-semibold text-slate-800 focus:bg-white focus:outline-hidden dark:border-slate-800 dark:bg-slate-950 dark:text-white"
@@ -1291,11 +1571,11 @@ export default function CodingTestModule({
             </div>
 
             <button
-              onClick={handleExportLeaderboardCSV}
+              onClick={handleExportMarksCSV}
               className="flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-md hover:bg-emerald-700 transition-colors cursor-pointer"
             >
-              <Download className="h-4 w-4" />
-              <span>Export CSV Leaderboard</span>
+              <FileSpreadsheet className="h-4 w-4" />
+              <span>Download Marks Secured CSV</span>
             </button>
           </div>
 
@@ -1308,11 +1588,11 @@ export default function CodingTestModule({
                     <th className="px-6 py-3.5">Rank & Candidate</th>
                     <th className="px-6 py-3.5">Roll No</th>
                     <th className="px-6 py-3.5">Assessment</th>
-                    <th className="px-6 py-3.5">Score & %</th>
+                    <th className="px-6 py-3.5">Marks Secured</th>
                     <th className="px-6 py-3.5">Time Spent</th>
-                    <th className="px-6 py-3.5">Security / Tab Switches</th>
+                    <th className="px-6 py-3.5">Anti-Cheat / Focus</th>
                     <th className="px-6 py-3.5">Status</th>
-                    <th className="px-6 py-3.5 text-right">Action</th>
+                    <th className="px-6 py-3.5 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -1347,10 +1627,10 @@ export default function CodingTestModule({
                         {sub.tabSwitchCount && sub.tabSwitchCount > 0 ? (
                           <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
                             <ShieldAlert className="h-3 w-3" />
-                            {sub.tabSwitchCount} Switches
+                            {sub.tabSwitchCount} Blur
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400">
+                          <span className="inline-flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold">
                             <Check className="h-3 w-3" /> Clean
                           </span>
                         )}
@@ -1361,12 +1641,22 @@ export default function CodingTestModule({
                         </span>
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <button
-                          onClick={() => setSelectedSubmissionForReview(sub)}
-                          className="rounded-lg bg-teal-50 px-3 py-1.5 text-xs font-bold text-teal-700 hover:bg-teal-100 dark:bg-teal-950/50 dark:text-teal-300 cursor-pointer"
-                        >
-                          Review Code
-                        </button>
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => setSelectedSubmissionForPrintScorecard(sub)}
+                            className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/50 dark:text-emerald-300 cursor-pointer"
+                            title="Print / Save Official PDF Scorecard"
+                          >
+                            <Printer className="h-3.5 w-3.5" />
+                            <span>Scorecard</span>
+                          </button>
+                          <button
+                            onClick={() => setSelectedSubmissionForReview(sub)}
+                            className="rounded-lg bg-teal-50 px-2.5 py-1 text-xs font-bold text-teal-700 hover:bg-teal-100 dark:bg-teal-950/50 dark:text-teal-300 cursor-pointer"
+                          >
+                            Transcript
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -1378,108 +1668,339 @@ export default function CodingTestModule({
       )}
 
       {/* ------------------------------------------------------------- */}
-      {/* MODAL: SUBMISSION REVIEW & STUDENT CODE INSPECTOR */}
+      {/* MODAL: GIVE CUSTOM QUESTION & INSTANT ASSESSMENT LAUNCHER */}
       {/* ------------------------------------------------------------- */}
-      {selectedSubmissionForReview && (
+      {showGiveCustomQuestionModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-xs">
-          <div className="relative max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-6">
+          <div className="relative max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-5">
             <div className="flex items-center justify-between border-b border-slate-100 pb-4 dark:border-slate-800">
-              <div>
-                <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-                  Coding Assessment Review Transcript
-                </h3>
-                <p className="text-xs text-slate-500 font-mono">
-                  Candidate: {selectedSubmissionForReview.studentName} ({selectedSubmissionForReview.studentRollNo}) • {selectedSubmissionForReview.testTitle}
-                </p>
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/20 text-amber-500">
+                  <Sparkles className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                    Give Custom Question & Coding Challenge
+                  </h3>
+                  <p className="text-xs text-slate-500 font-mono">
+                    Define custom problem statement, test cases & launch proctored assessment
+                  </p>
+                </div>
               </div>
               <button
-                onClick={() => setSelectedSubmissionForReview(null)}
+                onClick={() => setShowGiveCustomQuestionModal(false)}
                 className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
-            {/* Scorecard Overview */}
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 font-mono text-xs">
-              <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-950 border border-slate-200/60 dark:border-slate-800">
-                <span className="text-[10px] uppercase text-slate-400 block">Total Score</span>
-                <span className="text-base font-bold text-teal-600 dark:text-teal-400">
-                  {selectedSubmissionForReview.totalScore} / {selectedSubmissionForReview.maxScore}
-                </span>
+            <div className="space-y-4 text-xs">
+              {/* Row 1: Title, Category, Difficulty */}
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <div className="sm:col-span-2">
+                  <label className="block text-[11px] font-bold uppercase text-slate-400 mb-1">
+                    Problem Title <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Find Kth Smallest Element in Sorted Matrix"
+                    value={customQTitle}
+                    onChange={(e) => setCustomQTitle(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-800 dark:border-slate-800 dark:bg-slate-950 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold uppercase text-slate-400 mb-1">Difficulty</label>
+                  <select
+                    value={customQDifficulty}
+                    onChange={(e) => setCustomQDifficulty(e.target.value as any)}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-800 dark:border-slate-800 dark:bg-slate-950 dark:text-white"
+                  >
+                    <option value="Easy">Easy (20 Pts)</option>
+                    <option value="Medium">Medium (30 Pts)</option>
+                    <option value="Hard">Hard (50 Pts)</option>
+                  </select>
+                </div>
               </div>
-              <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-950 border border-slate-200/60 dark:border-slate-800">
-                <span className="text-[10px] uppercase text-slate-400 block">Percentage</span>
-                <span className="text-base font-bold text-emerald-600 dark:text-emerald-400">
-                  {selectedSubmissionForReview.percentage}%
-                </span>
+
+              {/* Row 2: Category, Points, Duration */}
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <div>
+                  <label className="block text-[11px] font-bold uppercase text-slate-400 mb-1">Category / Domain</label>
+                  <input
+                    type="text"
+                    value={customQCategory}
+                    onChange={(e) => setCustomQCategory(e.target.value)}
+                    placeholder="e.g. Dynamic Programming"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-800 dark:border-slate-800 dark:bg-slate-950 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold uppercase text-slate-400 mb-1">Max Points</label>
+                  <input
+                    type="number"
+                    value={customQPoints}
+                    onChange={(e) => setCustomQPoints(Number(e.target.value))}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-mono text-slate-800 dark:border-slate-800 dark:bg-slate-950 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold uppercase text-slate-400 mb-1">Assessment Duration</label>
+                  <input
+                    type="number"
+                    value={customAssessmentDuration}
+                    onChange={(e) => setCustomAssessmentDuration(Number(e.target.value))}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-mono text-slate-800 dark:border-slate-800 dark:bg-slate-950 dark:text-white"
+                  />
+                </div>
               </div>
-              <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-950 border border-slate-200/60 dark:border-slate-800">
-                <span className="text-[10px] uppercase text-slate-400 block">Time Taken</span>
-                <span className="text-base font-bold text-slate-700 dark:text-slate-300">
-                  {Math.floor(selectedSubmissionForReview.timeSpentSeconds / 60)}m {selectedSubmissionForReview.timeSpentSeconds % 60}s
-                </span>
+
+              {/* Description */}
+              <div>
+                <label className="block text-[11px] font-bold uppercase text-slate-400 mb-1">
+                  Problem Statement & Invariants <span className="text-rose-500">*</span>
+                </label>
+                <textarea
+                  rows={3}
+                  placeholder="Clearly explain the algorithm requirements, input types, and expected return structure..."
+                  value={customQDescription}
+                  onChange={(e) => setCustomQDescription(e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-800 dark:border-slate-800 dark:bg-slate-950 dark:text-white"
+                />
               </div>
-              <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-950 border border-slate-200/60 dark:border-slate-800">
-                <span className="text-[10px] uppercase text-slate-400 block">Security Alert</span>
-                <span className="text-base font-bold text-amber-600 dark:text-amber-400">
-                  {selectedSubmissionForReview.tabSwitchCount || 0} Tab Blur
-                </span>
+
+              {/* Constraints & Sample Input/Output */}
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="block text-[11px] font-bold uppercase text-slate-400 mb-1">Constraints</label>
+                  <textarea
+                    rows={2}
+                    value={customQConstraints}
+                    onChange={(e) => setCustomQConstraints(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-mono text-slate-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold uppercase text-slate-400 mb-1">Sample Input / Output</label>
+                  <div className="space-y-1.5">
+                    <input
+                      type="text"
+                      placeholder="Input: [2, 7, 11, 15], 9"
+                      value={customQSampleInput}
+                      onChange={(e) => setCustomQSampleInput(e.target.value)}
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-mono text-slate-800 dark:border-slate-800 dark:bg-slate-950 dark:text-white"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Output: [0, 1]"
+                      value={customQSampleOutput}
+                      onChange={(e) => setCustomQSampleOutput(e.target.value)}
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-mono text-slate-800 dark:border-slate-800 dark:bg-slate-950 dark:text-white"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Interactive Test Cases Builder */}
+              <div className="space-y-2.5 rounded-2xl bg-slate-50 p-4 border border-slate-200/80 dark:bg-slate-950 dark:border-slate-800">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-slate-800 dark:text-slate-200 uppercase text-[11px] font-mono flex items-center gap-1.5">
+                    <ListChecks className="h-4 w-4 text-teal-500" />
+                    Interactive Test Cases Suite ({customTestCases.length})
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCustomTestCases([
+                        ...customTestCases,
+                        {
+                          id: String(Date.now()),
+                          input: '[0, 0, 1], 1',
+                          expectedOutput: '1',
+                          hidden: false,
+                          explanation: 'Additional custom verification'
+                        }
+                      ]);
+                    }}
+                    className="flex items-center gap-1 rounded-lg bg-teal-600 px-3 py-1 text-[11px] font-bold text-white hover:bg-teal-700 transition-colors cursor-pointer"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    <span>Add Test Case</span>
+                  </button>
+                </div>
+
+                <div className="space-y-2">
+                  {customTestCases.map((tc, idx) => (
+                    <div
+                      key={tc.id}
+                      className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center rounded-xl bg-white p-3 border border-slate-200 dark:bg-slate-900 dark:border-slate-800"
+                    >
+                      <div className="sm:col-span-1 font-mono font-bold text-slate-400 text-center">
+                        #{idx + 1}
+                      </div>
+                      <div className="sm:col-span-4">
+                        <input
+                          type="text"
+                          placeholder="Input (e.g. [2,7,11,15], 9)"
+                          value={tc.input}
+                          onChange={(e) => {
+                            const updated = [...customTestCases];
+                            updated[idx].input = e.target.value;
+                            setCustomTestCases(updated);
+                          }}
+                          className="w-full rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 font-mono text-[11px] text-slate-800 dark:border-slate-800 dark:bg-slate-950 dark:text-white"
+                        />
+                      </div>
+                      <div className="sm:col-span-3">
+                        <input
+                          type="text"
+                          placeholder="Expected Output (e.g. [0,1])"
+                          value={tc.expectedOutput}
+                          onChange={(e) => {
+                            const updated = [...customTestCases];
+                            updated[idx].expectedOutput = e.target.value;
+                            setCustomTestCases(updated);
+                          }}
+                          className="w-full rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 font-mono text-[11px] text-emerald-600 dark:border-slate-800 dark:bg-slate-950 dark:text-emerald-400 font-bold"
+                        />
+                      </div>
+                      <div className="sm:col-span-3 flex items-center gap-2">
+                        <label className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-600 dark:text-slate-400 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={tc.hidden}
+                            onChange={(e) => {
+                              const updated = [...customTestCases];
+                              updated[idx].hidden = e.target.checked;
+                              setCustomTestCases(updated);
+                            }}
+                            className="rounded text-teal-600"
+                          />
+                          <span>Hidden Test</span>
+                        </label>
+                      </div>
+                      <div className="sm:col-span-1 text-right">
+                        {customTestCases.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => setCustomTestCases(customTestCases.filter((_, i) => i !== idx))}
+                            className="p-1 text-rose-500 hover:bg-rose-50 rounded dark:hover:bg-rose-950/30"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Starter Code Editor Tabs */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-[11px] font-bold uppercase text-slate-400">Starter Code Template</label>
+                  <div className="flex gap-1">
+                    {(['javascript', 'python', 'java', 'cpp'] as const).map(lang => (
+                      <button
+                        key={lang}
+                        type="button"
+                        onClick={() => setCustomSelectedLangTab(lang)}
+                        className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold transition-all cursor-pointer ${
+                          customSelectedLangTab === lang
+                            ? 'bg-teal-600 text-white'
+                            : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                        }`}
+                      >
+                        {lang.toUpperCase()}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {customSelectedLangTab === 'javascript' && (
+                  <textarea
+                    rows={4}
+                    value={customQStarterJS}
+                    onChange={(e) => setCustomQStarterJS(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-950 px-3 py-2 font-mono text-xs text-emerald-400"
+                  />
+                )}
+                {customSelectedLangTab === 'python' && (
+                  <textarea
+                    rows={4}
+                    value={customQStarterPy}
+                    onChange={(e) => setCustomQStarterPy(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-950 px-3 py-2 font-mono text-xs text-emerald-400"
+                  />
+                )}
+                {customSelectedLangTab === 'java' && (
+                  <textarea
+                    rows={4}
+                    value={customQStarterJava}
+                    onChange={(e) => setCustomQStarterJava(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-950 px-3 py-2 font-mono text-xs text-emerald-400"
+                  />
+                )}
+                {customSelectedLangTab === 'cpp' && (
+                  <textarea
+                    rows={4}
+                    value={customQStarterCpp}
+                    onChange={(e) => setCustomQStarterCpp(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-950 px-3 py-2 font-mono text-xs text-emerald-400"
+                  />
+                )}
               </div>
             </div>
 
-            {/* Question-by-Question Code Inspector */}
-            <div className="space-y-4">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 font-mono">
-                Assigned Shuffled Questions & Candidate Solutions
-              </h4>
+            {/* Action Buttons */}
+            <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2">
+              <button
+                type="button"
+                onClick={() => setShowGiveCustomQuestionModal(false)}
+                className="rounded-xl px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 cursor-pointer"
+              >
+                Cancel
+              </button>
 
-              {(Object.values(selectedSubmissionForReview.answers) as StudentCodingAnswer[]).map((ans, idx) => (
-                <div
-                  key={ans.questionId}
-                  className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950 space-y-3"
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleSaveCustomQuestionToBank}
+                  className="rounded-xl bg-slate-100 px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 transition-colors cursor-pointer"
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="rounded-md bg-teal-600 px-2 py-0.5 text-[10px] font-bold text-white font-mono">
-                        Q{idx + 1}
-                      </span>
-                      <h5 className="font-bold text-xs text-slate-900 dark:text-white">
-                        {ans.questionTitle}
-                      </h5>
-                    </div>
-                    <div className="flex items-center gap-2 font-mono text-xs">
-                      <span className="text-slate-400">Language: {ans.language}</span>
-                      <span className="font-bold text-emerald-600 dark:text-emerald-400">
-                        {ans.score}/{ans.maxScore} Pts
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Code Snippet */}
-                  <div className="rounded-xl bg-slate-900 p-3 font-mono text-xs text-emerald-300 overflow-x-auto border border-slate-800">
-                    <pre>{ans.code || '// No code submitted for this question'}</pre>
-                  </div>
-
-                  {/* Execution Log */}
-                  {ans.executionOutput && (
-                    <div className="text-[11px] font-mono text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-slate-200/60 dark:border-slate-800">
-                      {ans.executionOutput}
-                    </div>
-                  )}
-                </div>
-              ))}
+                  Save to Question Bank
+                </button>
+                {isAdminOrPlacement && (
+                  <button
+                    type="button"
+                    onClick={handleCreateTestWithCustomQuestion}
+                    className="rounded-xl bg-indigo-600 px-4 py-2 text-xs font-bold text-white shadow-md hover:bg-indigo-700 transition-colors cursor-pointer"
+                  >
+                    Publish as Test
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={handleLaunchCustomQuestionAssessment}
+                  className="rounded-xl bg-gradient-to-r from-amber-500 to-teal-500 px-5 py-2 text-xs font-bold text-slate-950 shadow-md hover:opacity-95 transition-all cursor-pointer flex items-center gap-1.5"
+                >
+                  <Play className="h-3.5 w-3.5 fill-current" />
+                  <span>Launch Instant Assessment</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
 
       {/* ------------------------------------------------------------- */}
-      {/* MODAL: CREATE TEST CONFIGURATOR */}
+      {/* MODAL: CREATE TEST CONFIGURATOR (WITH HAND-PICKED QUESTIONS) */}
       {/* ------------------------------------------------------------- */}
       {showCreateTestModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-xs">
-          <div className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+          <div className="relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
             <div className="flex items-center justify-between border-b border-slate-100 pb-4 dark:border-slate-800">
               <h3 className="text-lg font-bold text-slate-900 dark:text-white">
                 Configure New Coding Assessment
@@ -1516,6 +2037,116 @@ export default function CodingTestModule({
                 />
               </div>
 
+              {/* Question Selection Mode Toggle */}
+              <div className="space-y-2 rounded-2xl bg-slate-50 p-3.5 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800">
+                <label className="block text-xs font-bold uppercase text-slate-500 font-mono">
+                  Question Assignment Mode
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setNewTestQuestionMode('random_pool')}
+                    className={`flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-bold transition-all cursor-pointer ${
+                      newTestQuestionMode === 'random_pool'
+                        ? 'bg-teal-600 text-white shadow-md'
+                        : 'bg-white text-slate-600 border border-slate-200 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-400'
+                    }`}
+                  >
+                    <Shuffle className="h-4 w-4" />
+                    <span>Random from 300+ Pool</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setNewTestQuestionMode('custom_selection')}
+                    className={`flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-bold transition-all cursor-pointer ${
+                      newTestQuestionMode === 'custom_selection'
+                        ? 'bg-teal-600 text-white shadow-md'
+                        : 'bg-white text-slate-600 border border-slate-200 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-400'
+                    }`}
+                  >
+                    <ListChecks className="h-4 w-4" />
+                    <span>Select Specific Custom Questions</span>
+                  </button>
+                </div>
+
+                {newTestQuestionMode === 'custom_selection' && (
+                  <div className="pt-2 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-teal-600 dark:text-teal-400 font-mono">
+                        {selectedCustomQuestionIds.length} Questions Selected (
+                        {selectedCustomQuestionIds.reduce((sum, id) => {
+                          const q = questions.find(item => item.id === id);
+                          return sum + (q?.points || 20);
+                        }, 0)}{' '}
+                        Total Marks)
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowCreateTestModal(false);
+                          setShowGiveCustomQuestionModal(true);
+                        }}
+                        className="text-[11px] font-bold text-indigo-600 hover:underline flex items-center gap-1"
+                      >
+                        <Plus className="h-3 w-3" />
+                        <span>Create New Custom Question</span>
+                      </button>
+                    </div>
+
+                    <div className="relative">
+                      <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-slate-400" />
+                      <input
+                        type="text"
+                        placeholder="Search questions to add..."
+                        value={customQuestionSearchInModal}
+                        onChange={(e) => setCustomQuestionSearchInModal(e.target.value)}
+                        className="w-full rounded-lg border border-slate-200 bg-white pl-8 pr-3 py-1.5 text-xs text-slate-800 dark:border-slate-800 dark:bg-slate-900 dark:text-white"
+                      />
+                    </div>
+
+                    {/* Question Checkbox Selector */}
+                    <div className="max-h-48 overflow-y-auto space-y-1.5 rounded-xl border border-slate-200 bg-white p-2 dark:border-slate-800 dark:bg-slate-900">
+                      {filteredModalQuestions.map(q => {
+                        const isSelected = selectedCustomQuestionIds.includes(q.id);
+                        return (
+                          <div
+                            key={q.id}
+                            onClick={() => {
+                              if (isSelected) {
+                                setSelectedCustomQuestionIds(selectedCustomQuestionIds.filter(id => id !== q.id));
+                              } else {
+                                setSelectedCustomQuestionIds([...selectedCustomQuestionIds, q.id]);
+                              }
+                            }}
+                            className={`flex items-center justify-between p-2 rounded-lg cursor-pointer transition-colors ${
+                              isSelected
+                                ? 'bg-teal-50 border border-teal-200 dark:bg-teal-950/40 dark:border-teal-800'
+                                : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              {isSelected ? (
+                                <CheckSquare className="h-4 w-4 text-teal-600 shrink-0" />
+                              ) : (
+                                <Square className="h-4 w-4 text-slate-400 shrink-0" />
+                              )}
+                              <span className="font-semibold text-xs text-slate-800 dark:text-slate-200 truncate">
+                                {q.title}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 font-mono text-[11px] shrink-0">
+                              <span className="text-slate-400">{q.category}</span>
+                              <span className="font-bold text-teal-600 dark:text-teal-400">{q.points} pts</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold uppercase text-slate-400 mb-1">Duration (Minutes)</label>
@@ -1529,20 +2160,22 @@ export default function CodingTestModule({
                   />
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold uppercase text-teal-600 dark:text-teal-400 mb-1">
-                    Questions Per Student
-                  </label>
-                  <input
-                    type="number"
-                    min={1}
-                    max={50}
-                    value={newTestQuestionLimit}
-                    onChange={(e) => setNewTestQuestionLimit(Number(e.target.value))}
-                    className="w-full rounded-xl border border-teal-300 bg-teal-50/50 px-3 py-2 text-xs font-mono font-bold text-teal-800 dark:border-teal-800 dark:bg-teal-950/40 dark:text-teal-200"
-                  />
-                  <span className="text-[10px] text-slate-400">Randomly selected from 300+ pool</span>
-                </div>
+                {newTestQuestionMode === 'random_pool' && (
+                  <div>
+                    <label className="block text-xs font-bold uppercase text-teal-600 dark:text-teal-400 mb-1">
+                      Questions Per Student
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={50}
+                      value={newTestQuestionLimit}
+                      onChange={(e) => setNewTestQuestionLimit(Number(e.target.value))}
+                      className="w-full rounded-xl border border-teal-300 bg-teal-50/50 px-3 py-2 text-xs font-mono font-bold text-teal-800 dark:border-teal-800 dark:bg-teal-950/40 dark:text-teal-200"
+                    />
+                    <span className="text-[10px] text-slate-400">Randomly selected from 300+ pool</span>
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -1723,6 +2356,247 @@ export default function CodingTestModule({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ------------------------------------------------------------- */}
+      {/* MODAL: SUBMISSION REVIEW & STUDENT CODE INSPECTOR */}
+      {/* ------------------------------------------------------------- */}
+      {selectedSubmissionForReview && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-xs">
+          <div className="relative max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-6">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4 dark:border-slate-800">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                  Coding Assessment Review Transcript
+                </h3>
+                <p className="text-xs text-slate-500 font-mono">
+                  Candidate: {selectedSubmissionForReview.studentName} ({selectedSubmissionForReview.studentRollNo}) • {selectedSubmissionForReview.testTitle}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setSelectedSubmissionForPrintScorecard(selectedSubmissionForReview)}
+                  className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-md hover:bg-emerald-500 cursor-pointer"
+                >
+                  <Printer className="h-4 w-4" />
+                  <span>Print Scorecard</span>
+                </button>
+                <button
+                  onClick={() => setSelectedSubmissionForReview(null)}
+                  className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Scorecard Overview */}
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 font-mono text-xs">
+              <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-950 border border-slate-200/60 dark:border-slate-800">
+                <span className="text-[10px] uppercase text-slate-400 block">Total Score</span>
+                <span className="text-base font-bold text-teal-600 dark:text-teal-400">
+                  {selectedSubmissionForReview.totalScore} / {selectedSubmissionForReview.maxScore}
+                </span>
+              </div>
+              <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-950 border border-slate-200/60 dark:border-slate-800">
+                <span className="text-[10px] uppercase text-slate-400 block">Percentage</span>
+                <span className="text-base font-bold text-emerald-600 dark:text-emerald-400">
+                  {selectedSubmissionForReview.percentage}%
+                </span>
+              </div>
+              <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-950 border border-slate-200/60 dark:border-slate-800">
+                <span className="text-[10px] uppercase text-slate-400 block">Time Taken</span>
+                <span className="text-base font-bold text-slate-700 dark:text-slate-300">
+                  {Math.floor(selectedSubmissionForReview.timeSpentSeconds / 60)}m {selectedSubmissionForReview.timeSpentSeconds % 60}s
+                </span>
+              </div>
+              <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-950 border border-slate-200/60 dark:border-slate-800">
+                <span className="text-[10px] uppercase text-slate-400 block">Security Alert</span>
+                <span className="text-base font-bold text-amber-600 dark:text-amber-400">
+                  {selectedSubmissionForReview.tabSwitchCount || 0} Tab Blur
+                </span>
+              </div>
+            </div>
+
+            {/* Question-by-Question Code Inspector */}
+            <div className="space-y-4">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 font-mono">
+                Assigned Questions & Candidate Solutions
+              </h4>
+
+              {(Object.values(selectedSubmissionForReview.answers) as StudentCodingAnswer[]).map((ans, idx) => (
+                <div
+                  key={ans.questionId}
+                  className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950 space-y-3"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="rounded-md bg-teal-600 px-2 py-0.5 text-[10px] font-bold text-white font-mono">
+                        Q{idx + 1}
+                      </span>
+                      <h5 className="font-bold text-xs text-slate-900 dark:text-white">
+                        {ans.questionTitle}
+                      </h5>
+                    </div>
+                    <div className="flex items-center gap-2 font-mono text-xs">
+                      <span className="text-slate-400">Language: {ans.language}</span>
+                      <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                        {ans.score}/{ans.maxScore} Pts
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl bg-slate-900 p-3 font-mono text-xs text-emerald-300 overflow-x-auto border border-slate-800">
+                    <pre>{ans.code || '// No code submitted for this question'}</pre>
+                  </div>
+
+                  {ans.executionOutput && (
+                    <div className="text-[11px] font-mono text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900 p-2.5 rounded-lg border border-slate-200/60 dark:border-slate-800">
+                      {ans.executionOutput}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ------------------------------------------------------------- */}
+      {/* MODAL: OFFICIAL PRINTABLE SCORECARD / PDF TRANSCRIPT */}
+      {/* ------------------------------------------------------------- */}
+      {selectedSubmissionForPrintScorecard && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-xs">
+          <div className="relative max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-3xl bg-white p-8 shadow-2xl dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-6 print:p-0 print:border-none print:shadow-none">
+            {/* Header with Print Controls */}
+            <div className="flex items-center justify-between border-b border-slate-200 pb-4 dark:border-slate-800 print:hidden">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-500 font-mono">
+                Official Marks Certificate Preview
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => window.print()}
+                  className="flex items-center gap-2 rounded-xl bg-teal-600 px-4 py-2 text-xs font-bold text-white shadow-md hover:bg-teal-700 transition-colors cursor-pointer"
+                >
+                  <Printer className="h-4 w-4" />
+                  <span>Print Marksheet</span>
+                </button>
+                <button
+                  onClick={() => setSelectedSubmissionForPrintScorecard(null)}
+                  className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Printable Mark Sheet Container */}
+            <div className="space-y-6 text-slate-900 dark:text-white">
+              {/* Institution Header */}
+              <div className="text-center space-y-1 border-b-2 border-slate-900 pb-4 dark:border-slate-100">
+                <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-600 text-white mb-2 shadow-md">
+                  <Building className="h-6 w-6" />
+                </div>
+                <h2 className="text-xl font-black uppercase tracking-tight">University Placement & Examination Cell</h2>
+                <p className="text-xs uppercase font-mono tracking-widest text-slate-500 dark:text-slate-400">
+                  Official Technical Assessment & Coding Performance Transcript
+                </p>
+              </div>
+
+              {/* Student & Test Particulars */}
+              <div className="grid grid-cols-2 gap-4 rounded-2xl bg-slate-50 p-4 font-mono text-xs border border-slate-200 dark:bg-slate-950 dark:border-slate-800">
+                <div>
+                  <span className="text-slate-400 block text-[10px] uppercase">Candidate Name</span>
+                  <span className="font-bold text-slate-900 dark:text-white text-sm">{selectedSubmissionForPrintScorecard.studentName}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block text-[10px] uppercase">Roll / Registration No</span>
+                  <span className="font-bold text-slate-900 dark:text-white text-sm">{selectedSubmissionForPrintScorecard.studentRollNo}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block text-[10px] uppercase">Assessment Title</span>
+                  <span className="font-semibold text-slate-800 dark:text-slate-200">{selectedSubmissionForPrintScorecard.testTitle}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block text-[10px] uppercase">Date & Timestamp</span>
+                  <span className="font-semibold text-slate-800 dark:text-slate-200">
+                    {new Date(selectedSubmissionForPrintScorecard.submittedAt || selectedSubmissionForPrintScorecard.startedAt).toLocaleString()}
+                  </span>
+                </div>
+              </div>
+
+              {/* Total Marks Secured Banner */}
+              <div className="grid grid-cols-3 gap-3 text-center">
+                <div className="rounded-2xl border border-teal-200 bg-teal-50/50 p-3 dark:border-teal-900 dark:bg-teal-950/30">
+                  <span className="text-[10px] font-bold uppercase text-teal-700 dark:text-teal-300 font-mono block">Marks Secured</span>
+                  <span className="text-xl font-black text-teal-700 dark:text-teal-300 font-mono">
+                    {selectedSubmissionForPrintScorecard.totalScore} / {selectedSubmissionForPrintScorecard.maxScore}
+                  </span>
+                </div>
+                <div className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-3 dark:border-emerald-900 dark:bg-emerald-950/30">
+                  <span className="text-[10px] font-bold uppercase text-emerald-700 dark:text-emerald-300 font-mono block">Final Percentage</span>
+                  <span className="text-xl font-black text-emerald-700 dark:text-emerald-300 font-mono">
+                    {selectedSubmissionForPrintScorecard.percentage}%
+                  </span>
+                </div>
+                <div className="rounded-2xl border border-indigo-200 bg-indigo-50/50 p-3 dark:border-indigo-900 dark:bg-indigo-950/30">
+                  <span className="text-[10px] font-bold uppercase text-indigo-700 dark:text-indigo-300 font-mono block">Evaluation Status</span>
+                  <span className="text-xl font-black text-indigo-700 dark:text-indigo-300 font-mono">
+                    {selectedSubmissionForPrintScorecard.percentage >= 60 ? 'PASSED' : 'ELIGIBLE'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Question-by-Question Scores Breakdown Table */}
+              <div className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-100 font-mono text-[10px] font-bold uppercase text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                    <tr>
+                      <th className="px-4 py-2.5">Q#</th>
+                      <th className="px-4 py-2.5">Question Title</th>
+                      <th className="px-4 py-2.5">Language</th>
+                      <th className="px-4 py-2.5">Test Cases</th>
+                      <th className="px-4 py-2.5">Marks Secured</th>
+                      <th className="px-4 py-2.5 text-right">Result</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                    {(Object.values(selectedSubmissionForPrintScorecard.answers) as StudentCodingAnswer[]).map((ans, idx) => (
+                      <tr key={ans.questionId}>
+                        <td className="px-4 py-2.5 font-mono font-bold text-slate-500">#{idx + 1}</td>
+                        <td className="px-4 py-2.5 font-bold">{ans.questionTitle}</td>
+                        <td className="px-4 py-2.5 font-mono text-slate-500 uppercase">{ans.language}</td>
+                        <td className="px-4 py-2.5 font-mono">{ans.testCasesPassed} / {ans.totalTestCases}</td>
+                        <td className="px-4 py-2.5 font-mono font-bold text-teal-600 dark:text-teal-400">
+                          {ans.score} / {ans.maxScore}
+                        </td>
+                        <td className="px-4 py-2.5 text-right">
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                            ans.status === 'Passed' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300' : 'bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300'
+                          }`}>
+                            {ans.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Signatures & Seal */}
+              <div className="pt-8 flex items-center justify-between border-t border-slate-200 text-xs text-slate-500 font-mono dark:border-slate-800">
+                <div className="text-center">
+                  <div className="h-10 border-b border-dashed border-slate-400 w-36 mb-1" />
+                  <span>Placement Officer</span>
+                </div>
+                <div className="text-center">
+                  <div className="h-10 border-b border-dashed border-slate-400 w-36 mb-1" />
+                  <span>Controller of Examinations</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}

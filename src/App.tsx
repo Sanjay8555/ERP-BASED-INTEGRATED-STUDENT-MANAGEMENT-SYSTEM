@@ -147,6 +147,7 @@ export default function App() {
     }
   });
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
+  const [isCodingTestSessionActive, setIsCodingTestSessionActive] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<string>(() => {
     try {
       const saved = localStorage.getItem('activeTab');
@@ -1187,6 +1188,7 @@ export default function App() {
             onUpdateTest={handleUpdateCodingTest}
             onDeleteTest={handleDeleteCodingTest}
             onSubmitTest={handleSubmitCodingTest}
+            onTestSessionChange={(isActive) => setIsCodingTestSessionActive(isActive)}
           />
         );
       case 'placement':
@@ -1820,24 +1822,34 @@ export default function App() {
         role={activeRole}
         isOpen={sidebarOpen}
         setIsOpen={setSidebarOpen}
+        isHidden={isCodingTestSessionActive}
       />
 
       {/* Main Panel Frame */}
-      <div className="flex-1 flex flex-col lg:pl-72 min-w-0 relative z-10">
-        <Navbar
-          currentUser={currentUser}
-          onLogout={() => setIsAuthenticated(false)}
-          role={activeRole}
-          onRoleChange={handleRoleChange}
-          sidebarOpen={sidebarOpen}
-          setSidebarOpen={setSidebarOpen}
-          activeTabTitle={getTabTitle()}
-          onUpdatePhoto={(photo) => handleUpdateUserPhoto(currentUser.id, photo)}
-          onNavigateToSettings={() => setActiveTab('settings')}
-        />
+      <div className={`flex-1 flex flex-col ${isCodingTestSessionActive ? '' : 'lg:pl-72'} min-w-0 relative z-10`}>
+        {!isCodingTestSessionActive && (
+          <Navbar
+            currentUser={currentUser}
+            onLogout={() => setIsAuthenticated(false)}
+            role={activeRole}
+            onRoleChange={handleRoleChange}
+            sidebarOpen={sidebarOpen}
+            setSidebarOpen={setSidebarOpen}
+            activeTabTitle={getTabTitle()}
+            onUpdatePhoto={(photo) => handleUpdateUserPhoto(currentUser.id, photo)}
+            onNavigateToSettings={() => setActiveTab('settings')}
+          />
+        )}
 
         {/* Dynamic content stage */}
-        <main id="app-main-content" className="flex-1 p-6 md:p-8 space-y-6 overflow-y-auto max-h-[calc(100vh-64px)]">
+        <main
+          id="app-main-content"
+          className={`flex-1 ${
+            isCodingTestSessionActive
+              ? 'p-0 overflow-hidden'
+              : 'p-6 md:p-8 space-y-6 overflow-y-auto max-h-[calc(100vh-64px)]'
+          }`}
+        >
           {renderTabContent()}
         </main>
       </div>

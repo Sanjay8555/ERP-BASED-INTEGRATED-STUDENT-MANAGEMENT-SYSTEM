@@ -210,11 +210,66 @@ export default function PlacementModule({
       ];
     });
 
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
     link.setAttribute('download', `Student_Placement_Dossier_Master_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Export Candidate Marks Secured & Placement Scores for Admin & Placement
+  const handleExportMarksSecuredReportCSV = () => {
+    const headers = [
+      'Roll Number',
+      'Candidate Name',
+      'Email Address',
+      'Contact Phone',
+      'Academic Department',
+      'Semester',
+      'CGPA',
+      'Total Coding Assessments Taken',
+      'Best Coding Score (%)',
+      'Average Coding Score (%)',
+      'Total Marks Secured in Coding Tests',
+      'Placement Eligibility Status',
+      'Registered Drives Count'
+    ];
+
+    const rows = filteredStudents.map(s => {
+      const u = users.find(user => user.id === s.userId);
+      const d = departments.find(dept => dept.id === s.departmentId);
+      const studentSubs = submissions.filter(sub => sub.studentId === s.id);
+      const bestScore = studentSubs.length > 0 ? Math.max(...studentSubs.map(sub => sub.percentage)) : 0;
+      const avgScore = studentSubs.length > 0 ? Math.round(studentSubs.reduce((acc, sub) => acc + sub.percentage, 0) / studentSubs.length) : 0;
+      const totalMarksSecured = studentSubs.reduce((acc, sub) => acc + sub.totalScore, 0);
+      const isEligible = s.cgpa >= 7.5 ? 'Eligible (Tier 1 Direct)' : s.cgpa >= 6.5 ? 'Eligible (Tier 2 Tech)' : 'Requires Review';
+      const regCount = drives.filter(drive => drive.registeredStudentIds?.includes(s.id)).length;
+
+      return [
+        s.rollNo,
+        `"${(u?.name || 'N/A').replace(/"/g, '""')}"`,
+        u?.email || 'N/A',
+        s.phone,
+        `"${(d?.name || s.departmentId).replace(/"/g, '""')}"`,
+        s.currentSemester,
+        s.cgpa,
+        studentSubs.length,
+        `${bestScore}%`,
+        `${avgScore}%`,
+        totalMarksSecured,
+        `"${isEligible}"`,
+        regCount
+      ];
+    });
+
+    const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `Placement_Candidate_Marks_Secured_Report_${new Date().toISOString().split('T')[0]}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -248,6 +303,15 @@ export default function PlacementModule({
           >
             <Plus className="h-4 w-4" />
             <span>Launch Campus Drive</span>
+          </button>
+
+          <button
+            onClick={handleExportMarksSecuredReportCSV}
+            className="flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white shadow-md hover:bg-emerald-500 transition-all cursor-pointer"
+            title="Download full candidate marks secured and coding percentiles"
+          >
+            <FileSpreadsheet className="h-4 w-4" />
+            <span>Download Marks Secured</span>
           </button>
 
           <button

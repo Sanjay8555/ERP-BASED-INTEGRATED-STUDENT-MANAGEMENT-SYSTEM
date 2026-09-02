@@ -31,9 +31,14 @@ interface SidebarProps {
   role: UserRole;
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
+  isHidden?: boolean;
 }
 
-export default function Sidebar({ activeTab, setActiveTab, role, isOpen, setIsOpen }: SidebarProps) {
+export default function Sidebar({ activeTab, setActiveTab, role, isOpen, setIsOpen, isHidden = false }: SidebarProps) {
+  if (isHidden) {
+    return null;
+  }
+
   // Define menu items and their role permissions
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: GraduationCap, roles: ['Admin', 'Placement', 'Faculty', 'Student', 'Parent', 'Accountant'] },
