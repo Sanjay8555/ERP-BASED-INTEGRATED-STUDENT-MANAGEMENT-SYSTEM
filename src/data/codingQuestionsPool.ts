@@ -22,10 +22,10 @@ const coreQuestions: CodingQuestion[] = [
     tags: ['Array', 'Hash Table', 'Easy'],
     hints: ['Can you use a Hash Map to check for complement in O(1) time?', 'Complement = target - current_value.'],
     starterCode: {
-      javascript: `function twoSum(nums, target) {\n  const map = new Map();\n  for (let i = 0; i < nums.length; i++) {\n    const complement = target - nums[i];\n    if (map.has(complement)) {\n      return [map.get(complement), i];\n    }\n    map.set(nums[i], i);\n  }\n  return [];\n}\n\n// Example execution:\nconsole.log(JSON.stringify(twoSum([2, 7, 11, 15], 9)));`,
-      python: `def two_sum(nums, target):\n    seen = {}\n    for i, num in enumerate(nums):\n        comp = target - num\n        if comp in seen:\n            return [seen[comp], i]\n        seen[num] = i\n    return []\n\nprint(two_sum([2, 7, 11, 15], 9))`,
-      java: `import java.util.*;\n\npublic class Solution {\n    public static int[] twoSum(int[] nums, int target) {\n        Map<Integer, Integer> map = new HashMap<>();\n        for (int i = 0; i < nums.length; i++) {\n            int comp = target - nums[i];\n            if (map.containsKey(comp)) return new int[] { map.get(comp), i };\n            map.put(nums[i], i);\n        }\n        return new int[]{};\n    }\n}`,
-      cpp: `#include <vector>\n#include <unordered_map>\nusing namespace std;\n\nvector<int> twoSum(vector<int>& nums, int target) {\n    unordered_map<int, int> seen;\n    for (int i = 0; i < nums.size(); i++) {\n        int comp = target - nums[i];\n        if (seen.count(comp)) return {seen[comp], i};\n        seen[nums[i]] = i;\n    }\n    return {};\n}`
+      javascript: `/**\n * @param {number[]} nums\n * @param {number} target\n * @return {number[]}\n */\nfunction twoSum(nums, target) {\n  // Write your code here\n  \n}`,
+      python: `def two_sum(nums: list[int], target: int) -> list[int]:\n    # Write your code here\n    pass\n`,
+      java: `import java.util.*;\n\npublic class Solution {\n    public static int[] twoSum(int[] nums, int target) {\n        // Write your code here\n        return new int[]{};\n    }\n}`,
+      cpp: `#include <vector>\n#include <unordered_map>\nusing namespace std;\n\nvector<int> twoSum(vector<int>& nums, int target) {\n    // Write your code here\n    return {};\n}`
     },
     testCases: [
       { id: 'tc-1-1', input: '[2,7,11,15], 9', expectedOutput: '[0,1]', explanation: 'nums[0] + nums[1] = 2 + 7 = 9' },
@@ -46,10 +46,10 @@ const coreQuestions: CodingQuestion[] = [
     tags: ['Two Pointers', 'String'],
     hints: ['Filter out non-alphanumeric chars and lowercase the string.', 'Use two pointers from start and end.'],
     starterCode: {
-      javascript: `function isPalindrome(s) {\n  const clean = s.toLowerCase().replace(/[^a-z0-9]/g, '');\n  let left = 0, right = clean.length - 1;\n  while (left < right) {\n    if (clean[left] !== clean[right]) return false;\n    left++;\n    right--;\n  }\n  return true;\n}\n\nconsole.log(isPalindrome("A man, a plan, a canal: Panama"));`,
-      python: `def is_palindrome(s: str) -> bool:\n    clean = [c.lower() for c in s if c.isalnum()]\n    return clean == clean[::-1]\n\nprint(is_palindrome("A man, a plan, a canal: Panama"))`,
-      java: `public class Solution {\n    public static boolean isPalindrome(String s) {\n        String clean = s.replaceAll("[^a-zA-Z0-9]", "").toLowerCase();\n        return new StringBuilder(clean).reverse().toString().equals(clean);\n    }\n}`,
-      cpp: `#include <string>\n#include <cctype>\nusing namespace std;\n\nbool isPalindrome(string s) {\n    int l = 0, r = s.size() - 1;\n    while (l < r) {\n        while (l < r && !isalnum(s[l])) l++;\n        while (l < r && !isalnum(s[r])) r--;\n        if (tolower(s[l]) != tolower(s[r])) return false;\n        l++; r--;\n    }\n    return true;\n}`
+      javascript: `/**\n * @param {string} s\n * @return {boolean}\n */\nfunction isPalindrome(s) {\n  // Write your code here\n  \n}`,
+      python: `def is_palindrome(s: str) -> bool:\n    # Write your code here\n    pass\n`,
+      java: `public class Solution {\n    public static boolean isPalindrome(String s) {\n        // Write your code here\n        return false;\n    }\n}`,
+      cpp: `#include <string>\n#include <cctype>\nusing namespace std;\n\nbool isPalindrome(string s) {\n    // Write your code here\n    return false;\n}`
     },
     testCases: [
       { id: 'tc-2-1', input: '"A man, a plan, a canal: Panama"', expectedOutput: 'true' },
@@ -70,10 +70,10 @@ const coreQuestions: CodingQuestion[] = [
     tags: ['Sliding Window', 'Hash Table', 'String'],
     hints: ['Use sliding window with two pointers [i, j].', 'Keep track of character last seen indices.'],
     starterCode: {
-      javascript: `function lengthOfLongestSubstring(s) {\n  let maxLen = 0, start = 0;\n  const map = new Map();\n  for (let end = 0; end < s.length; end++) {\n    if (map.has(s[end]) && map.get(s[end]) >= start) {\n      start = map.get(s[end]) + 1;\n    }\n    map.set(s[end], end);\n    maxLen = Math.max(maxLen, end - start + 1);\n  }\n  return maxLen;\n}\n\nconsole.log(lengthOfLongestSubstring("abcabcbb"));`,
-      python: `def length_of_longest_substring(s: str) -> int:\n    used = {}\n    max_len = start = 0\n    for i, char in enumerate(s):\n        if char in used and start <= used[char]:\n            start = used[char] + 1\n        else:\n            max_len = max(max_len, i - start + 1)\n        used[char] = i\n    return max_len\n\nprint(length_of_longest_substring("abcabcbb"))`,
-      java: `import java.util.*;\n\npublic class Solution {\n    public static int lengthOfLongestSubstring(String s) {\n        int n = s.length(), ans = 0;\n        Map<Character, Integer> map = new HashMap<>();\n        for (int j = 0, i = 0; j < n; j++) {\n            if (map.containsKey(s.charAt(j))) {\n                i = Math.max(map.get(s.charAt(j)), i);\n            }\n            ans = Math.max(ans, j - i + 1);\n            map.put(s.charAt(j), j + 1);\n        }\n        return ans;\n    }\n}`,
-      cpp: `#include <string>\n#include <unordered_map>\n#include <algorithm>\nusing namespace std;\n\nint lengthOfLongestSubstring(string s) {\n    unordered_map<char, int> mp;\n    int maxL = 0, left = 0;\n    for (int right = 0; right < s.length(); right++) {\n        if (mp.count(s[right]) && mp[s[right]] >= left) {\n            left = mp[s[right]] + 1;\n        }\n        mp[s[right]] = right;\n        maxL = max(maxL, right - left + 1);\n    }\n    return maxL;\n}`
+      javascript: `/**\n * @param {string} s\n * @return {number}\n */\nfunction lengthOfLongestSubstring(s) {\n  // Write your code here\n  \n}`,
+      python: `def length_of_longest_substring(s: str) -> int:\n    # Write your code here\n    pass\n`,
+      java: `import java.util.*;\n\npublic class Solution {\n    public static int lengthOfLongestSubstring(String s) {\n        // Write your code here\n        return 0;\n    }\n}`,
+      cpp: `#include <string>\n#include <unordered_map>\n#include <algorithm>\nusing namespace std;\n\nint lengthOfLongestSubstring(string s) {\n    // Write your code here\n    return 0;\n}`
     },
     testCases: [
       { id: 'tc-3-1', input: '"abcabcbb"', expectedOutput: '3', explanation: 'The answer is "abc", with the length of 3.' },
@@ -94,10 +94,10 @@ const coreQuestions: CodingQuestion[] = [
     tags: ['Stack', 'String'],
     hints: ['Push opening brackets onto a stack.', 'When encountering closing bracket, pop and verify matching type.'],
     starterCode: {
-      javascript: `function isValid(s) {\n  const stack = [];\n  const pairs = { ')': '(', '}': '{', ']': '[' };\n  for (const c of s) {\n    if (c in pairs) {\n      if (stack.pop() !== pairs[c]) return false;\n    } else {\n      stack.push(c);\n    }\n  }\n  return stack.length === 0;\n}\n\nconsole.log(isValid("()[]{}"));`,
-      python: `def is_valid(s: str) -> bool:\n    stack = []\n    pairs = {')': '(', '}': '{', ']': '['}\n    for c in s:\n        if c in pairs:\n            if not stack or stack.pop() != pairs[c]:\n                return False\n        else:\n            stack.append(c)\n    return not stack\n\nprint(is_valid("()[]{}"))`,
-      java: `import java.util.*;\n\npublic class Solution {\n    public static boolean isValid(String s) {\n        Stack<Character> stack = new Stack<>();\n        for (char c : s.toCharArray()) {\n            if (c == '(') stack.push(')');\n            else if (c == '{') stack.push('}');\n            else if (c == '[') stack.push(']');\n            else if (stack.isEmpty() || stack.pop() != c) return false;\n        }\n        return stack.isEmpty();\n    }\n}`,
-      cpp: `#include <string>\n#include <stack>\nusing namespace std;\n\nbool isValid(string s) {\n    stack<char> st;\n    for (char c : s) {\n        if (c == '(') st.push(')');\n        else if (c == '{') st.push('}');\n        else if (c == '[') st.push(']');\n        else if (st.empty() || st.top() != c) return false;\n        else st.pop();\n    }\n    return st.empty();\n}`
+      javascript: `/**\n * @param {string} s\n * @return {boolean}\n */\nfunction isValid(s) {\n  // Write your code here\n  \n}`,
+      python: `def is_valid(s: str) -> bool:\n    # Write your code here\n    pass\n`,
+      java: `import java.util.*;\n\npublic class Solution {\n    public static boolean isValid(String s) {\n        // Write your code here\n        return false;\n    }\n}`,
+      cpp: `#include <string>\n#include <stack>\nusing namespace std;\n\nbool isValid(string s) {\n    // Write your code here\n    return false;\n}`
     },
     testCases: [
       { id: 'tc-4-1', input: '"()[]{}"', expectedOutput: 'true' },
@@ -118,10 +118,10 @@ const coreQuestions: CodingQuestion[] = [
     tags: ['Dynamic Programming', 'Math', 'Memoization'],
     hints: ['To reach step n, you can take a step from n-1 or n-2.', 'ways(n) = ways(n-1) + ways(n-2). This is Fibonacci sequence.'],
     starterCode: {
-      javascript: `function climbStairs(n) {\n  if (n <= 2) return n;\n  let a = 1, b = 2;\n  for (let i = 3; i <= n; i++) {\n    const next = a + b;\n    a = b;\n    b = next;\n  }\n  return b;\n}\n\nconsole.log(climbStairs(3));`,
-      python: `def climb_stairs(n: int) -> int:\n    if n <= 2:\n        return n\n    a, b = 1, 2\n    for _ in range(3, n + 1):\n        a, b = b, a + b\n    return b\n\nprint(climb_stairs(3))`,
-      java: `public class Solution {\n    public static int climbStairs(int n) {\n        if (n <= 2) return n;\n        int a = 1, b = 2;\n        for (int i = 3; i <= n; i++) {\n            int next = a + b;\n            a = b;\n            b = next;\n        }\n        return b;\n    }\n}`,
-      cpp: `int climbStairs(int n) {\n    if (n <= 2) return n;\n    int a = 1, b = 2;\n    for (int i = 3; i <= n; i++) {\n        int next = a + b;\n        a = b;\n        b = next;\n    }\n    return b;\n}`
+      javascript: `/**\n * @param {number} n\n * @return {number}\n */\nfunction climbStairs(n) {\n  // Write your code here\n  \n}`,
+      python: `def climb_stairs(n: int) -> int:\n    # Write your code here\n    pass\n`,
+      java: `public class Solution {\n    public static int climbStairs(int n) {\n        // Write your code here\n        return 0;\n    }\n}`,
+      cpp: `int climbStairs(int n) {\n    // Write your code here\n    return 0;\n}`
     },
     testCases: [
       { id: 'tc-5-1', input: '2', expectedOutput: '2', explanation: '1 step + 1 step, or 2 steps.' },
@@ -142,10 +142,10 @@ const coreQuestions: CodingQuestion[] = [
     tags: ['Dynamic Programming', 'BFS'],
     hints: ['dp[i] = minimum coins to make amount i.', 'dp[i] = min(dp[i - c] + 1) for coin c in coins.'],
     starterCode: {
-      javascript: `function coinChange(coins, amount) {\n  const dp = new Array(amount + 1).fill(Infinity);\n  dp[0] = 0;\n  for (let i = 1; i <= amount; i++) {\n    for (const coin of coins) {\n      if (i - coin >= 0) {\n        dp[i] = Math.min(dp[i], dp[i - coin] + 1);\n      }\n    }\n  }\n  return dp[amount] === Infinity ? -1 : dp[amount];\n}\n\nconsole.log(coinChange([1, 2, 5], 11));`,
-      python: `def coin_change(coins, amount):\n    dp = [float('inf')] * (amount + 1)\n    dp[0] = 0\n    for i in range(1, amount + 1):\n        for coin in coins:\n            if i - coin >= 0:\n                dp[i] = min(dp[i], dp[i - coin] + 1)\n    return dp[amount] if dp[amount] != float('inf') else -1\n\nprint(coin_change([1, 2, 5], 11))`,
-      java: `import java.util.*;\n\npublic class Solution {\n    public static int coinChange(int[] coins, int amount) {\n        int[] dp = new int[amount + 1];\n        Arrays.fill(dp, amount + 1);\n        dp[0] = 0;\n        for (int i = 1; i <= amount; i++) {\n            for (int coin : coins) {\n                if (i >= coin) dp[i] = Math.min(dp[i], dp[i - coin] + 1);\n            }\n        }\n        return dp[amount] > amount ? -1 : dp[amount];\n    }\n}`,
-      cpp: `#include <vector>\n#include <algorithm>\nusing namespace std;\n\nint coinChange(vector<int>& coins, int amount) {\n    vector<int> dp(amount + 1, amount + 1);\n    dp[0] = 0;\n    for (int i = 1; i <= amount; i++) {\n        for (int c : coins) {\n            if (i >= c) dp[i] = min(dp[i], dp[i - c] + 1);\n        }\n    }\n    return dp[amount] > amount ? -1 : dp[amount];\n}`
+      javascript: `/**\n * @param {number[]} coins\n * @param {number} amount\n * @return {number}\n */\nfunction coinChange(coins, amount) {\n  // Write your code here\n  \n}`,
+      python: `def coin_change(coins: list[int], amount: int) -> int:\n    # Write your code here\n    pass\n`,
+      java: `import java.util.*;\n\npublic class Solution {\n    public static int coinChange(int[] coins, int amount) {\n        // Write your code here\n        return -1;\n    }\n}`,
+      cpp: `#include <vector>\n#include <algorithm>\nusing namespace std;\n\nint coinChange(vector<int>& coins, int amount) {\n    // Write your code here\n    return -1;\n}`
     },
     testCases: [
       { id: 'tc-6-1', input: '[1,2,5], 11', expectedOutput: '3', explanation: '11 = 5 + 5 + 1' },
@@ -166,10 +166,10 @@ const coreQuestions: CodingQuestion[] = [
     tags: ['Binary Search', 'Array'],
     hints: ['Calculate mid = left + Math.floor((right - left) / 2).', 'Shrink search space by moving left or right boundary.'],
     starterCode: {
-      javascript: `function search(nums, target) {\n  let left = 0, right = nums.length - 1;\n  while (left <= right) {\n    const mid = Math.floor((left + right) / 2);\n    if (nums[mid] === target) return mid;\n    if (nums[mid] < target) left = mid + 1;\n    else right = mid - 1;\n  }\n  return -1;\n}\n\nconsole.log(search([-1,0,3,5,9,12], 9));`,
-      python: `def search(nums, target):\n    left, right = 0, len(nums) - 1\n    while left <= right:\n        mid = (left + right) // 2\n        if nums[mid] == target:\n            return mid\n        elif nums[mid] < target:\n            left = mid + 1\n        else:\n            right = mid - 1\n    return -1\n\nprint(search([-1,0,3,5,9,12], 9))`,
-      java: `public class Solution {\n    public static int search(int[] nums, int target) {\n        int left = 0, right = nums.length - 1;\n        while (left <= right) {\n            int mid = left + (right - left) / 2;\n            if (nums[mid] == target) return mid;\n            if (nums[mid] < target) left = mid + 1;\n            else right = mid - 1;\n        }\n        return -1;\n    }\n}`,
-      cpp: `#include <vector>\nusing namespace std;\n\nint search(vector<int>& nums, int target) {\n    int l = 0, r = nums.size() - 1;\n    while (l <= r) {\n        int mid = l + (r - l) / 2;\n        if (nums[mid] == target) return mid;\n        if (nums[mid] < target) l = mid + 1;\n        else r = mid - 1;\n    }\n    return -1;\n}`
+      javascript: `/**\n * @param {number[]} nums\n * @param {number} target\n * @return {number}\n */\nfunction search(nums, target) {\n  // Write your code here\n  \n}`,
+      python: `def search(nums: list[int], target: int) -> int:\n    # Write your code here\n    pass\n`,
+      java: `public class Solution {\n    public static int search(int[] nums, int target) {\n        // Write your code here\n        return -1;\n    }\n}`,
+      cpp: `#include <vector>\nusing namespace std;\n\nint search(vector<int>& nums, int target) {\n    // Write your code here\n    return -1;\n}`
     },
     testCases: [
       { id: 'tc-7-1', input: '[-1,0,3,5,9,12], 9', expectedOutput: '4' },
@@ -190,10 +190,10 @@ const coreQuestions: CodingQuestion[] = [
     tags: ['Linked List', 'Recursion', 'Two Pointers'],
     hints: ['Create a dummy node and advance the smaller current value.'],
     starterCode: {
-      javascript: `function mergeTwoLists(l1, l2) {\n  const result = [];\n  let i = 0, j = 0;\n  while (i < l1.length && j < l2.length) {\n    if (l1[i] <= l2[j]) result.push(l1[i++]);\n    else result.push(l2[j++]);\n  }\n  while (i < l1.length) result.push(l1[i++]);\n  while (j < l2.length) result.push(l2[j++]);\n  return result;\n}\n\nconsole.log(JSON.stringify(mergeTwoLists([1,2,4], [1,3,4])));`,
-      python: `def merge_two_lists(l1, l2):\n    res = []\n    i = j = 0\n    while i < len(l1) and j < len(l2):\n        if l1[i] <= l2[j]:\n            res.append(l1[i])\n            i += 1\n        else:\n            res.append(l2[j])\n            j += 1\n    res.extend(l1[i:])\n    res.extend(l2[j:])\n    return res\n\nprint(merge_two_lists([1, 2, 4], [1, 3, 4]))`,
-      java: `import java.util.*;\n\npublic class Solution {\n    public static List<Integer> merge(List<Integer> l1, List<Integer> l2) {\n        List<Integer> res = new ArrayList<>();\n        int i = 0, j = 0;\n        while (i < l1.size() && j < l2.size()) {\n            if (l1.get(i) <= l2.get(j)) res.add(l1.get(i++));\n            else res.add(l2.get(j++));\n        }\n        while (i < l1.size()) res.add(l1.get(i++));\n        while (j < l2.size()) res.add(l2.get(j++));\n        return res;\n    }\n}`,
-      cpp: `#include <vector>\nusing namespace std;\n\nvector<int> merge(vector<int> l1, vector<int> l2) {\n    vector<int> res;\n    int i = 0, j = 0;\n    while (i < l1.size() && j < l2.size()) {\n        if (l1[i] <= l2[j]) res.push_back(l1[i++]);\n        else res.push_back(l2[j++]);\n    }\n    while (i < l1.size()) res.push_back(l1[i++]);\n    while (j < l2.size()) res.push_back(l2[j++]);\n    return res;\n}`
+      javascript: `/**\n * @param {number[]} l1\n * @param {number[]} l2\n * @return {number[]}\n */\nfunction mergeTwoLists(l1, l2) {\n  // Write your code here\n  \n}`,
+      python: `def merge_two_lists(l1: list[int], l2: list[int]) -> list[int]:\n    # Write your code here\n    pass\n`,
+      java: `import java.util.*;\n\npublic class Solution {\n    public static List<Integer> merge(List<Integer> l1, List<Integer> l2) {\n        // Write your code here\n        return new ArrayList<>();\n    }\n}`,
+      cpp: `#include <vector>\nusing namespace std;\n\nvector<int> merge(vector<int> l1, vector<int> l2) {\n    // Write your code here\n    return {};\n}`
     },
     testCases: [
       { id: 'tc-8-1', input: '[1,2,4], [1,3,4]', expectedOutput: '[1,1,2,3,4,4]' },
@@ -214,10 +214,10 @@ const coreQuestions: CodingQuestion[] = [
     tags: ['Kadane', 'Array', 'Dynamic Programming'],
     hints: ['Current sum = max(current_num, current_sum + current_num).', 'Keep global maximum.'],
     starterCode: {
-      javascript: `function maxSubArray(nums) {\n  let maxSoFar = nums[0];\n  let currMax = nums[0];\n  for (let i = 1; i < nums.length; i++) {\n    currMax = Math.max(nums[i], currMax + nums[i]);\n    maxSoFar = Math.max(maxSoFar, currMax);\n  }\n  return maxSoFar;\n}\n\nconsole.log(maxSubArray([-2,1,-3,4,-1,2,1,-5,4]));`,
-      python: `def max_sub_array(nums):\n    max_so_far = curr = nums[0]\n    for x in nums[1:]:\n        curr = max(x, curr + x)\n        max_so_far = max(max_so_far, curr)\n    return max_so_far\n\nprint(max_sub_array([-2,1,-3,4,-1,2,1,-5,4]))`,
-      java: `public class Solution {\n    public static int maxSubArray(int[] nums) {\n        int maxSoFar = nums[0], curr = nums[0];\n        for (int i = 1; i < nums.length; i++) {\n            curr = Math.max(nums[i], curr + nums[i]);\n            maxSoFar = Math.max(maxSoFar, curr);\n        }\n        return maxSoFar;\n    }\n}`,
-      cpp: `#include <vector>\n#include <algorithm>\nusing namespace std;\n\nint maxSubArray(vector<int>& nums) {\n    int maxSoFar = nums[0], curr = nums[0];\n    for (size_t i = 1; i < nums.size(); i++) {\n        curr = max(nums[i], curr + nums[i]);\n        maxSoFar = max(maxSoFar, curr);\n    }\n    return maxSoFar;\n}`
+      javascript: `/**\n * @param {number[]} nums\n * @return {number}\n */\nfunction maxSubArray(nums) {\n  // Write your code here\n  \n}`,
+      python: `def max_sub_array(nums: list[int]) -> int:\n    # Write your code here\n    pass\n`,
+      java: `public class Solution {\n    public static int maxSubArray(int[] nums) {\n        // Write your code here\n        return 0;\n    }\n}`,
+      cpp: `#include <vector>\n#include <algorithm>\nusing namespace std;\n\nint maxSubArray(vector<int>& nums) {\n    // Write your code here\n    return 0;\n}`
     },
     testCases: [
       { id: 'tc-9-1', input: '[-2,1,-3,4,-1,2,1,-5,4]', expectedOutput: '6', explanation: 'The subarray [4,-1,2,1] has the largest sum 6.' },
@@ -238,16 +238,16 @@ const coreQuestions: CodingQuestion[] = [
     tags: ['SQL', 'Database', 'Aggregate'],
     hints: ['Use DISTINCT and ORDER BY salary DESC LIMIT 1 OFFSET 1 or MAX(salary) WHERE salary < (SELECT MAX).'],
     starterCode: {
-      javascript: `// SQL Query in standard SQL dialect:\nconst sqlQuery = \`\nSELECT MAX(salary) AS SecondHighestSalary\nFROM Employee\nWHERE salary < (SELECT MAX(salary) FROM Employee);\n\`;\nconsole.log(sqlQuery);`,
-      python: `sql_query = """\nSELECT MAX(salary) AS SecondHighestSalary\nFROM Employee\nWHERE salary < (SELECT MAX(salary) FROM Employee);\n"""\nprint(sql_query)`,
-      java: `public class Solution {\n    public static String query = "SELECT MAX(salary) AS SecondHighestSalary FROM Employee WHERE salary < (SELECT MAX(salary) FROM Employee);";\n}`,
-      cpp: `const char* query = "SELECT MAX(salary) AS SecondHighestSalary FROM Employee WHERE salary < (SELECT MAX(salary) FROM Employee);";`,
-      sql: `SELECT MAX(salary) AS SecondHighestSalary\nFROM Employee\nWHERE salary < (SELECT MAX(salary) FROM Employee);`
+      javascript: `// Write an SQL query returning the SecondHighestSalary:\nconst sqlQuery = \`\nSELECT \n\`;`,
+      python: `sql_query = """\nSELECT \n"""`,
+      java: `public class Solution {\n    public static String query = "SELECT ";\n}`,
+      cpp: `const char* query = "SELECT ";`,
+      sql: `-- Write your SQL query here\nSELECT `
     },
     testCases: [
-      { id: 'tc-10-1', input: '[{id:1,salary:100},{id:2,salary:200},{id:3,salary:300}]', expectedOutput: '200' },
-      { id: 'tc-10-2', input: '[{id:1,salary:100}]', expectedOutput: 'null' },
-      { id: 'tc-10-3', input: '[{id:1,salary:500},{id:2,salary:500}]', expectedOutput: 'null', hidden: true }
+      { id: 'tc-10-1', input: '[{"id":1,"salary":100},{"id":2,"salary":200},{"id":3,"salary":300}]', expectedOutput: '200' },
+      { id: 'tc-10-2', input: '[{"id":1,"salary":100}]', expectedOutput: 'null' },
+      { id: 'tc-10-3', input: '[{"id":1,"salary":500},{"id":2,"salary":500}]', expectedOutput: 'null', hidden: true }
     ]
   }
 ];
@@ -502,6 +502,13 @@ const problemTemplates: ProblemSeed[] = [
 ];
 
 /**
+ * Helper to convert camelCase to snake_case for Python signatures
+ */
+function toSnakeCase(str: string): string {
+  return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+}
+
+/**
  * Generator function to build up to 300+ total unique, high-quality coding questions
  */
 function buildFull300QuestionsPool(): CodingQuestion[] {
@@ -521,8 +528,9 @@ function buildFull300QuestionsPool(): CodingQuestion[] {
 
   let currentId = coreQuestions.length + 1;
 
-  // Add the problem templates
+  // Add the problem templates with clean starter code
   for (const tmpl of problemTemplates) {
+    const pyFn = toSnakeCase(tmpl.fnName);
     list.push({
       id: `cq-${currentId++}`,
       title: tmpl.title,
@@ -536,11 +544,11 @@ function buildFull300QuestionsPool(): CodingQuestion[] {
       tags: tmpl.tags,
       hints: tmpl.hints,
       starterCode: {
-        javascript: `${tmpl.jsImpl}\n\n// Run sample test\nconsole.log(${tmpl.fnName}(${tmpl.testCases[0]?.input || ''}));`,
-        python: `${tmpl.pyImpl}\n\nprint(${tmpl.fnName}(${tmpl.testCases[0]?.input || ''}))`,
-        java: `public class Solution {\n    // Implement ${tmpl.fnName}\n}`,
-        cpp: `#include <vector>\nusing namespace std;\n// Implement ${tmpl.fnName}`,
-        sql: tmpl.category === 'SQL & Databases' ? tmpl.jsImpl : undefined
+        javascript: `/**\n * @param {any} ${tmpl.paramSignature || 'input'}\n * @return {any}\n */\nfunction ${tmpl.fnName}(${tmpl.paramSignature}) {\n  // Write your code here\n  \n}`,
+        python: `def ${pyFn}(${tmpl.paramSignature}):\n    # Write your code here\n    pass\n`,
+        java: `public class Solution {\n    public static Object ${tmpl.fnName}(${tmpl.paramSignature}) {\n        // Write your code here\n        return null;\n    }\n}`,
+        cpp: `#include <vector>\nusing namespace std;\n\n// Implement ${tmpl.fnName}\n`,
+        sql: tmpl.category === 'SQL & Databases' ? `-- Write your SQL query here\nSELECT ` : undefined
       },
       testCases: tmpl.testCases.map((tc, idx) => ({
         id: `tc-${currentId}-${idx + 1}`,
@@ -584,10 +592,10 @@ function buildFull300QuestionsPool(): CodingQuestion[] {
         'Look out for duplicate values and boundary elements in the dataset.'
       ],
       starterCode: {
-        javascript: `function solve(input) {\n  // Implementation for: ${title}\n  // Write optimal algorithm here:\n  return true;\n}\n\nconsole.log(solve("sample_input"));`,
-        python: `def solve(input_data):\n    # Implementation for: ${title}\n    return True\n\nprint(solve("sample_input"))`,
-        java: `public class Solution {\n    public static boolean solve(String input) {\n        // Implementation for: ${title}\n        return true;\n    }\n}`,
-        cpp: `#include <iostream>\n#include <vector>\nusing namespace std;\n\nbool solve(const string& input) {\n    // Implementation for: ${title}\n    return true;\n}`,
+        javascript: `function solve(input) {\n  // Implementation for: ${title}\n  // Write optimal algorithm here:\n  \n}`,
+        python: `def solve(input_data):\n    # Implementation for: ${title}\n    # Write optimal algorithm here:\n    pass\n`,
+        java: `public class Solution {\n    public static boolean solve(String input) {\n        // Implementation for: ${title}\n        return false;\n    }\n}`,
+        cpp: `#include <iostream>\n#include <vector>\nusing namespace std;\n\nbool solve(const string& input) {\n    // Implementation for: ${title}\n    return false;\n}`,
         sql: topicGroup.cat === 'SQL & Databases' ? `-- SQL Query for: ${title}\nSELECT * FROM Records WHERE status = 'Active';` : undefined
       },
       testCases: [

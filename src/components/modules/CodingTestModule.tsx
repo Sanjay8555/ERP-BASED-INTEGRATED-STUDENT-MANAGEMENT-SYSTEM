@@ -50,6 +50,7 @@ import {
   UserRole
 } from '../../types';
 import { initialCodingQuestions, shuffleAndSelectQuestions } from '../../data/codingQuestionsPool';
+import { evaluateSolution, SingleTestCaseResult } from '../../utils/codeEvaluator';
 
 interface CodingTestModuleProps {
   questions: CodingQuestion[];
@@ -102,7 +103,7 @@ export default function CodingTestModule({
   const [activeCode, setActiveCode] = useState<string>('');
   const [executionOutput, setExecutionOutput] = useState<string>('');
   const [isExecuting, setIsExecuting] = useState<boolean>(false);
-  const [testCasesResult, setTestCasesResult] = useState<Array<{ id: string; passed: boolean; expected: string; actual: string; time: string }>>([]);
+  const [testCasesResult, setTestCasesResult] = useState<SingleTestCaseResult[]>([]);
   const [timeRemainingSeconds, setTimeRemainingSeconds] = useState<number>(0);
   const [tabSwitchWarnings, setTabSwitchWarnings] = useState<number>(0);
   const [showSubmitModal, setShowSubmitModal] = useState<boolean>(false);
@@ -335,52 +336,29 @@ export default function CodingTestModule({
     setExecutionOutput('Compiling and running against test suite...');
 
     setTimeout(() => {
-      const results: Array<{ id: string; passed: boolean; expected: string; actual: string; time: string }> = [];
-      let passedCount = 0;
+      // Execute the candidate's code using the real in-browser multi-language evaluation engine
+      const evalResult = evaluateSolution(activeCode, selectedLanguage, currentQuestion);
 
-      currentQuestion.testCases.forEach((tc, idx) => {
-        // Safe evaluation simulation
-        const isPassed = Math.random() > 0.15 || activeCode.length > 50; // High probability of passing for valid code
-        if (isPassed) passedCount++;
-
-        results.push({
-          id: tc.id || `tc-${idx}`,
-          passed: isPassed,
-          expected: tc.expectedOutput,
-          actual: isPassed ? tc.expectedOutput : 'Mismatch: Output token syntax error',
-          time: `${(Math.random() * 2 + 0.4).toFixed(1)}ms`
-        });
-      });
-
-      setTestCasesResult(results);
+      setTestCasesResult(evalResult.results);
+      setExecutionOutput(evalResult.outputLog);
       setIsExecuting(false);
 
-      const earnedScore = Math.round((passedCount / currentQuestion.testCases.length) * currentQuestion.points);
-      const isAllPassed = passedCount === currentQuestion.testCases.length;
-
-      const outputLog = `✓ Compilation Succeeded (${selectedLanguage.toUpperCase()})\n` +
-        `✓ Test Suite Results: ${passedCount} / ${currentQuestion.testCases.length} Passed\n` +
-        `✓ Execution Time: ${(Math.random() * 1.5 + 0.5).toFixed(2)}ms | Memory: 34.2 MB\n` +
-        (isAllPassed ? '🎉 All test cases passed with optimal asymptotic complexity!' : '⚠️ Some test assertions failed.');
-
-      setExecutionOutput(outputLog);
-
-      // Update current submission record
+      // Update current submission record with real evaluation metrics
       currentSubmission.answers[currentQuestion.id] = {
         questionId: currentQuestion.id,
         questionTitle: currentQuestion.title,
         language: selectedLanguage,
         code: activeCode,
-        testCasesPassed: passedCount,
-        totalTestCases: currentQuestion.testCases.length,
-        score: earnedScore,
+        testCasesPassed: evalResult.passedCount,
+        totalTestCases: evalResult.totalCount,
+        score: evalResult.earnedScore,
         maxScore: currentQuestion.points,
-        status: isAllPassed ? 'Passed' : passedCount > 0 ? 'Partial' : 'Failed',
-        executionOutput: outputLog,
-        executionTimeMs: 1.2,
+        status: evalResult.isAllPassed ? 'Passed' : evalResult.passedCount > 0 ? 'Partial' : 'Failed',
+        executionOutput: evalResult.outputLog,
+        executionTimeMs: evalResult.executionTimeMs,
         lastExecutedAt: new Date().toISOString()
       };
-    }, 600);
+    }, 400);
   };
 
   // -------------------------------------------------------------
@@ -1010,11 +988,11 @@ export default function CodingTestModule({
               </div>
 
               {/* Terminal Output & Test Case Status Pane */}
-              <div className="h-44 rounded-b-2xl bg-slate-900 p-3 font-mono text-xs text-slate-300 border border-slate-800 overflow-y-auto space-y-2">
+              <div className="h-56 rounded-b-2xl bg-slate-900 p-3 font-mono text-xs text-slate-300 border border-slate-800 overflow-y-auto space-y-2">
                 <div className="flex items-center justify-between text-[10px] uppercase font-bold text-slate-400 border-b border-slate-800 pb-1">
                   <span>Execution Console & Test Cases</span>
                   {testCasesResult.length > 0 && (
-                    <span className="text-teal-400">
+                    <span className={testCasesResult.every(r => r.passed) ? "text-emerald-400 font-bold" : "text-amber-400 font-bold"}>
                       {testCasesResult.filter(r => r.passed).length} / {testCasesResult.length} Test Cases Passed
                     </span>
                   )}
@@ -1026,29 +1004,49 @@ export default function CodingTestModule({
                   </pre>
                 ) : (
                   <p className="text-slate-500 italic text-[11px]">
-                    Click "Run Code & Tests" to compile and execute against the sample test suite.
+                    Click "Run Code & Tests" to compile and execute your algorithm against the test suite.
                   </p>
                 )}
 
-                {/* Test case assertion list */}
+                {/* Test case assertion list with detailed diagnostics */}
                 {testCasesResult.length > 0 && (
-                  <div className="grid grid-cols-1 gap-1.5 pt-1 sm:grid-cols-2">
-                    {testCasesResult.map((tc, idx) => (
-                      <div
-                        key={tc.id}
-                        className={`flex items-center justify-between rounded-lg p-2 text-[10px] border ${
-                          tc.passed
-                            ? 'bg-emerald-950/40 border-emerald-800/60 text-emerald-300'
-                            : 'bg-rose-950/40 border-rose-800/60 text-rose-300'
-                        }`}
-                      >
-                        <div className="flex items-center gap-1.5">
-                          {tc.passed ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" /> : <AlertCircle className="h-3.5 w-3.5 text-rose-400" />}
-                          <span>Case #{idx + 1}</span>
+                  <div className="space-y-1.5 pt-2 border-t border-slate-800/80">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Test Suite Breakdown:</span>
+                    <div className="grid grid-cols-1 gap-2">
+                      {testCasesResult.map((tc, idx) => (
+                        <div
+                          key={tc.id}
+                          className={`rounded-lg p-2.5 text-[11px] border ${
+                            tc.passed
+                              ? 'bg-emerald-950/30 border-emerald-800/50 text-emerald-200'
+                              : 'bg-rose-950/30 border-rose-800/50 text-rose-200'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between font-bold">
+                            <div className="flex items-center gap-1.5">
+                              {tc.passed ? (
+                                <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                              ) : (
+                                <AlertCircle className="h-4 w-4 text-rose-400" />
+                              )}
+                              <span>Test Case #{idx + 1} {tc.hidden ? '(Hidden Case)' : ''}</span>
+                            </div>
+                            <span className={`px-2 py-0.5 rounded text-[10px] ${tc.passed ? 'bg-emerald-900/60 text-emerald-300' : 'bg-rose-900/60 text-rose-300'}`}>
+                              {tc.passed ? `PASSED (${tc.time})` : 'FAILED'}
+                            </span>
+                          </div>
+
+                          {!tc.hidden && (
+                            <div className="mt-1.5 space-y-0.5 text-[10px] text-slate-300 font-mono bg-slate-950/60 p-2 rounded">
+                              <div><span className="text-slate-500">Input:</span> <span className="text-slate-200">{tc.input}</span></div>
+                              <div><span className="text-slate-500">Expected:</span> <span className="text-emerald-300">{tc.expected}</span></div>
+                              <div><span className="text-slate-500">Actual:</span> <span className={tc.passed ? "text-emerald-300" : "text-rose-300"}>{tc.actual}</span></div>
+                              {tc.explanation && <div><span className="text-slate-500">Note:</span> <span className="text-slate-400">{tc.explanation}</span></div>}
+                            </div>
+                          )}
                         </div>
-                        <span className="font-bold">{tc.passed ? `Passed (${tc.time})` : 'Failed'}</span>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>

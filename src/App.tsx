@@ -291,6 +291,12 @@ export default function App() {
   });
   const [codingQuestionsStore, setCodingQuestionsStore] = useState<CodingQuestion[]>(() => {
     try {
+      const version = localStorage.getItem('codingQuestionsVersion');
+      if (version !== 'v2') {
+        localStorage.setItem('codingQuestionsVersion', 'v2');
+        localStorage.setItem('codingQuestionsStore', JSON.stringify(initialCodingQuestions));
+        return initialCodingQuestions;
+      }
       const saved = localStorage.getItem('codingQuestionsStore');
       return saved ? JSON.parse(saved) : initialCodingQuestions;
     } catch {
