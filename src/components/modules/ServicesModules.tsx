@@ -35,8 +35,12 @@ import {
   Eye,
   Sparkles,
   DollarSign,
-  GraduationCap
+  GraduationCap,
+  QrCode,
+  Smartphone,
+  Lock
 } from 'lucide-react';
+import collegePaymentQr from '../../assets/college_payment_qr.png';
 import {
   FeeStructure,
   FeePayment,
@@ -113,6 +117,16 @@ export function FeeCollections({
   const [payMethod, setPayMethod] = useState('Credit Card');
   const [receiptModalPay, setReceiptModalPay] = useState<FeePayment | null>(null);
   const [copiedReceipt, setCopiedReceipt] = useState(false);
+
+  // QR Code Online Payment Gateway State (Shows before generating receipt)
+  const [qrPaymentModalData, setQrPaymentModalData] = useState<{
+    studentId: string;
+    feeStructureId: string;
+    amount: number;
+    existingPaymentId?: string;
+    utrNumber: string;
+  } | null>(null);
+  const [copiedUpi, setCopiedUpi] = useState(false);
 
   // Fee Structures Management State
   const [structureSearch, setStructureSearch] = useState('');
@@ -209,27 +223,22 @@ export function FeeCollections({
     setReceiptModalPay(newPayment);
   };
 
-  // Quick Pay handler for Student / Parent
+  // Quick Pay handler for Student / Parent (Triggers Official V.S.B. UPI QR Gateway before receipt)
   const handleStudentPayStructure = (studentId: string, feeStructureId: string) => {
     const fee = feeStructures.find(f => f.id === feeStructureId);
     if (!fee) return;
 
     // Check if there is an existing pending record
     const existingPayment = feePayments.find(p => p.studentId === studentId && p.feeStructureId === feeStructureId && p.status !== 'Paid');
+    const amountToPay = fee.amount - (existingPayment?.amountPaid || 0);
 
-    const paymentRecord: FeePayment = {
-      id: existingPayment?.id || `pay-${Date.now()}`,
+    setQrPaymentModalData({
       studentId,
       feeStructureId,
-      amountPaid: fee.amount,
-      paymentDate: new Date().toISOString().split('T')[0],
-      paymentMethod: 'Credit Card',
-      status: 'Paid',
-      receiptNumber: existingPayment?.receiptNumber || `RCPT-2026-${Math.floor(10000 + Math.random() * 90000)}`
-    };
-
-    onAddPayment(paymentRecord);
-    setReceiptModalPay(paymentRecord);
+      amount: amountToPay,
+      existingPaymentId: existingPayment?.id,
+      utrNumber: `VSB-${Date.now().toString().slice(-6)}`
+    });
   };
 
   // Open modal for Adding a new Fee Structure
@@ -1562,6 +1571,158 @@ Official Computer-Generated Receipt.`;
           </div>
         </div>
       )}
+
+      {/* ========================================================================= */}
+      {/* V.S.B. COLLEGE ONLINE UPI QR CODE PAYMENT MODAL */}
+      {/* ========================================================================= */}
+      {qrPaymentModalData && (() => {
+        const modalStudent = students.find(s => s.id === qrPaymentModalData.studentId);
+        const modalUser = modalStudent ? users.find(u => u.id === modalStudent.userId) : null;
+        const modalStudentName = modalUser ? `${modalUser.name} (${modalStudent?.rollNo || modalStudent?.id})` : 'Student Candidate';
+        const fee = feeStructures.find(f => f.id === qrPaymentModalData.feeStructureId);
+        const dept = departments.find(d => d.id === modalStudent?.departmentId);
+
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-xs">
+            <div className="relative max-h-[92vh] w-full max-w-md overflow-y-auto rounded-3xl bg-white shadow-2xl dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 space-y-4 animate-in fade-in zoom-in-95 duration-200">
+              {/* Header */}
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-800">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-500/20 text-teal-600 dark:text-teal-400 border border-teal-500/30">
+                    <QrCode className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                      Online Payment Gateway
+                    </h3>
+                    <p className="text-[11px] text-teal-600 dark:text-teal-400 font-mono flex items-center gap-1 font-semibold">
+                      <ShieldCheck className="h-3.5 w-3.5" />
+                      V.S.B. Engineering College Bursar
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setQrPaymentModalData(null)}
+                  className="rounded-xl p-1.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              {/* Student & Fee Summary */}
+              <div className="rounded-2xl bg-slate-50 p-3.5 text-xs font-mono dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800 space-y-1.5">
+                <div className="flex justify-between">
+                  <span className="text-slate-400 uppercase text-[10px]">Candidate</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-200">{modalStudentName}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400 uppercase text-[10px]">Department</span>
+                  <span className="font-semibold text-slate-700 dark:text-slate-300">{dept?.name || 'Campus Wide'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400 uppercase text-[10px]">Fee Item</span>
+                  <span className="font-bold text-teal-700 dark:text-teal-300">{fee?.category || 'Tuition'} - {fee?.name || 'Academic Fee'}</span>
+                </div>
+                <div className="flex justify-between pt-1.5 border-t border-slate-200/60 dark:border-slate-800 items-center">
+                  <span className="text-slate-500 font-sans font-bold">Total Amount Payable</span>
+                  <span className="text-lg font-black text-emerald-600 dark:text-emerald-400">
+                    ₹{qrPaymentModalData.amount.toLocaleString()}
+                  </span>
+                </div>
+              </div>
+
+              {/* The Official VSB College UPI QR Code Container */}
+              <div className="flex flex-col items-center justify-center p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-3 text-center">
+                <div className="relative p-2.5 bg-white rounded-2xl shadow-md border-2 border-teal-500/40 max-w-[230px]">
+                  <img
+                    src={collegePaymentQr || "/college_payment_qr.png"}
+                    alt="V.S.B. Engineering College Official Payment QR Code"
+                    className="w-52 h-52 object-contain rounded-xl"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                    Scan & Pay using Google Pay, PhonePe, Paytm, or BHIM
+                  </p>
+                  <div className="flex items-center justify-center gap-1.5 text-[11px] font-mono text-slate-500 dark:text-slate-400">
+                    <span>UPI ID: <strong className="text-teal-600 dark:text-teal-400">vsbcollege.fees@upi</strong></span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText('vsbcollege.fees@upi');
+                        setCopiedUpi(true);
+                        setTimeout(() => setCopiedUpi(false), 2000);
+                      }}
+                      className="p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 cursor-pointer"
+                      title="Copy UPI ID"
+                    >
+                      {copiedUpi ? <Check className="h-3 w-3 text-emerald-500" /> : <Copy className="h-3 w-3" />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Supported Apps Badges */}
+                <div className="flex flex-wrap items-center justify-center gap-1.5 text-[10px] font-semibold text-slate-500 dark:text-slate-400">
+                  <span className="px-2 py-0.5 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">Google Pay</span>
+                  <span className="px-2 py-0.5 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">PhonePe</span>
+                  <span className="px-2 py-0.5 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">Paytm</span>
+                  <span className="px-2 py-0.5 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">BHIM / Any UPI</span>
+                </div>
+              </div>
+
+              {/* UTR / Transaction Ref Input */}
+              <div>
+                <label className="block text-[11px] font-bold uppercase text-slate-400 mb-1">
+                  UPI Ref / UTR Transaction ID
+                </label>
+                <input
+                  type="text"
+                  value={qrPaymentModalData.utrNumber}
+                  onChange={(e) => setQrPaymentModalData({ ...qrPaymentModalData, utrNumber: e.target.value })}
+                  placeholder="e.g. 425109849201 or VSB-90412"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-mono font-semibold text-slate-800 dark:border-slate-800 dark:bg-slate-950 dark:text-white"
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setQrPaymentModalData(null)}
+                  className="rounded-xl px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const paymentRecord: FeePayment = {
+                      id: qrPaymentModalData.existingPaymentId || `pay-${Date.now()}`,
+                      studentId: qrPaymentModalData.studentId,
+                      feeStructureId: qrPaymentModalData.feeStructureId,
+                      amountPaid: qrPaymentModalData.amount,
+                      paymentDate: new Date().toISOString().split('T')[0],
+                      paymentMethod: qrPaymentModalData.utrNumber ? `UPI / QR (${qrPaymentModalData.utrNumber})` : 'UPI / QR (VSB Official)',
+                      status: 'Paid',
+                      receiptNumber: `RCPT-2026-${Math.floor(10000 + Math.random() * 90000)}`
+                    };
+
+                    onAddPayment(paymentRecord);
+                    setQrPaymentModalData(null);
+                    setReceiptModalPay(paymentRecord);
+                  }}
+                  className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 px-5 py-2.5 text-xs font-bold text-white shadow-md hover:from-teal-500 hover:to-emerald-500 transition-all cursor-pointer"
+                >
+                  <CheckCircle2 className="h-4 w-4" />
+                  <span>I Have Paid — Show Transaction Receipt</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ========================================================================= */}
       {/* PRINTABLE TRANSACTION RECEIPT MODAL */}
